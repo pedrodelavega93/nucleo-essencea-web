@@ -353,3 +353,268 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.nativeEvent?.isComposing) submitEmail();
   });
 })();
+
+
+/* ============================================================
+   CARRITO DE COMPRA (varios productos en un solo pago Stripe)
+   ============================================================ */
+(function initCart() {
+  // Nombre y precio (MXN) de cada producto que se puede agregar al carrito.
+  // Los planes de suscripción NO se incluyen: van por su propio flujo.
+  const PRODUCT_INFO = {
+    a60:        { name: 'Difusor A60',      price: 1199 },
+    a300:       { name: 'Difusor A300',     price: 3999 },
+    a1000:      { name: 'Difusor A1000',    price: 8999 },
+    a3000:      { name: 'Difusor A3000',    price: 11999 },
+    a5000:      { name: 'Difusor A5000',    price: 16999 },
+    carpro:     { name: 'CAR PRO',          price: 1399 },
+    aerosol250: { name: 'Home Spray 250 ml', price: 600 },
+    perfume30:  { name: 'Perfume 30 ml',    price: 280 },
+    perfume60:  { name: 'Perfume 60 ml',    price: 390 },
+    perfume100: { name: 'Perfume 100 ml',   price: 600 },
+    aceite250:  { name: 'Aceite 250 ml',    price: 900 },
+    aceite500:  { name: 'Aceite 500 ml',    price: 1300 },
+    aceite1l:   { name: 'Aceite 1 litro',   price: 2000 },
+  };
+
+  // Colores elegidos por producto (ej. Difusor A60: Blanco / Negro).
+  const selectedColors = {};
+
+  // Estado del carrito: cada línea = { productKey, name, price, quantity, color, aroma }
+  let cart = [];
+
+  const money = (n) => '$' + n.toLocaleString('es-MX') + ' MXN';
+
+  // ---------- Elementos del DOM ----------
+  const fab = document.getElementById('cartFab');
+  const countEl = document.getElementById('cartCount');
+  const drawer = document.getElementById('cartDrawer');
+  const drawerClose = document.getElementById('cartDrawerClose');
+  const itemsEl = document.getElementById('cartItems');
+  const emptyEl = document.getElementById('cartEmpty');
+  const footEl = document.getElementById('cartFoot');
+  const totalEl = document.getElementById('cartTotal');
+  const payBtn = document.getElementById('cartPayBtn');
+  const toastEl = document.getElementById('toast');
+
+  if (!fab || !drawer) return;
+
+  // ---------- Toast de confirmación ----------
+  let toastTimer;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+  }
+
+  // ---------- Selectores de color (Difusor A60) ----------
+  document.querySelectorAll('[data-color-picker]').forEach((picker) => {
+    const key = picker.dataset.colorPicker;
+    picker.querySelectorAll('.color-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        picker.querySelectorAll('.color-chip').forEach((c) => {
+          c.classList.remove('selected');
+          c.setAttribute('aria-pressed', 'false');
+        });
+        chip.classList.add('selected');
+        chip.setAttribute('aria-pressed', 'true');
+        selectedColors[key] = chip.dataset.color;
+      });
+    });
+  });
+
+  // ---------- Selectores de cantidad ----------
+  document.querySelectorAll('[data-qty]').forEach((group) => {
+    const input = group.querySelector('.qty-input');
+    const dec = group.querySelector('[data-qty-dec]');
+    const inc = group.querySelector('[data-qty-inc]');
+    const clamp = () => {
+      let v = parseInt(input.value, 10);
+      if (isNaN(v) || v < 1) v = 1;
+      input.value = v;
+    };
+    dec.addEventListener('click', () => { input.value = Math.max(1, (parseInt(input.value, 10) || 1) - 1); });
+    inc.addEventListener('click', () => { input.value = (parseInt(input.value, 10) || 1) + 1; });
+    input.addEventListener('change', clamp);
+    input.addEventListener('blur', clamp);
+  });
+
+  // ---------- Añadir al carrito ----------
+  function addToCart(btn) {
+    const key = btn.dataset.product;
+    const info = PRODUCT_INFO[key];
+    if (!info) return;
+
+    // Color obligatorio si el producto tiene selector de color (A60).
+    const colorFrom = btn.dataset.colorFrom;
+    let color = '';
+    if (colorFrom) {
+      color = selectedColors[colorFrom] || '';
+      if (!color) {
+        showToast('Elige un color (Blanco o Negro) antes de agregar.');
+        return;
+      }
+    }
+
+    // Aroma de regalo obligatorio si el producto lo incluye.
+    const aromaFrom = btn.dataset.aromaFrom;
+    let aroma = '';
+    if (aromaFrom) {
+      aroma = (selectedAromas[aromaFrom] || '').trim();
+      if (!aroma) {
+        showToast('Elige primero el aroma del catálogo para este producto.');
+        return;
+      }
+    }
+
+    // Cantidad desde el control de la tarjeta (si existe).
+    const group = btn.closest('.feature-copy, .card, .feature, .size-price-row') || document;
+    const qtyInput = btn.parentElement.querySelector('.qty-input')
+      || (btn.closest('[data-qty]') ? btn.closest('[data-qty]').querySelector('.qty-input') : null)
+      || group.querySelector('.qty-input');
+    const qty = qtyInput ? Math.max(1, parseInt(qtyInput.value, 10) || 1) : 1;
+
+    // Si ya existe una línea idéntica (mismo producto, color y aroma) se suma.
+    const existing = cart.find((it) => it.productKey === key && it.color === color && it.aroma === aroma);
+    if (existing) {
+      existing.quantity += qty;
+    } else {
+      cart.push({ productKey: key, name: info.name, price: info.price, quantity: qty, color, aroma });
+    }
+
+    if (qtyInput) qtyInput.value = 1;
+    renderCart();
+    showToast(info.name + ' agregado al carrito');
+    fab.classList.add('bump');
+    setTimeout(() => fab.classList.remove('bump'), 400);
+  }
+
+  document.querySelectorAll('[data-add-to-cart]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      addToCart(btn);
+    });
+  });
+
+  // ---------- Cambios de cantidad / eliminar dentro del carrito ----------
+  function changeQty(index, delta) {
+    const item = cart[index];
+    if (!item) return;
+    item.quantity += delta;
+    if (item.quantity < 1) cart.splice(index, 1);
+    renderCart();
+  }
+  function removeItem(index) {
+    cart.splice(index, 1);
+    renderCart();
+  }
+
+  // ---------- Render ----------
+  function renderCart() {
+    const totalUnits = cart.reduce((s, it) => s + it.quantity, 0);
+    countEl.textContent = totalUnits;
+    countEl.style.display = totalUnits > 0 ? 'grid' : 'none';
+
+    if (!cart.length) {
+      itemsEl.innerHTML = '';
+      emptyEl.style.display = 'block';
+      footEl.style.display = 'none';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    footEl.style.display = 'block';
+
+    itemsEl.innerHTML = cart.map((it, i) => {
+      const variantes = [];
+      if (it.color) variantes.push('Color: ' + it.color);
+      if (it.aroma) variantes.push('Aroma: ' + it.aroma);
+      const meta = variantes.length ? '<div class="ci-meta">' + variantes.join(' · ') + '</div>' : '';
+      return (
+        '<div class="cart-item" data-index="' + i + '">' +
+          '<div class="ci-info">' +
+            '<div class="ci-name serif">' + it.name + '</div>' +
+            meta +
+            '<div class="ci-price">' + money(it.price) + ' c/u</div>' +
+          '</div>' +
+          '<div class="ci-controls">' +
+            '<div class="ci-qty">' +
+              '<button type="button" class="qty-btn" data-ci-dec aria-label="Quitar uno">−</button>' +
+              '<span class="ci-qty-val">' + it.quantity + '</span>' +
+              '<button type="button" class="qty-btn" data-ci-inc aria-label="Agregar uno">+</button>' +
+            '</div>' +
+            '<button type="button" class="ci-remove" data-ci-remove aria-label="Eliminar del carrito">Eliminar</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+
+    const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+    totalEl.textContent = money(total);
+
+    itemsEl.querySelectorAll('.cart-item').forEach((row) => {
+      const i = parseInt(row.dataset.index, 10);
+      row.querySelector('[data-ci-dec]').addEventListener('click', () => changeQty(i, -1));
+      row.querySelector('[data-ci-inc]').addEventListener('click', () => changeQty(i, 1));
+      row.querySelector('[data-ci-remove]').addEventListener('click', () => removeItem(i));
+    });
+  }
+
+  // ---------- Abrir / cerrar drawer ----------
+  function openDrawer() {
+    drawer.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  fab.addEventListener('click', openDrawer);
+  drawerClose.addEventListener('click', closeDrawer);
+  drawer.addEventListener('click', (e) => { if (e.target === drawer) closeDrawer(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+  });
+
+  // ---------- Pagar (crea la sesión de Stripe con todo el carrito) ----------
+  payBtn.addEventListener('click', async () => {
+    if (!cart.length) return;
+    const original = payBtn.textContent;
+    payBtn.textContent = 'Abriendo pago…';
+    payBtn.disabled = true;
+    try {
+      const resp = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart.map((it) => ({
+            productKey: it.productKey,
+            quantity: it.quantity,
+            color: it.color,
+            aroma: it.aroma,
+            name: it.name,
+          })),
+        }),
+      });
+      const data = await resp.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      throw new Error(data.error || 'Sin URL de pago');
+    } catch (err) {
+      console.error('No se pudo abrir el checkout del carrito:', err);
+      alert(
+        'No pudimos abrir el pago en este momento.\n\n' +
+        'Detalle: ' + (err && err.message ? err.message : 'error desconocido') +
+        '\n\nPor favor inténtalo de nuevo en unos segundos.'
+      );
+    } finally {
+      payBtn.textContent = original;
+      payBtn.disabled = false;
+    }
+  });
+
+  // Estado inicial.
+  renderCart();
+})();
