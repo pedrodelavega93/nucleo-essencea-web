@@ -1,0 +1,39 @@
+  background:var(--gold);
+  color:var(--black);
+  border:none;
+  border-radius:999px;
+  padding:13px;
+  font-family:'Jost', sans-serif;
+  font-size:0.85rem;
+  font-weight:600;
+  letter-spacing:0.05em;
+  cursor:pointer;
+  transition:opacity 0.3s ease;
+}
+.sub-continue-btn:hover{ opacity:0.9; }
+.sub-continue-btn:disabled{ opacity:0.6; cursor:default; }
+.sub-cancel-btn{
+  width:100%;
+  background:transparent;
+  color:var(--muted);
+  border:none;
+  padding:12px 8px 0;
+  font-family:'Jost', sans-serif;
+  font-size:0.8rem;
+  cursor:pointer;
+}
+.sub-cancel-btn:hover{ color:var(--cream); }
+
+/* ---------- reveal on scroll ---------- */
+.reveal{
+  opacity:0;
+  transform:translateY(24px);
+  transition:opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.in{ opacity:1; transform:translateY(0); }
+
+/* ---------- focus visibility ---------- */
+a:focus-visible, button:focus-visible{
+  outline:2px solid var(--gold-2);
+  outline-offset:3px;
+}
