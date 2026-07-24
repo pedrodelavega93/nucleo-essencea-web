@@ -1,0 +1,11 @@
+{
+  "name": "nucleo-essences-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo \"No build step required for static site\""
+  },
+  "dependencies": {
+    "stripe": "^17.0.0"
+  }
+}
