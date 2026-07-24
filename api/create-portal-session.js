@@ -1,3 +1,35 @@
+// ============================================================
+// NÚCLEO essences — busca al cliente en Stripe por su correo y
+// genera una sesión del Customer Portal para que pueda ver,
+// cambiar o cancelar su suscripción él mismo.
+//
+// Requiere que el Customer Portal esté activado en:
+// https://dashboard.stripe.com/settings/billing/portal
+// ============================================================
+
+const Stripe = require('stripe');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+module.exports = async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
+
+  try {
+    const { email } = req.body || {};
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Correo no proporcionado' });
+    }
 
     const customers = await stripe.customers.list({
       email: email.trim().toLowerCase(),
