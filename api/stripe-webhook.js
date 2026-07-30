@@ -260,6 +260,58 @@ function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direcc
     .join('\n');
 }
 
+// Plantilla del correo INTERNO para el dueño del negocio.
+// Diseño simple (HTML básico + texto plano), sin identidad de marca.
+function plantillaInterna({
+  nombre,
+  correo,
+  resumen,
+  total,
+  recoleccion,
+  direccion,
+  paymentId,
+}) {
+  const resumenLineas = String(resumen)
+    .split(/\s\|\s/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const entregaTexto = recoleccion
+    ? 'Cliente eligió RECOLECCIÓN EN TIENDA — no requiere dirección'
+    : `Envío a domicilio${direccion && direccion.valor ? ' — ' + direccion.valor : ''}`;
+
+  const filas = [
+    ['Cliente', nombre || '(sin nombre)'],
+    ['Correo', correo || '(sin correo)'],
+    ['Producto(s)', resumenLineas.join(' • ') || resumen],
+    ['Total', total || '(sin total)'],
+    ['Método de entrega', entregaTexto],
+    ['ID de pago (Stripe)', paymentId || '(sin ID)'],
+  ];
+
+  const filasHtml = filas
+    .map(
+      ([etiqueta, valor]) =>
+        `<tr><td style="padding:6px 10px; border:1px solid #ddd; font-weight:bold; background:#f5f5f5; white-space:nowrap;">${escaparHtml(
+          etiqueta
+        )}</td><td style="padding:6px 10px; border:1px solid #ddd;">${escaparHtml(valor)}</td></tr>`
+    )
+    .join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"></head>
+<body style="margin:0; padding:16px; font-family:Arial, Helvetica, sans-serif; color:#222;">
+  <h2 style="margin:0 0 12px; font-size:18px;">Nuevo pedido recibido</h2>
+  <table cellpadding="0" cellspacing="0" style="border-collapse:collapse; font-size:14px;">
+    ${filasHtml}
+  </table>
+</body></html>`;
+
+  const text = filas.map(([etiqueta, valor]) => `${etiqueta}: ${valor}`).join('\n');
+
+  return { html, text };
+}
+
 // Formatea el total (viene en centavos) a moneda legible.
 function formatearTotal(session) {
   if (typeof session.amount_total !== 'number') return '';
@@ -355,6 +407,45 @@ module.exports = async (req, res) => {
     }
 
     console.log('[v0] Correo de confirmación enviado a', email);
+
+    // ── Segundo correo: notificación interna al dueño del negocio ──
+    const paymentId =
+      (typeof session.payment_intent === 'string' && session.payment_intent) ||
+      (session.payment_intent && session.payment_intent.id) ||
+      session.id;
+
+    const montoAsunto =
+      typeof session.amount_total === 'number'
+        ? (session.amount_total / 100).toLocaleString('es-MX', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        : '0.00';
+
+    const interno = plantillaInterna({
+      nombre,
+      correo: email,
+      resumen,
+      total,
+      recoleccion,
+      direccion,
+      paymentId,
+    });
+
+    const { error: errorInterno } = await resend.emails.send({
+      from: REMITENTE,
+      to: 'pedro.delavega93@gmail.com',
+      subject: `Nuevo pedido: ${nombre || 'Cliente'} - $${montoAsunto} MXN`,
+      html: interno.html,
+      text: interno.text,
+    });
+
+    if (errorInterno) {
+      console.error('[v0] Error enviando la notificación interna con Resend:', errorInterno);
+    } else {
+      console.log('[v0] Notificación interna enviada a pedro.delavega93@gmail.com');
+    }
+
     res.status(200).json({ received: true, emailSent: true });
   } catch (err) {
     console.error('[v0] Error procesando checkout.session.completed:', err);
