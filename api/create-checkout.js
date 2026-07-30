@@ -115,14 +115,46 @@ module.exports = async (req, res) => {
         }
 
         const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
-        lineItems.push({ price: product.price, quantity: qty });
 
         if (DIFUSOR_KEYS.includes(item.productKey)) hayDifusor = true;
 
-        // Resumen legible que viaja en la metadata para el correo de aviso.
+        // Variantes elegidas por el cliente (color y/o aroma).
         const variantes = [];
         if (item.color) variantes.push('Color: ' + String(item.color));
         if (item.aroma) variantes.push('Aroma: ' + String(item.aroma));
+
+        // Recuperamos el Price real de Stripe para reutilizar su monto,
+        // moneda, nombre e imagen (Stripe sigue siendo la fuente de verdad
+        // del precio; el cliente nunca lo define). Con esos datos armamos un
+        // "price_data" cuyo product_data.name incluye el color/aroma, para
+        // que la variante SÍ se muestre en la página de pago de Stripe
+        // (usar solo el Price ID existente muestra únicamente el nombre base).
+        const priceObj = await stripe.prices.retrieve(product.price, {
+          expand: ['product'],
+        });
+
+        const nombreBase =
+          (priceObj.product && priceObj.product.name) ||
+          (item.name ? String(item.name) : item.productKey);
+        const nombreConVariante =
+          nombreBase + (variantes.length ? ' — ' + variantes.join(', ') : '');
+
+        const productData = { name: nombreConVariante.slice(0, 250) };
+        if (variantes.length) productData.description = variantes.join(', ');
+        if (priceObj.product && Array.isArray(priceObj.product.images) && priceObj.product.images.length) {
+          productData.images = priceObj.product.images;
+        }
+
+        lineItems.push({
+          quantity: qty,
+          price_data: {
+            currency: priceObj.currency,
+            unit_amount: priceObj.unit_amount,
+            product_data: productData,
+          },
+        });
+
+        // Resumen legible que viaja en la metadata para los correos de aviso.
         const nombre = item.name ? String(item.name) : item.productKey;
         resumenPartes.push(
           nombre + (variantes.length ? ' (' + variantes.join(', ') + ')' : '') + ' x' + qty
