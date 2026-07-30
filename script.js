@@ -228,7 +228,10 @@ async function goToCheckout(btn) {
 // Solo los botones de pago directo (suscripciones / compra inmediata) usan
 // goToCheckout. Los botones de "Añadir al carrito" también llevan
 // data-product, así que se excluyen aquí y se manejan en el módulo de carrito.
-document.querySelectorAll('[data-product]:not([data-add-to-cart])').forEach((btn) => {
+// CORREGIDO: también se excluyen los botones de tamaño del selector de
+// aceite (.catalog-size), que llevan data-product solo para identificar
+// el tamaño elegido y NO deben disparar el checkout directo.
+document.querySelectorAll('[data-product]:not([data-add-to-cart]):not(.catalog-size)').forEach((btn) => {
   btn.addEventListener('click', (e) => {
     e.preventDefault();
     goToCheckout(btn);
