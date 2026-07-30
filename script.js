@@ -345,7 +345,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 
-/* ============ GESTIONAR SUSCRIPCIÓN (Stripe Customer Portal) ============ */
+/* ============ GESTIONAR SUSCRIPCIÓN (lista + cambio de aroma) ============ */
 (function () {
   const openBtn = document.getElementById('manageSubFloat');
   const modal = document.getElementById('subModal');
@@ -354,11 +354,26 @@ document.addEventListener('keydown', (e) => {
   const continueBtn = document.getElementById('subContinueBtn');
   const input = document.getElementById('subEmailInput');
   const errorMsg = document.getElementById('subError');
+  const stepEmail = document.getElementById('subStepEmail');
+  const stepList = document.getElementById('subStepList');
+  const listEmail = document.getElementById('subListEmail');
+  const listEl = document.getElementById('subList');
+  const portalLink = document.getElementById('subPortalLink');
+  const backBtn = document.getElementById('subBackBtn');
   if (!openBtn || !modal) return;
+
+  let currentEmail = '';
+
+  function showStep(which) {
+    stepEmail.style.display = which === 'email' ? 'block' : 'none';
+    stepList.style.display = which === 'list' ? 'block' : 'none';
+  }
 
   function openModal() {
     errorMsg.textContent = '';
     input.value = '';
+    currentEmail = '';
+    showStep('email');
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
     setTimeout(() => input.focus(), 50);
@@ -371,15 +386,19 @@ document.addEventListener('keydown', (e) => {
   openBtn.addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
   cancelBtn.addEventListener('click', closeModal);
+  backBtn.addEventListener('click', () => { showStep('email'); setTimeout(() => input.focus(), 50); });
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
   });
 
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  // ---- Paso 1: buscar suscripciones por correo ----
   async function submitEmail() {
     const email = input.value.trim();
     errorMsg.textContent = '';
-
     if (!email || !email.includes('@')) {
       errorMsg.textContent = 'Ingresa un correo válido.';
       return;
@@ -387,17 +406,17 @@ document.addEventListener('keydown', (e) => {
 
     continueBtn.disabled = true;
     continueBtn.textContent = 'Buscando...';
-
     try {
-      const resp = await fetch('/api/create-portal-session', {
+      const resp = await fetch('/api/list-subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       const data = await resp.json();
-
-      if (resp.ok && data.url) {
-        window.location.href = data.url;
+      if (resp.ok && Array.isArray(data.subscriptions)) {
+        currentEmail = data.email || email;
+        renderList(data.subscriptions);
+        showStep('list');
       } else {
         errorMsg.textContent = data.error || 'No encontramos esa suscripción.';
       }
@@ -405,9 +424,126 @@ document.addEventListener('keydown', (e) => {
       errorMsg.textContent = 'Error de conexión. Intenta de nuevo.';
     } finally {
       continueBtn.disabled = false;
-      continueBtn.textContent = 'Continuar';
+      continueBtn.textContent = 'Ver mis suscripciones';
     }
   }
+
+  // ---- Paso 2: pintar la lista de suscripciones ----
+  function renderList(subs) {
+    listEmail.textContent = currentEmail;
+    if (!subs.length) {
+      listEl.innerHTML = '<div class="sub-list-empty">No encontramos suscripciones activas con este correo.</div>';
+      return;
+    }
+    listEl.innerHTML = subs.map((s, i) => {
+      const tamano = s.tamano ? ' · ' + esc(s.tamano) : '';
+      const aromaActual = s.aroma ? esc(s.aroma) : 'Sin aroma definido';
+
+      // Zona de cambio de aroma (solo aplica a suscripciones con aroma).
+      let aromaBloque = '';
+      if (s.puedeCambiar) {
+        aromaBloque =
+          '<div class="sub-card-aroma">' +
+            '<button type="button" class="sub-choose-aroma" data-choose="' + i + '">Cambiar aroma (elegir del catálogo)</button>' +
+            '<button type="button" class="sub-save-aroma" data-save="' + i + '" disabled>Guardar</button>' +
+          '</div>' +
+          '<p class="sub-card-msg" data-msg="' + i + '"></p>';
+      } else {
+        aromaBloque =
+          '<div class="sub-card-locked">Ya no es posible cambiar el aroma para tu próxima entrega ' +
+          '(se requiere al menos 5 días de anticipación). Podrás cambiarlo de nuevo a partir del ' +
+          esc(s.cambiarDesdeLabel || s.proximaFechaLabel) + '.</div>';
+      }
+
+      return (
+        '<div class="sub-card" data-card="' + i + '" data-sub-id="' + esc(s.id) + '">' +
+          '<div class="sub-card-head">' +
+            '<span class="sub-card-title">' + esc(s.etiqueta) + tamano + '</span>' +
+            '<span class="sub-card-badge">' + esc(s.estado === 'active' ? 'Activa' : s.estado) + '</span>' +
+          '</div>' +
+          '<div class="sub-card-row">Aroma actual: <strong data-aroma-actual="' + i + '">' + aromaActual + '</strong></div>' +
+          '<div class="sub-card-row">Próxima entrega: <strong>' + esc(s.proximaFechaLabel) + '</strong></div>' +
+          aromaBloque +
+        '</div>'
+      );
+    }).join('');
+
+    // Estado local del aroma pendiente por tarjeta.
+    const pendiente = {};
+
+    listEl.querySelectorAll('[data-choose]').forEach((btn) => {
+      const i = btn.dataset.choose;
+      const card = listEl.querySelector('[data-card="' + i + '"]');
+      const saveBtn = listEl.querySelector('[data-save="' + i + '"]');
+      const msg = listEl.querySelector('[data-msg="' + i + '"]');
+      btn.addEventListener('click', () => {
+        // Reutilizamos el catálogo de aromas ambientales con callback.
+        openCatalog('ambientales', (name) => {
+          pendiente[i] = name;
+          btn.textContent = 'Nuevo aroma: ' + name + ' (cambiar)';
+          saveBtn.disabled = false;
+          if (msg) { msg.textContent = ''; msg.className = 'sub-card-msg'; }
+        });
+      });
+
+      saveBtn.addEventListener('click', async () => {
+        const nuevo = pendiente[i];
+        if (!nuevo) return;
+        const subId = card.dataset.subId;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Guardando...';
+        if (msg) { msg.textContent = ''; msg.className = 'sub-card-msg'; }
+        try {
+          const resp = await fetch('/api/update-aroma', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: currentEmail, subscriptionId: subId, aroma: nuevo }),
+          });
+          const data = await resp.json();
+          if (resp.ok && data.ok) {
+            const actualEl = listEl.querySelector('[data-aroma-actual="' + i + '"]');
+            if (actualEl) actualEl.textContent = data.aromaNuevo;
+            if (msg) { msg.textContent = '¡Listo! Tu próxima entrega llegará con ' + data.aromaNuevo + '. Te enviamos un correo de confirmación.'; msg.className = 'sub-card-msg ok'; }
+            btn.textContent = 'Cambiar aroma (elegir del catálogo)';
+            delete pendiente[i];
+          } else {
+            if (msg) { msg.textContent = data.error || 'No se pudo cambiar el aroma.'; msg.className = 'sub-card-msg err'; }
+            saveBtn.disabled = false;
+          }
+        } catch (err) {
+          if (msg) { msg.textContent = 'Error de conexión. Intenta de nuevo.'; msg.className = 'sub-card-msg err'; }
+          saveBtn.disabled = false;
+        } finally {
+          saveBtn.textContent = 'Guardar';
+        }
+      });
+    });
+  }
+
+  // ---- Portal de Stripe para pago / cancelación ----
+  portalLink.addEventListener('click', async () => {
+    if (!currentEmail) return;
+    const original = portalLink.textContent;
+    portalLink.textContent = 'Abriendo portal...';
+    portalLink.disabled = true;
+    try {
+      const resp = await fetch('/api/create-portal-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      portalLink.textContent = data.error || 'No se pudo abrir el portal.';
+    } catch (err) {
+      portalLink.textContent = 'Error de conexión. Intenta de nuevo.';
+    } finally {
+      setTimeout(() => { portalLink.textContent = original; portalLink.disabled = false; }, 2500);
+    }
+  });
 
   continueBtn.addEventListener('click', submitEmail);
   input.addEventListener('keydown', (e) => {
