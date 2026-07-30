@@ -608,6 +608,13 @@ section{ position:relative; }
   line-height:1.4;
 }
 
+.no-aroma-note{
+  margin:0;
+  font-size:0.78rem;
+  color:var(--muted);
+  letter-spacing:0.02em;
+}
+
 .mini-picker{
   display:flex;
   flex-wrap:wrap;
