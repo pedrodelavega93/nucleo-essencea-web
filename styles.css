@@ -236,6 +236,69 @@ section{ position:relative; }
   color:var(--gold-2);
 }
 
+/* Botón "NÚCLEO BUSINESS" del hero con menú desplegable */
+.pill-dropdown{ position:relative; }
+.pill-dropdown-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+  font-family:inherit;
+}
+.pill-dropdown-toggle .nav-caret{ width:14px; height:14px; transition:transform 0.25s ease; }
+.pill-dropdown.open .pill-dropdown-toggle{
+  border-color:var(--gold);
+  background:rgba(184,144,94,0.08);
+  color:var(--gold-2);
+}
+.pill-dropdown.open .nav-caret{ transform:rotate(180deg); }
+/* Puente invisible para que el hover no se corte entre botón y menú */
+.pill-dropdown::after{
+  content:'';
+  position:absolute;
+  top:100%;
+  left:0;
+  right:0;
+  height:14px;
+}
+.pill-dropdown .nav-dropdown-menu{
+  position:absolute;
+  top:calc(100% + 12px);
+  left:50%;
+  transform:translateX(-50%) translateY(-6px);
+  min-width:230px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  box-shadow:var(--shadow);
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+  z-index:70;
+}
+.pill-dropdown:hover .nav-dropdown-menu,
+.pill-dropdown.open .nav-dropdown-menu{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(-50%) translateY(0);
+}
+.pill-dropdown .nav-dropdown-menu a{
+  display:block;
+  padding:11px 14px;
+  border-radius:5px;
+  font-size:0.76rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  text-decoration:none;
+  color:var(--cream);
+  transition:background 0.2s ease, color 0.2s ease;
+}
+.pill-dropdown .nav-dropdown-menu a:hover{ background:var(--panel); color:var(--gold-2); }
+
 .scroll-cue{
   position:absolute;
   bottom:34px;
