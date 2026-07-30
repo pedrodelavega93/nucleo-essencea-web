@@ -6,6 +6,7 @@
     "build": "echo \"No build step required for static site\""
   },
   "dependencies": {
+    "resend": "^6.18.1",
     "stripe": "^17.0.0"
   }
 }
