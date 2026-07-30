@@ -564,7 +564,7 @@ section{ position:relative; }
 .catalog-modal{
   position:fixed;
   inset:0;
-  z-index:210;
+  z-index:240;
   display:none;
   align-items:flex-start;
   justify-content:center;
@@ -1423,4 +1423,230 @@ button.buy-mini{
 @media (max-width:520px){
   .cart-fab-label{ display:none; }
   .cart-fab{ padding:11px; }
+}
+
+/* ============================================================
+   NAV DROPDOWN — NÚCLEO BUSINESS
+   ============================================================ */
+.nav-dropdown{ position:relative; }
+.nav-dropdown-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:none;
+  border:none;
+  cursor:pointer;
+  font-family:'Jost', sans-serif;
+  font-size:0.78rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  transition:color 0.25s ease;
+  white-space:nowrap;
+  padding:0;
+}
+.nav-dropdown-toggle:hover,
+.nav-dropdown.open .nav-dropdown-toggle{ color:var(--gold-2); }
+.nav-caret{ width:14px; height:14px; transition:transform 0.25s ease; }
+.nav-dropdown.open .nav-caret{ transform:rotate(180deg); }
+.nav-dropdown-menu{
+  position:absolute;
+  top:calc(100% + 14px);
+  left:50%;
+  transform:translateX(-50%) translateY(-6px);
+  min-width:230px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  box-shadow:var(--shadow);
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+  z-index:70;
+}
+/* Puente invisible para que el hover no se corte entre botón y menú */
+.nav-dropdown::after{
+  content:'';
+  position:absolute;
+  top:100%;
+  left:0;
+  right:0;
+  height:16px;
+}
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown.open .nav-dropdown-menu{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(-50%) translateY(0);
+}
+.nav-dropdown-menu a{
+  display:block;
+  padding:11px 14px;
+  border-radius:5px;
+  font-size:0.76rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  text-decoration:none;
+  color:var(--cream);
+  transition:background 0.2s ease, color 0.2s ease;
+}
+.nav-dropdown-menu a:hover{ background:var(--panel); color:var(--gold-2); }
+
+/* ============================================================
+   SUSCRIPCIÓN DE AROMAS
+   ============================================================ */
+.aroma-sub-picker{
+  text-align:center;
+  margin-bottom:34px;
+}
+.aroma-sub-hint{
+  margin:10px 0 0;
+  font-size:0.82rem;
+  color:var(--muted);
+}
+.aroma-sub-hint.selected{ color:var(--gold-2); }
+.aroma-sub-ship{
+  display:inline-block;
+  margin:0 auto 18px;
+  padding:5px 14px;
+  border:1px solid var(--gold);
+  border-radius:999px;
+  font-size:0.72rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--gold-2);
+  background:rgba(184,144,94,0.08);
+}
+
+/* ============================================================
+   GESTIÓN DE SUSCRIPCIÓN — LISTA Y CAMBIO DE AROMA
+   ============================================================ */
+.sub-modal-inner{ max-width:460px; }
+.sub-step{ text-align:center; }
+.sub-list-email{
+  margin:0 0 16px !important;
+  color:var(--gold-2) !important;
+  font-size:0.82rem !important;
+}
+.sub-list{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  text-align:left;
+  max-height:52vh;
+  overflow-y:auto;
+  margin-bottom:16px;
+}
+.sub-card{
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:16px;
+  background:var(--black);
+}
+.sub-card-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:4px;
+}
+.sub-card-title{
+  font-family:'Playfair Display', serif;
+  font-size:1.05rem;
+  color:var(--cream);
+}
+.sub-card-badge{
+  font-size:0.62rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--gold);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:3px 9px;
+  white-space:nowrap;
+}
+.sub-card-row{
+  font-size:0.82rem;
+  color:var(--muted);
+  margin:3px 0;
+}
+.sub-card-row strong{ color:var(--cream); font-weight:500; }
+.sub-card-aroma{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+}
+.sub-choose-aroma{
+  flex:1 1 auto;
+  min-width:150px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:5px;
+  color:var(--cream);
+  font-family:'Jost', sans-serif;
+  font-size:0.8rem;
+  padding:9px 12px;
+  cursor:pointer;
+  text-align:left;
+  transition:border-color 0.2s ease;
+}
+.sub-choose-aroma:hover{ border-color:var(--gold); }
+.sub-save-aroma{
+  background:var(--gold);
+  color:var(--black);
+  border:none;
+  border-radius:999px;
+  padding:9px 18px;
+  font-family:'Jost', sans-serif;
+  font-size:0.78rem;
+  font-weight:600;
+  letter-spacing:0.04em;
+  cursor:pointer;
+  transition:opacity 0.25s ease;
+}
+.sub-save-aroma:hover{ opacity:0.9; }
+.sub-save-aroma:disabled{ opacity:0.5; cursor:default; }
+.sub-card-locked{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+  font-size:0.78rem;
+  line-height:1.5;
+  color:#e0b48a;
+}
+.sub-card-msg{
+  margin:8px 0 0;
+  font-size:0.78rem;
+  line-height:1.4;
+  min-height:16px;
+}
+.sub-card-msg.ok{ color:#8fce9b; }
+.sub-card-msg.err{ color:#e08a8a; }
+.sub-portal-link{
+  width:100%;
+  background:transparent;
+  color:var(--gold-2);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:11px;
+  font-family:'Jost', sans-serif;
+  font-size:0.8rem;
+  cursor:pointer;
+  transition:border-color 0.2s ease, color 0.2s ease;
+  margin-bottom:4px;
+}
+.sub-portal-link:hover{ border-color:var(--gold); color:var(--gold); }
+.sub-list-empty{
+  padding:20px;
+  color:var(--muted);
+  font-size:0.85rem;
+  line-height:1.5;
 }

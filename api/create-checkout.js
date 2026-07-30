@@ -41,9 +41,17 @@ const PRODUCTS = {
   a3000:      { price: 'price_1TvAWYB3WyWa7QbITt7KyO7O',      mode: 'payment' },
   a5000:      { price: 'price_1TvAXmB3WyWa7QbI2zUc9Hp9',      mode: 'payment' },
   carpro:     { price: 'price_1TvAZFB3WyWa7QbIBlc2cVVN',     mode: 'payment' },
-  esencia:    { price: 'price_1Tv9vlB3WyWa7QbIZL61UoVI',    mode: 'subscription' },
-  aura:       { price: 'price_1Tv9yfB3WyWa7QbILG8VV0D1',       mode: 'subscription' },
-  sublime:    { price: 'price_1Tv9zNB3WyWa7QbIMywDaXBB',    mode: 'subscription' },
+  esencia:    { price: 'price_1Tv9vlB3WyWa7QbIZL61UoVI',    mode: 'subscription', label: 'Renta de Difusores — Esencia' },
+  aura:       { price: 'price_1Tv9yfB3WyWa7QbILG8VV0D1',       mode: 'subscription', label: 'Renta de Difusores — Aura' },
+  sublime:    { price: 'price_1Tv9zNB3WyWa7QbIMywDaXBB',    mode: 'subscription', label: 'Renta de Difusores — Sublime' },
+
+  // Suscripción de Aromas: aceite ambiental mensual con envío gratuito.
+  // No usan un Price ID pre-creado; el precio recurrente se define en línea
+  // con price_data (recurring), así no hace falta configurar nada en el
+  // Dashboard. El monto (unit_amount) está en centavos MXN.
+  aromasub250: { mode: 'subscription', aromaSub: true, amount: 90000,  size: '250 ml', label: 'Suscripción de Aromas — 250 ml' },
+  aromasub500: { mode: 'subscription', aromaSub: true, amount: 130000, size: '500 ml', label: 'Suscripción de Aromas — 500 ml' },
+  aromasub1l:  { mode: 'subscription', aromaSub: true, amount: 200000, size: '1 litro', label: 'Suscripción de Aromas — 1 litro' },
 };
 
 // Opciones de envío / recolección para pagos únicos (Stripe no las
@@ -218,14 +226,36 @@ module.exports = async (req, res) => {
       res.status(400).json({ error: 'Producto no reconocido: ' + productKey });
       return;
     }
-    if (product.price.includes('PENDIENTE')) {
+    if (!product.aromaSub && product.price && product.price.includes('PENDIENTE')) {
       res.status(500).json({ error: 'Falta configurar el Price ID de Stripe para "' + productKey + '" en api/create-checkout.js' });
       return;
     }
 
+    // La Suscripción de Aromas define su precio recurrente en línea (no usa
+    // un Price ID pre-creado). El nombre incluye el aroma inicial elegido.
+    let lineItem;
+    if (product.aromaSub) {
+      const nombreProducto =
+        (product.label || 'Suscripción de Aromas') + (aroma ? ' — ' + String(aroma) : '');
+      lineItem = {
+        quantity: 1,
+        price_data: {
+          currency: 'mxn',
+          unit_amount: product.amount,
+          recurring: { interval: 'month' },
+          product_data: {
+            name: nombreProducto.slice(0, 250),
+            description: 'Aceite ambiental mensual con envío 100% gratuito incluido.',
+          },
+        },
+      };
+    } else {
+      lineItem = { price: product.price, quantity: 1 };
+    }
+
     const sessionConfig = {
       mode: product.mode,
-      line_items: [{ price: product.price, quantity: 1 }],
+      line_items: [lineItem],
       shipping_address_collection: { allowed_countries: ['MX'] },
       phone_number_collection: { enabled: true },
       success_url: product.mode === 'subscription'
@@ -257,9 +287,11 @@ module.exports = async (req, res) => {
     }
 
     // 2) Dirección de instalación del difusor — solo para difusores y
-    //    planes de suscripción (los que implican instalación física).
+    //    planes de RENTA de difusores (implican instalación física).
+    //    La Suscripción de Aromas NO instala equipo, así que se excluye.
     const requiereInstalacion =
-      product.mode === 'subscription' || DIFUSOR_KEYS.includes(productKey);
+      (product.mode === 'subscription' && !product.aromaSub) ||
+      DIFUSOR_KEYS.includes(productKey);
 
     if (requiereInstalacion) {
       customFields.push({
@@ -281,11 +313,11 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 3) Método de entrega — para SUSCRIPCIONES, donde Stripe no permite
-    //    shipping_options. Así el cliente de renta mensual también puede
-    //    elegir entre envío a domicilio o recoger en tienda, y la elección
-    //    queda guardada en el custom_field (y en metadata más abajo).
-    if (product.mode === 'subscription') {
+    // 3) Método de entrega — solo para la RENTA de difusores (suscripción),
+    //    donde Stripe no permite shipping_options. La Suscripción de Aromas
+    //    NO ofrece recolección en tienda: siempre es envío a domicilio gratis,
+    //    por eso se omite este campo para ella.
+    if (product.mode === 'subscription' && !product.aromaSub) {
       customFields.push({
         key: 'metodo_entrega',
         label: { type: 'custom', custom: 'Método de entrega' },
@@ -306,7 +338,9 @@ module.exports = async (req, res) => {
     // Stripe no permite un "placeholder" por campo, así que las aclaraciones
     // se muestran como mensaje sobre el botón de pago.
     const mensajes = [];
-    if (product.mode === 'subscription') {
+    if (product.aromaSub) {
+      mensajes.push('Tu aceite ambiental llega a domicilio cada mes con envío 100% gratuito. Puedes cambiar de aroma o cancelar cuando quieras desde "Gestionar mi suscripción".');
+    } else if (product.mode === 'subscription') {
       mensajes.push('Elige tu método de entrega. Si seleccionas "Recoger en Abi Corpus Hair Studio", te avisaremos por correo o WhatsApp cuando tu equipo esté listo para recoger.');
     }
     if (requiereInstalacion) {
@@ -326,6 +360,15 @@ module.exports = async (req, res) => {
       aroma_elegido: aroma ? String(aroma).slice(0, 200) : '',
       requiere_instalacion: requiereInstalacion ? 'si' : 'no',
       campo_instalacion_key: requiereInstalacion ? 'direccion_instalacion' : '',
+      // Tipo de pedido para que el webhook y la gestión sepan qué es esto.
+      tipo_pedido: product.aromaSub
+        ? 'suscripcion_aromas'
+        : product.mode === 'subscription'
+          ? 'suscripcion_renta'
+          : 'producto',
+      tamano: product.size || '',
+      plan_nombre: product.label || String(productKey),
+      envio_gratis: product.aromaSub ? 'si' : 'no',
     };
 
     // En suscripciones, propagamos también la metadata a la suscripción

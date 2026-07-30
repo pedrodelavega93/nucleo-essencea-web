@@ -17,6 +17,36 @@ if (topnav && hero) {
   io.observe(hero);
 }
 
+// --- Dropdown "NÚCLEO BUSINESS" en el nav superior ---
+document.querySelectorAll('[data-nav-dropdown]').forEach((dd) => {
+  const toggle = dd.querySelector('.nav-dropdown-toggle');
+  if (!toggle) return;
+
+  // En escritorio abre por hover (CSS); el click también alterna para
+  // pantallas táctiles / accesibilidad por teclado.
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    const abierto = dd.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+  });
+
+  // Al elegir una opción, cierra el menú (el scroll lo hace el ancla).
+  dd.querySelectorAll('.nav-dropdown-menu a').forEach((link) => {
+    link.addEventListener('click', () => {
+      dd.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // Cierra al hacer click fuera del dropdown.
+  document.addEventListener('click', (e) => {
+    if (!dd.contains(e.target)) {
+      dd.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+});
+
 // --- Revelado suave de secciones al hacer scroll ---
 const revealEls = document.querySelectorAll('.reveal');
 if (revealEls.length) {
@@ -74,7 +104,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // --- Selección de aromas del cliente (para autollenar el checkout) ---
-const selectedAromas = { perfumes: '', ambientales: '', carpro: '' };
+const selectedAromas = { perfumes: '', ambientales: '', carpro: '', 'aromas-sub': '' };
 
 // --- Selector de aroma de regalo (CAR PRO) ---
 const carproPicker = document.getElementById('carproAromaPicker');
@@ -148,8 +178,19 @@ if (scrollTopBtn) {
 // que llegue ya prellenado en el formulario de Stripe.
 async function goToCheckout(btn) {
   const productKey = btn.dataset.product;
-  const catalogSource = btn.dataset.aromaFrom; // 'perfumes' | 'ambientales' | 'carpro' | undefined
+  const catalogSource = btn.dataset.aromaFrom; // 'perfumes' | 'ambientales' | 'carpro' | 'aromas-sub' | undefined
   const aroma = catalogSource ? selectedAromas[catalogSource] : '';
+
+  // La Suscripción de Aromas requiere elegir el aroma inicial antes de pagar.
+  if (btn.classList.contains('aroma-sub-cta') && !(aroma && aroma.trim())) {
+    const hint = document.getElementById('aromaSubHint');
+    if (hint) {
+      hint.textContent = 'Primero elige tu aroma inicial en el catálogo ☝️';
+      hint.classList.remove('selected');
+    }
+    openCatalog('aromas-sub');
+    return;
+  }
 
   const originalText = btn.textContent;
   btn.textContent = 'Abriendo pago…';
@@ -205,12 +246,23 @@ const catalogSub = document.getElementById('catalogModalSub');
 
 let currentCatalogData = [];
 let currentCatalogType = 'perfumes';
+// Cuando se define, al elegir un aroma se llama esta función en lugar del
+// comportamiento por defecto (se usa para el cambio de aroma en la gestión).
+let catalogOnSelect = null;
 
 function selectAromaFromCatalog(type, name) {
   selectedAromas[type] = name;
   document.querySelectorAll('[data-catalog="' + type + '"]').forEach((btn) => {
     btn.textContent = 'Aroma elegido: ' + name + ' (cambiar) →';
   });
+  // Refresca el texto de ayuda de la sección "Suscripción de Aromas".
+  if (type === 'aromas-sub') {
+    const hint = document.getElementById('aromaSubHint');
+    if (hint) {
+      hint.textContent = 'Aroma inicial: ' + name + ' ✓ — ya puedes suscribirte.';
+      hint.classList.add('selected');
+    }
+  }
 }
 
 function renderCatalogRows(data) {
@@ -231,8 +283,15 @@ function renderCatalogRows(data) {
   catalogResults.innerHTML = rows.join('');
   catalogResults.querySelectorAll('.catalog-row').forEach((row) => {
     row.addEventListener('click', () => {
-      selectAromaFromCatalog(currentCatalogType, row.dataset.name);
-      closeCatalog();
+      const name = row.dataset.name;
+      if (typeof catalogOnSelect === 'function') {
+        const cb = catalogOnSelect;
+        closeCatalog();
+        cb(name);
+      } else {
+        selectAromaFromCatalog(currentCatalogType, name);
+        closeCatalog();
+      }
     });
   });
 }
@@ -252,7 +311,8 @@ function filterCatalog(query) {
   renderCatalogRows(filtered);
 }
 
-function openCatalog(type) {
+function openCatalog(type, onSelect) {
+  catalogOnSelect = typeof onSelect === 'function' ? onSelect : null;
   currentCatalogType = type;
   currentCatalogData = type === 'perfumes' ? (window.PERFUMES_DATA || []) : (window.AMBIENTALES_DATA || []);
   catalogTitle.textContent = type === 'perfumes' ? 'Catálogo de perfumes' : 'Catálogo de aromas ambientales';
@@ -269,6 +329,7 @@ function openCatalog(type) {
 function closeCatalog() {
   catalogModal.classList.remove('open');
   document.body.style.overflow = '';
+  catalogOnSelect = null;
 }
 
 document.querySelectorAll('[data-catalog]').forEach((btn) => {
