@@ -68,9 +68,15 @@ function construirResumen(session) {
   if (meta.resumen_pedido) return meta.resumen_pedido;
 
   const partes = [];
-  if (meta.producto) partes.push(String(meta.producto));
+  // Preferimos el nombre legible del plan (p. ej. "Suscripción de Aromas —
+  // 500 ml") sobre la clave interna del producto (p. ej. "aromasub500").
+  if (meta.plan_nombre) partes.push(String(meta.plan_nombre));
+  else if (meta.producto) partes.push(String(meta.producto));
   if (meta.aroma_elegido) partes.push('Aroma: ' + String(meta.aroma_elegido));
-  return partes.length ? partes.join(' — ') : 'Tu pedido';
+  if (meta.tipo_pedido === 'suscripcion_aromas') {
+    partes.push('Entrega mensual con envío gratis');
+  }
+  return partes.length ? partes.join(' | ') : 'Tu pedido';
 }
 
 // Obtiene el nombre del cliente. Prioridad:
@@ -410,10 +416,21 @@ module.exports = async (req, res) => {
       return;
     }
 
+    const esSuscripcionAromas =
+      session.metadata && session.metadata.tipo_pedido === 'suscripcion_aromas';
+
     const recoleccion = esRecoleccion(session);
-    const mensajeEntrega = recoleccion
-      ? 'En los próximos 3 a 5 días hábiles nos estaremos comunicando contigo para avisarte que tu pedido ya está listo para recolectar.'
-      : 'En los próximos 3 a 5 días hábiles nos estaremos comunicando contigo por parte de NÚCLEO essences para coordinar la entrega de tu pedido.';
+    let mensajeEntrega;
+    if (esSuscripcionAromas) {
+      mensajeEntrega =
+        'Tu suscripción quedó activa. En los próximos 3 a 5 días hábiles nos comunicaremos contigo para coordinar tu primera entrega, y a partir de ahí recibirás tu aroma automáticamente cada mes con envío 100% gratuito. Puedes cambiar de aroma o cancelar cuando quieras desde "Gestionar mi suscripción" en nuestro sitio.';
+    } else if (recoleccion) {
+      mensajeEntrega =
+        'En los próximos 3 a 5 días hábiles nos estaremos comunicando contigo para avisarte que tu pedido ya está listo para recolectar.';
+    } else {
+      mensajeEntrega =
+        'En los próximos 3 a 5 días hábiles nos estaremos comunicando contigo por parte de NÚCLEO essences para coordinar la entrega de tu pedido.';
+    }
 
     const resumen = construirResumen(session);
     const total = formatearTotal(session);

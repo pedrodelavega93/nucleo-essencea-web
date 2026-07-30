@@ -17,6 +17,36 @@ if (topnav && hero) {
   io.observe(hero);
 }
 
+// --- Dropdown "NÚCLEO BUSINESS" en el nav superior ---
+document.querySelectorAll('[data-nav-dropdown]').forEach((dd) => {
+  const toggle = dd.querySelector('.nav-dropdown-toggle');
+  if (!toggle) return;
+
+  // En escritorio abre por hover (CSS); el click también alterna para
+  // pantallas táctiles / accesibilidad por teclado.
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    const abierto = dd.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+  });
+
+  // Al elegir una opción, cierra el menú (el scroll lo hace el ancla).
+  dd.querySelectorAll('.nav-dropdown-menu a').forEach((link) => {
+    link.addEventListener('click', () => {
+      dd.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // Cierra al hacer click fuera del dropdown.
+  document.addEventListener('click', (e) => {
+    if (!dd.contains(e.target)) {
+      dd.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+});
+
 // --- Revelado suave de secciones al hacer scroll ---
 const revealEls = document.querySelectorAll('.reveal');
 if (revealEls.length) {
@@ -74,7 +104,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // --- Selección de aromas del cliente (para autollenar el checkout) ---
-const selectedAromas = { perfumes: '', ambientales: '', carpro: '' };
+const selectedAromas = { perfumes: '', ambientales: '', carpro: '', 'aromas-sub': '' };
 
 // --- Selector de aroma de regalo (CAR PRO) ---
 const carproPicker = document.getElementById('carproAromaPicker');
@@ -148,8 +178,19 @@ if (scrollTopBtn) {
 // que llegue ya prellenado en el formulario de Stripe.
 async function goToCheckout(btn) {
   const productKey = btn.dataset.product;
-  const catalogSource = btn.dataset.aromaFrom; // 'perfumes' | 'ambientales' | 'carpro' | undefined
+  const catalogSource = btn.dataset.aromaFrom; // 'perfumes' | 'ambientales' | 'carpro' | 'aromas-sub' | undefined
   const aroma = catalogSource ? selectedAromas[catalogSource] : '';
+
+  // La Suscripción de Aromas requiere elegir el aroma inicial antes de pagar.
+  if (btn.classList.contains('aroma-sub-cta') && !(aroma && aroma.trim())) {
+    const hint = document.getElementById('aromaSubHint');
+    if (hint) {
+      hint.textContent = 'Primero elige tu aroma inicial en el catálogo ☝️';
+      hint.classList.remove('selected');
+    }
+    openCatalog('aromas-sub');
+    return;
+  }
 
   const originalText = btn.textContent;
   btn.textContent = 'Abriendo pago…';
@@ -205,12 +246,23 @@ const catalogSub = document.getElementById('catalogModalSub');
 
 let currentCatalogData = [];
 let currentCatalogType = 'perfumes';
+// Cuando se define, al elegir un aroma se llama esta función en lugar del
+// comportamiento por defecto (se usa para el cambio de aroma en la gestión).
+let catalogOnSelect = null;
 
 function selectAromaFromCatalog(type, name) {
   selectedAromas[type] = name;
   document.querySelectorAll('[data-catalog="' + type + '"]').forEach((btn) => {
     btn.textContent = 'Aroma elegido: ' + name + ' (cambiar) →';
   });
+  // Refresca el texto de ayuda de la sección "Suscripción de Aromas".
+  if (type === 'aromas-sub') {
+    const hint = document.getElementById('aromaSubHint');
+    if (hint) {
+      hint.textContent = 'Aroma inicial: ' + name + ' ✓ — ya puedes suscribirte.';
+      hint.classList.add('selected');
+    }
+  }
 }
 
 function renderCatalogRows(data) {
@@ -231,8 +283,15 @@ function renderCatalogRows(data) {
   catalogResults.innerHTML = rows.join('');
   catalogResults.querySelectorAll('.catalog-row').forEach((row) => {
     row.addEventListener('click', () => {
-      selectAromaFromCatalog(currentCatalogType, row.dataset.name);
-      closeCatalog();
+      const name = row.dataset.name;
+      if (typeof catalogOnSelect === 'function') {
+        const cb = catalogOnSelect;
+        closeCatalog();
+        cb(name);
+      } else {
+        selectAromaFromCatalog(currentCatalogType, name);
+        closeCatalog();
+      }
     });
   });
 }
@@ -252,7 +311,8 @@ function filterCatalog(query) {
   renderCatalogRows(filtered);
 }
 
-function openCatalog(type) {
+function openCatalog(type, onSelect) {
+  catalogOnSelect = typeof onSelect === 'function' ? onSelect : null;
   currentCatalogType = type;
   currentCatalogData = type === 'perfumes' ? (window.PERFUMES_DATA || []) : (window.AMBIENTALES_DATA || []);
   catalogTitle.textContent = type === 'perfumes' ? 'Catálogo de perfumes' : 'Catálogo de aromas ambientales';
@@ -269,6 +329,7 @@ function openCatalog(type) {
 function closeCatalog() {
   catalogModal.classList.remove('open');
   document.body.style.overflow = '';
+  catalogOnSelect = null;
 }
 
 document.querySelectorAll('[data-catalog]').forEach((btn) => {
@@ -284,7 +345,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 
-/* ============ GESTIONAR SUSCRIPCIÓN (Stripe Customer Portal) ============ */
+/* ============ GESTIONAR SUSCRIPCIÓN (lista + cambio de aroma) ============ */
 (function () {
   const openBtn = document.getElementById('manageSubFloat');
   const modal = document.getElementById('subModal');
@@ -293,11 +354,26 @@ document.addEventListener('keydown', (e) => {
   const continueBtn = document.getElementById('subContinueBtn');
   const input = document.getElementById('subEmailInput');
   const errorMsg = document.getElementById('subError');
+  const stepEmail = document.getElementById('subStepEmail');
+  const stepList = document.getElementById('subStepList');
+  const listEmail = document.getElementById('subListEmail');
+  const listEl = document.getElementById('subList');
+  const portalLink = document.getElementById('subPortalLink');
+  const backBtn = document.getElementById('subBackBtn');
   if (!openBtn || !modal) return;
+
+  let currentEmail = '';
+
+  function showStep(which) {
+    stepEmail.style.display = which === 'email' ? 'block' : 'none';
+    stepList.style.display = which === 'list' ? 'block' : 'none';
+  }
 
   function openModal() {
     errorMsg.textContent = '';
     input.value = '';
+    currentEmail = '';
+    showStep('email');
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
     setTimeout(() => input.focus(), 50);
@@ -310,15 +386,19 @@ document.addEventListener('keydown', (e) => {
   openBtn.addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
   cancelBtn.addEventListener('click', closeModal);
+  backBtn.addEventListener('click', () => { showStep('email'); setTimeout(() => input.focus(), 50); });
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
   });
 
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  // ---- Paso 1: buscar suscripciones por correo ----
   async function submitEmail() {
     const email = input.value.trim();
     errorMsg.textContent = '';
-
     if (!email || !email.includes('@')) {
       errorMsg.textContent = 'Ingresa un correo válido.';
       return;
@@ -326,17 +406,17 @@ document.addEventListener('keydown', (e) => {
 
     continueBtn.disabled = true;
     continueBtn.textContent = 'Buscando...';
-
     try {
-      const resp = await fetch('/api/create-portal-session', {
+      const resp = await fetch('/api/list-subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       const data = await resp.json();
-
-      if (resp.ok && data.url) {
-        window.location.href = data.url;
+      if (resp.ok && Array.isArray(data.subscriptions)) {
+        currentEmail = data.email || email;
+        renderList(data.subscriptions);
+        showStep('list');
       } else {
         errorMsg.textContent = data.error || 'No encontramos esa suscripción.';
       }
@@ -344,9 +424,126 @@ document.addEventListener('keydown', (e) => {
       errorMsg.textContent = 'Error de conexión. Intenta de nuevo.';
     } finally {
       continueBtn.disabled = false;
-      continueBtn.textContent = 'Continuar';
+      continueBtn.textContent = 'Ver mis suscripciones';
     }
   }
+
+  // ---- Paso 2: pintar la lista de suscripciones ----
+  function renderList(subs) {
+    listEmail.textContent = currentEmail;
+    if (!subs.length) {
+      listEl.innerHTML = '<div class="sub-list-empty">No encontramos suscripciones activas con este correo.</div>';
+      return;
+    }
+    listEl.innerHTML = subs.map((s, i) => {
+      const tamano = s.tamano ? ' · ' + esc(s.tamano) : '';
+      const aromaActual = s.aroma ? esc(s.aroma) : 'Sin aroma definido';
+
+      // Zona de cambio de aroma (solo aplica a suscripciones con aroma).
+      let aromaBloque = '';
+      if (s.puedeCambiar) {
+        aromaBloque =
+          '<div class="sub-card-aroma">' +
+            '<button type="button" class="sub-choose-aroma" data-choose="' + i + '">Cambiar aroma (elegir del catálogo)</button>' +
+            '<button type="button" class="sub-save-aroma" data-save="' + i + '" disabled>Guardar</button>' +
+          '</div>' +
+          '<p class="sub-card-msg" data-msg="' + i + '"></p>';
+      } else {
+        aromaBloque =
+          '<div class="sub-card-locked">Ya no es posible cambiar el aroma para tu próxima entrega ' +
+          '(se requiere al menos 5 días de anticipación). Podrás cambiarlo de nuevo a partir del ' +
+          esc(s.cambiarDesdeLabel || s.proximaFechaLabel) + '.</div>';
+      }
+
+      return (
+        '<div class="sub-card" data-card="' + i + '" data-sub-id="' + esc(s.id) + '">' +
+          '<div class="sub-card-head">' +
+            '<span class="sub-card-title">' + esc(s.etiqueta) + tamano + '</span>' +
+            '<span class="sub-card-badge">' + esc(s.estado === 'active' ? 'Activa' : s.estado) + '</span>' +
+          '</div>' +
+          '<div class="sub-card-row">Aroma actual: <strong data-aroma-actual="' + i + '">' + aromaActual + '</strong></div>' +
+          '<div class="sub-card-row">Próxima entrega: <strong>' + esc(s.proximaFechaLabel) + '</strong></div>' +
+          aromaBloque +
+        '</div>'
+      );
+    }).join('');
+
+    // Estado local del aroma pendiente por tarjeta.
+    const pendiente = {};
+
+    listEl.querySelectorAll('[data-choose]').forEach((btn) => {
+      const i = btn.dataset.choose;
+      const card = listEl.querySelector('[data-card="' + i + '"]');
+      const saveBtn = listEl.querySelector('[data-save="' + i + '"]');
+      const msg = listEl.querySelector('[data-msg="' + i + '"]');
+      btn.addEventListener('click', () => {
+        // Reutilizamos el catálogo de aromas ambientales con callback.
+        openCatalog('ambientales', (name) => {
+          pendiente[i] = name;
+          btn.textContent = 'Nuevo aroma: ' + name + ' (cambiar)';
+          saveBtn.disabled = false;
+          if (msg) { msg.textContent = ''; msg.className = 'sub-card-msg'; }
+        });
+      });
+
+      saveBtn.addEventListener('click', async () => {
+        const nuevo = pendiente[i];
+        if (!nuevo) return;
+        const subId = card.dataset.subId;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Guardando...';
+        if (msg) { msg.textContent = ''; msg.className = 'sub-card-msg'; }
+        try {
+          const resp = await fetch('/api/update-aroma', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: currentEmail, subscriptionId: subId, aroma: nuevo }),
+          });
+          const data = await resp.json();
+          if (resp.ok && data.ok) {
+            const actualEl = listEl.querySelector('[data-aroma-actual="' + i + '"]');
+            if (actualEl) actualEl.textContent = data.aromaNuevo;
+            if (msg) { msg.textContent = '¡Listo! Tu próxima entrega llegará con ' + data.aromaNuevo + '. Te enviamos un correo de confirmación.'; msg.className = 'sub-card-msg ok'; }
+            btn.textContent = 'Cambiar aroma (elegir del catálogo)';
+            delete pendiente[i];
+          } else {
+            if (msg) { msg.textContent = data.error || 'No se pudo cambiar el aroma.'; msg.className = 'sub-card-msg err'; }
+            saveBtn.disabled = false;
+          }
+        } catch (err) {
+          if (msg) { msg.textContent = 'Error de conexión. Intenta de nuevo.'; msg.className = 'sub-card-msg err'; }
+          saveBtn.disabled = false;
+        } finally {
+          saveBtn.textContent = 'Guardar';
+        }
+      });
+    });
+  }
+
+  // ---- Portal de Stripe para pago / cancelación ----
+  portalLink.addEventListener('click', async () => {
+    if (!currentEmail) return;
+    const original = portalLink.textContent;
+    portalLink.textContent = 'Abriendo portal...';
+    portalLink.disabled = true;
+    try {
+      const resp = await fetch('/api/create-portal-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      portalLink.textContent = data.error || 'No se pudo abrir el portal.';
+    } catch (err) {
+      portalLink.textContent = 'Error de conexión. Intenta de nuevo.';
+    } finally {
+      setTimeout(() => { portalLink.textContent = original; portalLink.disabled = false; }, 2500);
+    }
+  });
 
   continueBtn.addEventListener('click', submitEmail);
   input.addEventListener('keydown', (e) => {
