@@ -243,7 +243,23 @@ section{ position:relative; }
   align-items:center;
   gap:8px;
   cursor:pointer;
+  /* El <button> trae fondo/tipografía/borde por defecto del navegador
+     (que se veía como pill blanco con texto invisible); reseteamos todo de
+     forma explícita para igualar los pills <a> (fondo transparente, texto
+     claro, borde dorado). `.pill` aporta el resto (radio, padding, tamaño). */
+  -webkit-appearance:none;
+  appearance:none;
+  margin:0;
+  background:transparent;
+  color:var(--cream);
+  border:1px solid var(--line);
   font-family:inherit;
+  line-height:1;
+}
+.pill-dropdown-toggle:hover{
+  border-color:var(--gold);
+  background:rgba(184,144,94,0.08);
+  color:var(--gold-2);
 }
 .pill-dropdown-toggle .nav-caret{ width:14px; height:14px; transition:transform 0.25s ease; }
 .pill-dropdown.open .pill-dropdown-toggle{
@@ -1492,10 +1508,13 @@ button.buy-mini{
    NAV DROPDOWN — NÚCLEO BUSINESS
    ============================================================ */
 .nav-dropdown{ position:relative; }
-.nav-dropdown-toggle{
+ .nav-dropdown-toggle{
   display:inline-flex;
   align-items:center;
   gap:6px;
+  -webkit-appearance:none;
+  appearance:none;
+  margin:0;
   background:none;
   border:none;
   cursor:pointer;
