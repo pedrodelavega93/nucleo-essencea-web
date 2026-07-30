@@ -73,6 +73,80 @@ function construirResumen(session) {
   return partes.length ? partes.join(' — ') : 'Tu pedido';
 }
 
+// Obtiene el nombre del cliente. Prioridad:
+//   1) customer_details.name (nombre de facturación/cuenta)
+//   2) nombre de la dirección de envío (shipping_details.name), que
+//      según la versión de API puede venir en session.shipping_details
+//      o en session.collected_information.shipping_details.
+function obtenerNombre(session) {
+  const cd = session.customer_details || {};
+  if (cd.name) return cd.name;
+
+  const envio = obtenerShippingDetails(session);
+  if (envio && envio.name) return envio.name;
+
+  return '';
+}
+
+// Devuelve el objeto shipping_details sin importar la versión de API.
+// En API 2025-02-24+ la información recolectada se movió a
+// `collected_information.shipping_details`; en versiones previas vivía
+// directamente en `session.shipping_details`. Revisamos ambas.
+function obtenerShippingDetails(session) {
+  if (session.shipping_details) return session.shipping_details;
+  if (
+    session.collected_information &&
+    session.collected_information.shipping_details
+  ) {
+    return session.collected_information.shipping_details;
+  }
+  return null;
+}
+
+// Convierte un objeto address de Stripe en una cadena legible de una línea.
+function formatearDireccion(addr) {
+  if (!addr) return '';
+  const partes = [
+    addr.line1,
+    addr.line2,
+    addr.postal_code ? 'C.P. ' + addr.postal_code : '',
+    addr.city,
+    addr.state,
+    addr.country,
+  ].filter(Boolean);
+  return partes.join(', ');
+}
+
+// Obtiene la dirección relevante del pedido. Prioridad:
+//   1) Dirección de instalación del difusor: custom_field de texto
+//      `direccion_instalacion` (su valor está en field.text.value).
+//   2) Dirección de envío recolectada (shipping_details.address).
+//   3) Dirección de facturación (customer_details.address) como último recurso.
+function obtenerDireccion(session) {
+  // 1) Dirección de instalación escrita como custom_field de texto.
+  const campos = Array.isArray(session.custom_fields) ? session.custom_fields : [];
+  const instalacion = campos.find((c) => c.key === 'direccion_instalacion');
+  if (instalacion && instalacion.text && instalacion.text.value) {
+    return { etiqueta: 'Dirección de instalación', valor: instalacion.text.value };
+  }
+
+  // 2) Dirección de envío a domicilio.
+  const envio = obtenerShippingDetails(session);
+  if (envio && envio.address) {
+    const valor = formatearDireccion(envio.address);
+    if (valor) return { etiqueta: 'Dirección de envío', valor };
+  }
+
+  // 3) Dirección de facturación como respaldo.
+  const cd = session.customer_details || {};
+  if (cd.address) {
+    const valor = formatearDireccion(cd.address);
+    if (valor) return { etiqueta: 'Dirección', valor };
+  }
+
+  return { etiqueta: 'Dirección', valor: '' };
+}
+
 // Escapa texto para insertarlo de forma segura dentro del HTML.
 function escaparHtml(texto) {
   return String(texto)
@@ -82,9 +156,23 @@ function escaparHtml(texto) {
     .replace(/"/g, '&quot;');
 }
 
+// Construye las filas de datos del cliente (Cliente, Correo, Dirección)
+// para el HTML, omitiendo las que no tengan valor.
+function filasClienteHtml({ nombre, correo, direccion }) {
+  const filas = [];
+  const fila = (etiqueta, valor) =>
+    `<div style="margin-bottom:6px;"><span style="color:#c9a24b;">${escaparHtml(etiqueta)}:</span> <span style="color:#f5f0e6;">${escaparHtml(valor)}</span></div>`;
+
+  if (nombre) filas.push(fila('Cliente', nombre));
+  if (correo) filas.push(fila('Correo', correo));
+  if (direccion && direccion.valor) filas.push(fila(direccion.etiqueta, direccion.valor));
+  return filas.join('');
+}
+
 // Plantilla HTML del correo con la identidad dorado/negro de la marca.
-function plantillaCorreo({ resumen, mensajeEntrega, total }) {
+function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direccion }) {
   const resumenHtml = escaparHtml(resumen).replace(/\s\|\s/g, '<br>');
+  const clienteHtml = filasClienteHtml({ nombre, correo, direccion });
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
@@ -105,6 +193,13 @@ function plantillaCorreo({ resumen, mensajeEntrega, total }) {
               <p style="margin:0 0 20px; font-size:15px; line-height:1.6; color:#f5f0e6;">
                 Hemos recibido tu pago correctamente. Aquí está el resumen de tu pedido:
               </p>
+              ${clienteHtml ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a; border:1px solid #2a2a2a; border-radius:8px; margin-bottom:16px;">
+                <tr>
+                  <td style="padding:18px 20px; font-size:14px; line-height:1.6;">
+                    ${clienteHtml}
+                  </td>
+                </tr>
+              </table>` : ''}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a; border:1px solid #2a2a2a; border-radius:8px; margin-bottom:24px;">
                 <tr>
                   <td style="padding:18px 20px; font-size:15px; line-height:1.7; color:#f5f0e6;">
@@ -144,9 +239,13 @@ function plantillaCorreo({ resumen, mensajeEntrega, total }) {
 }
 
 // Versión en texto plano (fallback para clientes sin HTML).
-function plantillaTexto({ resumen, mensajeEntrega, total }) {
+function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direccion }) {
   return [
     '¡Gracias por tu compra en NÚCLEO essences! 🌿',
+    '',
+    nombre ? 'Cliente: ' + nombre : '',
+    correo ? 'Correo: ' + correo : '',
+    direccion && direccion.valor ? direccion.etiqueta + ': ' + direccion.valor : '',
     '',
     'Resumen de tu pedido:',
     resumen,
@@ -206,12 +305,24 @@ module.exports = async (req, res) => {
     // campos personalizados expandidos para poder determinar el
     // método de entrega y el correo del cliente.
     const session = await stripe.checkout.sessions.retrieve(event.data.object.id, {
-      expand: ['shipping_cost.shipping_rate', 'custom_fields'],
+      expand: [
+        'shipping_cost.shipping_rate',
+        'custom_fields',
+        'customer_details',
+      ],
     });
+
+    // Log de diagnóstico: imprime la sesión completa para poder revisar en
+    // los logs de Vercel qué estructura de datos realmente llega (nombre,
+    // correo, dirección de envío/instalación, custom_fields, etc.).
+    console.log('[v0] Sesión completa de Stripe:', JSON.stringify(session, null, 2));
 
     const email =
       (session.customer_details && session.customer_details.email) ||
       session.customer_email;
+
+    const nombre = obtenerNombre(session);
+    const direccion = obtenerDireccion(session);
 
     if (!email) {
       console.error('[v0] La sesión no tiene correo de cliente; no se envía confirmación.');
@@ -231,8 +342,8 @@ module.exports = async (req, res) => {
       from: REMITENTE,
       to: email,
       subject: '¡Gracias por tu compra en NÚCLEO essences! 🌿',
-      html: plantillaCorreo({ resumen, mensajeEntrega, total }),
-      text: plantillaTexto({ resumen, mensajeEntrega, total }),
+      html: plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo: email, direccion }),
+      text: plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo: email, direccion }),
     });
 
     if (error) {
