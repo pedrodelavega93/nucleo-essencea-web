@@ -260,17 +260,31 @@ function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direcc
     .join('\n');
 }
 
+// Normaliza un teléfono a solo dígitos para armar un enlace wa.me.
+// Anteponemos "52" (México) si el número viene sin código de país.
+function telefonoParaWhatsApp(telefono) {
+  if (!telefono) return '';
+  let digitos = String(telefono).replace(/\D/g, '');
+  if (!digitos) return '';
+  // 10 dígitos = número local mexicano sin lada internacional → anteponer 52.
+  if (digitos.length === 10) digitos = '52' + digitos;
+  return digitos;
+}
+
 // Plantilla del correo INTERNO para el dueño del negocio.
 // Diseño simple (HTML básico + texto plano), sin identidad de marca.
 function plantillaInterna({
   nombre,
   correo,
+  telefono,
   resumen,
   total,
   recoleccion,
   direccion,
   paymentId,
 }) {
+  const waNumero = telefonoParaWhatsApp(telefono);
+  const waLink = waNumero ? 'https://wa.me/' + waNumero : '';
   const resumenLineas = String(resumen)
     .split(/\s\|\s/)
     .map((l) => l.trim())
@@ -280,21 +294,35 @@ function plantillaInterna({
     ? 'Cliente eligió RECOLECCIÓN EN TIENDA — no requiere dirección'
     : `Envío a domicilio${direccion && direccion.valor ? ' — ' + direccion.valor : ''}`;
 
+  // Cada fila: [etiqueta, valor de texto, (opcional) HTML del valor].
+  // Si se provee HTML propio, se usa en el correo HTML (p. ej. el link de WhatsApp).
   const filas = [
     ['Cliente', nombre || '(sin nombre)'],
     ['Correo', correo || '(sin correo)'],
+  ];
+
+  // Fila de WhatsApp/Teléfono: se omite si el cliente no dio número.
+  if (telefono) {
+    const valorTexto = waLink ? `${telefono} (${waLink})` : telefono;
+    const valorHtml = waLink
+      ? `<a href="${waLink}" style="color:#128C7E; text-decoration:none;">${escaparHtml(telefono)}</a>`
+      : escaparHtml(telefono);
+    filas.push(['WhatsApp', valorTexto, valorHtml]);
+  }
+
+  filas.push(
     ['Producto(s)', resumenLineas.join(' • ') || resumen],
     ['Total', total || '(sin total)'],
     ['Método de entrega', entregaTexto],
-    ['ID de pago (Stripe)', paymentId || '(sin ID)'],
-  ];
+    ['ID de pago (Stripe)', paymentId || '(sin ID)']
+  );
 
   const filasHtml = filas
     .map(
-      ([etiqueta, valor]) =>
+      ([etiqueta, valor, valorHtml]) =>
         `<tr><td style="padding:6px 10px; border:1px solid #ddd; font-weight:bold; background:#f5f5f5; white-space:nowrap;">${escaparHtml(
           etiqueta
-        )}</td><td style="padding:6px 10px; border:1px solid #ddd;">${escaparHtml(valor)}</td></tr>`
+        )}</td><td style="padding:6px 10px; border:1px solid #ddd;">${valorHtml || escaparHtml(valor)}</td></tr>`
     )
     .join('');
 
@@ -422,9 +450,13 @@ module.exports = async (req, res) => {
           })
         : '0.00';
 
+    const telefono =
+      (session.customer_details && session.customer_details.phone) || '';
+
     const interno = plantillaInterna({
       nombre,
       correo: email,
+      telefono,
       resumen,
       total,
       recoleccion,
