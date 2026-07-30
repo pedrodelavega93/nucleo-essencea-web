@@ -752,6 +752,116 @@ section{ position:relative; }
   text-align:center;
 }
 
+/* ---------- catálogo en modo compra de aceite ---------- */
+.catalog-featured{
+  padding:16px 24px 4px;
+  flex:none;
+}
+.catalog-featured-title{
+  font-size:0.7rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--gold-2);
+  margin-bottom:10px;
+}
+.catalog-featured-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.catalog-featured-chip{
+  font-family:'Jost', sans-serif;
+  font-size:0.8rem;
+  letter-spacing:0.02em;
+  color:var(--cream);
+  background:rgba(184,144,94,0.06);
+  border:1px solid var(--line);
+  padding:9px 15px;
+  border-radius:999px;
+  cursor:pointer;
+  transition:all 0.22s ease;
+}
+.catalog-featured-chip:hover{
+  border-color:var(--gold);
+  background:rgba(184,144,94,0.12);
+  color:var(--gold-2);
+}
+.catalog-featured-chip.selected{
+  border-color:var(--gold);
+  background:var(--gold);
+  color:var(--black);
+}
+
+.catalog-buy{
+  flex:none;
+  border-top:1px solid var(--line);
+  background:var(--black);
+  padding:16px 24px 20px;
+}
+.catalog-buy-aroma{
+  font-size:0.86rem;
+  color:var(--muted);
+  margin-bottom:12px;
+}
+.catalog-buy-aroma strong{ color:var(--gold-2); font-weight:500; }
+.catalog-buy-label{
+  font-size:0.7rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:10px;
+}
+.catalog-buy-sizes{
+  display:flex;
+  gap:8px;
+  margin-bottom:14px;
+}
+.catalog-size{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  font-family:'Jost', sans-serif;
+  font-size:0.9rem;
+  color:var(--cream);
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:12px 6px;
+  cursor:pointer;
+  transition:all 0.22s ease;
+}
+.catalog-size span{
+  font-size:0.74rem;
+  color:var(--muted);
+}
+.catalog-size:hover{ border-color:var(--gold); }
+.catalog-size.selected{
+  border-color:var(--gold);
+  background:rgba(184,144,94,0.12);
+}
+.catalog-size.selected span{ color:var(--gold-2); }
+.catalog-buy-add{
+  width:100%;
+  font-family:'Jost', sans-serif;
+  font-size:0.85rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--black);
+  background:var(--gold);
+  border:none;
+  border-radius:6px;
+  padding:14px;
+  cursor:pointer;
+  transition:opacity 0.22s ease, background 0.22s ease;
+}
+.catalog-buy-add:hover:not(:disabled){ background:var(--gold-2); }
+.catalog-buy-add:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
+}
+
 /* ---------- perfume note ---------- */
 .note-box{
   border:1px solid var(--line);

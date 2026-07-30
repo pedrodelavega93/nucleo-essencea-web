@@ -90,7 +90,7 @@
           <div class="chips">
             <span class="chip">Cobertura de 120 m²</span>
             <span class="chip">Capacidad 100 ml</span>
-            <span class="chip">Control vía app</span>
+            <span class="chip">Control vía Bluetooth</span>
           </div>
           <div class="color-picker" data-color-picker="a60">
             <span class="color-picker-label">Color:</span>
@@ -98,7 +98,7 @@
             <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
           </div>
           <p class="no-aroma-note">No incluye aroma</p>
-          <a class="catalog-link small" href="#aceites">¿Quieres aceite para tu difusor? Elige tu presentación →</a>
+          <button type="button" class="catalog-link small" data-catalog="ambientales" data-catalog-mode="buy">¿Quieres aceite para tu difusor? Elige tu presentación →</button>
           <div class="price">$1,199<span>MXN</span></div>
           <div class="qty-control" data-qty>
             <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
@@ -123,6 +123,8 @@
           <div class="chips">
             <span class="chip">Uso profesional</span>
             <span class="chip">Aroma continuo</span>
+            <span class="chip">Control vía Bluetooth</span>
+            <span class="chip">Cobertura 120–200 m²</span>
           </div>
           <p class="gift-note">Incluye aroma de regalo (250 ml) a elegir del catálogo</p>
           <button class="catalog-link small" data-catalog="ambientales">Elige tu aroma de regalo →</button>
@@ -150,6 +152,8 @@
           <div class="chips">
             <span class="chip">Uso profesional</span>
             <span class="chip">Lobbies &amp; suites</span>
+            <span class="chip">Control vía Bluetooth</span>
+            <span class="chip">Cobertura 600–1,600 m²</span>
           </div>
           <p class="gift-note">Incluye aroma de regalo (500 ml) a elegir del catálogo</p>
           <button class="catalog-link small" data-catalog="ambientales">Elige tu aroma de regalo →</button>
@@ -177,6 +181,8 @@
           <div class="chips">
             <span class="chip">Uso profesional</span>
             <span class="chip">Espacios amplios</span>
+            <span class="chip">Control vía Bluetooth</span>
+            <span class="chip">Cobertura 800–2,000 m²</span>
           </div>
           <p class="gift-note">Incluye aroma de regalo (500 ml) a elegir del catálogo</p>
           <button class="catalog-link small" data-catalog="ambientales">Elige tu aroma de regalo →</button>
@@ -204,6 +210,8 @@
           <div class="chips">
             <span class="chip">Uso profesional</span>
             <span class="chip">Hoteles &amp; spas</span>
+            <span class="chip">Control vía Bluetooth</span>
+            <span class="chip">Cobertura 2,000–3,600 m²</span>
           </div>
           <p class="gift-note">Incluye aroma de regalo (500 ml) a elegir del catálogo</p>
           <button class="catalog-link small" data-catalog="ambientales">Elige tu aroma de regalo →</button>
@@ -234,6 +242,8 @@
           <span class="chip">Aluminio premium</span>
           <span class="chip">Batería 2000 mAh</span>
           <span class="chip">Incluye aceite de regalo</span>
+          <span class="chip">Control vía Bluetooth</span>
+          <span class="chip">Cobertura de hasta 30 m²</span>
         </div>
         <div class="color-picker" data-color-picker="carpro">
           <span class="color-picker-label">Color:</span>
@@ -749,8 +759,29 @@
     </div>
     <input type="text" id="catalogSearchInput" class="catalog-search-input" placeholder="Buscar por nombre o marca...">
     <div class="catalog-disclaimer">Los nombres se listan solo como referencia olfativa. Son versiones inspiradas, elaboradas por NÚCLEO essences — no son productos originales ni están afiliados a las marcas mencionadas.</div>
+
+    <!-- Destacados: solo se muestran en modo compra de aceite -->
+    <div id="catalogFeatured" class="catalog-featured" style="display:none;">
+      <div class="catalog-featured-title">Los más pedidos</div>
+      <div id="catalogFeaturedChips" class="catalog-featured-chips"><!-- chips inyectados por JS --></div>
+    </div>
+
     <div id="catalogResultsCount" class="catalog-results-count"></div>
     <div id="catalogResults" class="catalog-results"></div>
+
+    <!-- Panel de compra de aceite: solo se muestra en modo compra de aceite -->
+    <div id="catalogBuy" class="catalog-buy" style="display:none;">
+      <div class="catalog-buy-aroma">
+        Aroma elegido: <strong id="catalogBuyAroma">—</strong>
+      </div>
+      <div class="catalog-buy-label">Elige tu presentación:</div>
+      <div id="catalogBuySizes" class="catalog-buy-sizes">
+        <button type="button" class="catalog-size" data-product="aceite250" data-size-label="250 ml" data-price="900">250 ml<span>$900 MXN</span></button>
+        <button type="button" class="catalog-size" data-product="aceite500" data-size-label="500 ml" data-price="1300">500 ml<span>$1,300 MXN</span></button>
+        <button type="button" class="catalog-size" data-product="aceite1l" data-size-label="1 litro" data-price="2000">1 litro<span>$2,000 MXN</span></button>
+      </div>
+      <button type="button" id="catalogBuyAdd" class="catalog-buy-add" disabled>Añadir al carrito</button>
+    </div>
   </div>
 </div>
 

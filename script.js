@@ -244,11 +244,35 @@ const catalogCount = document.getElementById('catalogResultsCount');
 const catalogTitle = document.getElementById('catalogModalTitle');
 const catalogSub = document.getElementById('catalogModalSub');
 
+// Panel de compra de aceite (destacados + tamaños + añadir al carrito).
+const catalogFeatured = document.getElementById('catalogFeatured');
+const catalogFeaturedChips = document.getElementById('catalogFeaturedChips');
+const catalogBuy = document.getElementById('catalogBuy');
+const catalogBuyAroma = document.getElementById('catalogBuyAroma');
+const catalogBuySizes = document.getElementById('catalogBuySizes');
+const catalogBuyAdd = document.getElementById('catalogBuyAdd');
+
+// Aromas destacados ("Los más pedidos") para el modo compra de aceite.
+const FEATURED_AROMAS = [
+  'Palacio de Hierro',
+  'Metropolitan',
+  'Hotel Xcaret',
+  'Santal 33',
+  'Berries/Muy Mucho',
+  'Pink Peony',
+  'Green Tea & Bergamot',
+];
+
 let currentCatalogData = [];
 let currentCatalogType = 'perfumes';
 // Cuando se define, al elegir un aroma se llama esta función en lugar del
 // comportamiento por defecto (se usa para el cambio de aroma en la gestión).
 let catalogOnSelect = null;
+// Modo compra de aceite: muestra destacados + selector de tamaño + añadir.
+let catalogBuyMode = false;
+// Aroma y tamaño elegidos dentro del modal en modo compra.
+let buyAroma = '';
+let buyProductKey = '';
 
 function selectAromaFromCatalog(type, name) {
   selectedAromas[type] = name;
@@ -284,7 +308,11 @@ function renderCatalogRows(data) {
   catalogResults.querySelectorAll('.catalog-row').forEach((row) => {
     row.addEventListener('click', () => {
       const name = row.dataset.name;
-      if (typeof catalogOnSelect === 'function') {
+      if (catalogBuyMode) {
+        // En modo compra, elegir un aroma NO cierra el modal: se guarda para
+        // combinarlo con el tamaño y añadirlo al carrito.
+        setBuyAroma(name);
+      } else if (typeof catalogOnSelect === 'function') {
         const cb = catalogOnSelect;
         closeCatalog();
         cb(name);
@@ -293,6 +321,57 @@ function renderCatalogRows(data) {
         closeCatalog();
       }
     });
+  });
+}
+
+// --- Modo compra de aceite: destacados, aroma y tamaño ---
+function setBuyAroma(name) {
+  buyAroma = name;
+  catalogBuyAroma.textContent = name;
+  catalogBuy.style.display = 'block';
+  // Marca visualmente el chip destacado correspondiente (si aplica).
+  catalogFeaturedChips.querySelectorAll('.catalog-featured-chip').forEach((c) => {
+    c.classList.toggle('selected', c.dataset.aroma === name);
+  });
+  updateBuyAddState();
+  // Lleva el foco al panel de compra para continuar el flujo.
+  catalogBuy.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function updateBuyAddState() {
+  catalogBuyAdd.disabled = !(buyAroma && buyProductKey);
+}
+
+function renderFeaturedChips() {
+  catalogFeaturedChips.innerHTML = FEATURED_AROMAS.map((name) => {
+    const safe = name.replace(/"/g, '&quot;');
+    return '<button type="button" class="catalog-featured-chip" data-aroma="' + safe + '">' + name + '</button>';
+  }).join('');
+  catalogFeaturedChips.querySelectorAll('.catalog-featured-chip').forEach((chip) => {
+    chip.addEventListener('click', () => setBuyAroma(chip.dataset.aroma));
+  });
+}
+
+// Selección del tamaño dentro del panel de compra.
+if (catalogBuySizes) {
+  catalogBuySizes.querySelectorAll('.catalog-size').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      catalogBuySizes.querySelectorAll('.catalog-size').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      buyProductKey = btn.dataset.product;
+      updateBuyAddState();
+    });
+  });
+}
+
+// Añadir al carrito el aceite (aroma + tamaño) y cerrar el modal.
+if (catalogBuyAdd) {
+  catalogBuyAdd.addEventListener('click', () => {
+    if (!buyAroma || !buyProductKey) return;
+    if (typeof window.addOilToCart === 'function') {
+      window.addOilToCart({ productKey: buyProductKey, aroma: buyAroma });
+    }
+    closeCatalog();
   });
 }
 
@@ -311,14 +390,36 @@ function filterCatalog(query) {
   renderCatalogRows(filtered);
 }
 
-function openCatalog(type, onSelect) {
+function openCatalog(type, onSelect, options) {
+  const opts = options || {};
   catalogOnSelect = typeof onSelect === 'function' ? onSelect : null;
+  // El modo compra solo aplica al catálogo de aromas ambientales.
+  catalogBuyMode = opts.buy === true && type === 'ambientales';
   currentCatalogType = type;
   currentCatalogData = type === 'perfumes' ? (window.PERFUMES_DATA || []) : (window.AMBIENTALES_DATA || []);
-  catalogTitle.textContent = type === 'perfumes' ? 'Catálogo de perfumes' : 'Catálogo de aromas ambientales';
-  catalogSub.textContent = type === 'perfumes'
-    ? 'Busca por nombre o marca y toca el que quieras — se elegirá automáticamente.'
-    : 'Busca tu aroma favorito y toca el que quieras — se elegirá automáticamente.';
+
+  // Reset del estado de compra.
+  buyAroma = '';
+  buyProductKey = '';
+
+  if (catalogBuyMode) {
+    catalogTitle.textContent = 'Elige tu aceite ambiental';
+    catalogSub.textContent = 'Escoge un aroma (o búscalo), elige la presentación y añádelo al carrito.';
+    renderFeaturedChips();
+    catalogFeatured.style.display = 'block';
+    catalogBuy.style.display = 'none';
+    catalogBuyAroma.textContent = '—';
+    catalogBuySizes.querySelectorAll('.catalog-size').forEach((b) => b.classList.remove('selected'));
+    updateBuyAddState();
+  } else {
+    catalogTitle.textContent = type === 'perfumes' ? 'Catálogo de perfumes' : 'Catálogo de aromas ambientales';
+    catalogSub.textContent = type === 'perfumes'
+      ? 'Busca por nombre o marca y toca el que quieras — se elegirá automáticamente.'
+      : 'Busca tu aroma favorito y toca el que quieras — se elegirá automáticamente.';
+    catalogFeatured.style.display = 'none';
+    catalogBuy.style.display = 'none';
+  }
+
   catalogInput.value = '';
   renderCatalogRows(currentCatalogData);
   catalogModal.classList.add('open');
@@ -330,10 +431,15 @@ function closeCatalog() {
   catalogModal.classList.remove('open');
   document.body.style.overflow = '';
   catalogOnSelect = null;
+  catalogBuyMode = false;
+  buyAroma = '';
+  buyProductKey = '';
 }
 
 document.querySelectorAll('[data-catalog]').forEach((btn) => {
-  btn.addEventListener('click', () => openCatalog(btn.dataset.catalog));
+  btn.addEventListener('click', () =>
+    openCatalog(btn.dataset.catalog, null, { buy: btn.dataset.catalogMode === 'buy' })
+  );
 });
 catalogClose.addEventListener('click', closeCatalog);
 catalogModal.addEventListener('click', (e) => {
@@ -811,6 +917,27 @@ document.addEventListener('keydown', (e) => {
       payBtn.disabled = false;
     }
   });
+
+  // Puente para añadir un aceite ambiental al carrito desde fuera del IIFE
+  // (usado por el modal de catálogo en modo "comprar aceite"). Reutiliza el
+  // mismo estado, render y toast que el resto del carrito.
+  window.addOilToCart = function ({ productKey, aroma }) {
+    const info = PRODUCT_INFO[productKey];
+    if (!info) return;
+    const aromaVal = (aroma || '').trim();
+    const existing = cart.find(
+      (it) => it.productKey === productKey && it.color === '' && it.aroma === aromaVal
+    );
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({ productKey, name: info.name, price: info.price, quantity: 1, color: '', aroma: aromaVal });
+    }
+    renderCart();
+    showToast(info.name + (aromaVal ? ' · ' + aromaVal : '') + ' agregado al carrito');
+    fab.classList.add('bump');
+    setTimeout(() => fab.classList.remove('bump'), 400);
+  };
 
   // Estado inicial.
   renderCart();
