@@ -133,6 +133,10 @@ section{ position:relative; }
   .topnav nav{ display:none; }
 }
 
+@media (min-width:821px){
+  .topnav nav{ margin-right:170px; }
+}
+
 /* ---------- hero ---------- */
 .hero{
   min-height:100svh;
