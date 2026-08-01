@@ -246,6 +246,8 @@ const catalogResults = document.getElementById('catalogResults');
 const catalogCount = document.getElementById('catalogResultsCount');
 const catalogTitle = document.getElementById('catalogModalTitle');
 const catalogSub = document.getElementById('catalogModalSub');
+const catalogGenderFilter = document.getElementById('catalogGenderFilter');
+let currentGenderFilter = 'todos';
 
 // Panel de compra de aceite (destacados + tamaños + añadir al carrito).
 const catalogFeatured = document.getElementById('catalogFeatured');
@@ -380,17 +382,23 @@ if (catalogBuyAdd) {
 
 function filterCatalog(query) {
   const q = query.trim().toLowerCase();
-  if (!q) {
-    renderCatalogRows(currentCatalogData);
-    return;
+  let data = currentCatalogData;
+
+  // Filtro por género (solo aplica al catálogo de perfumes).
+  if (currentCatalogType === 'perfumes' && currentGenderFilter !== 'todos') {
+    data = data.filter((item) => item.gender === currentGenderFilter);
   }
-  const filtered = currentCatalogData.filter((item) => {
-    if (currentCatalogType === 'perfumes') {
-      return item.name.toLowerCase().includes(q) || item.brand.toLowerCase().includes(q);
-    }
-    return item.name.toLowerCase().includes(q) || (item.accords && item.accords.toLowerCase().includes(q));
-  });
-  renderCatalogRows(filtered);
+
+  if (q) {
+    data = data.filter((item) => {
+      if (currentCatalogType === 'perfumes') {
+        return item.name.toLowerCase().includes(q) || item.brand.toLowerCase().includes(q);
+      }
+      return item.name.toLowerCase().includes(q) || (item.accords && item.accords.toLowerCase().includes(q));
+    });
+  }
+
+  renderCatalogRows(data);
 }
 
 function openCatalog(type, onSelect, options) {
@@ -400,6 +408,15 @@ function openCatalog(type, onSelect, options) {
   catalogBuyMode = opts.buy === true && type === 'ambientales';
   currentCatalogType = type;
   currentCatalogData = type === 'perfumes' ? (window.PERFUMES_DATA || []) : (window.AMBIENTALES_DATA || []);
+
+  // Reset del filtro de género cada vez que se abre el catálogo.
+  currentGenderFilter = 'todos';
+  if (catalogGenderFilter) {
+    catalogGenderFilter.style.display = type === 'perfumes' ? 'flex' : 'none';
+    catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
+      chip.classList.toggle('selected', chip.dataset.gender === 'todos');
+    });
+  }
 
   // Reset del estado de compra.
   buyAroma = '';
@@ -449,6 +466,16 @@ catalogModal.addEventListener('click', (e) => {
   if (e.target === catalogModal) closeCatalog();
 });
 catalogInput.addEventListener('input', () => filterCatalog(catalogInput.value));
+if (catalogGenderFilter) {
+  catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      currentGenderFilter = chip.dataset.gender;
+      catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((c) => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      filterCatalog(catalogInput.value);
+    });
+  });
+}
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && catalogModal.classList.contains('open')) closeCatalog();
 });
