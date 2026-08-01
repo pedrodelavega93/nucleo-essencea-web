@@ -706,6 +706,35 @@ section{ position:relative; }
   font-family:'Jost', sans-serif;
   font-size:0.95rem;
 }
+.catalog-gender-filter{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:14px 24px 0;
+}
+.catalog-gender-chip{
+  font-family:'Jost', sans-serif;
+  font-size:0.76rem;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  color:var(--cream);
+  background:rgba(184,144,94,0.06);
+  border:1px solid var(--line);
+  padding:8px 14px;
+  border-radius:999px;
+  cursor:pointer;
+  transition:all 0.22s ease;
+}
+.catalog-gender-chip:hover{
+  border-color:var(--gold);
+  background:rgba(184,144,94,0.12);
+  color:var(--gold-2);
+}
+.catalog-gender-chip.selected{
+  border-color:var(--gold);
+  background:var(--gold);
+  color:var(--black);
+}
 .catalog-search-input:focus{ outline:none; border-color:var(--gold); }
 .catalog-results-count{
   padding:12px 24px 0;
