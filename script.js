@@ -2,6 +2,10 @@
 // NÚCLEO essences — comportamiento del sitio
 // ============================================================
 
+// URL del webhook de Zapier para el correo de recuperación de carrito
+// abandonado. REEMPLAZAR con la URL real de tu "Catch Hook" en Zapier.
+const ABANDONED_CART_WEBHOOK = 'https://hooks.zapier.com/hooks/catch/REEMPLAZAR/CON/TU/URL/';
+
 // --- Nav flotante: aparece después del hero ---
 const topnav = document.querySelector('.topnav');
 const hero = document.querySelector('.hero');
@@ -22,15 +26,12 @@ document.querySelectorAll('[data-nav-dropdown]').forEach((dd) => {
   const toggle = dd.querySelector('.nav-dropdown-toggle');
   if (!toggle) return;
 
-  // En escritorio abre por hover (CSS); el click también alterna para
-  // pantallas táctiles / accesibilidad por teclado.
   toggle.addEventListener('click', (e) => {
     e.preventDefault();
     const abierto = dd.classList.toggle('open');
     toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
   });
 
-  // Al elegir una opción, cierra el menú (el scroll lo hace el ancla).
   dd.querySelectorAll('.nav-dropdown-menu a').forEach((link) => {
     link.addEventListener('click', () => {
       dd.classList.remove('open');
@@ -38,7 +39,6 @@ document.querySelectorAll('[data-nav-dropdown]').forEach((dd) => {
     });
   });
 
-  // Cierra al hacer click fuera del dropdown.
   document.addEventListener('click', (e) => {
     if (!dd.contains(e.target)) {
       dd.classList.remove('open');
@@ -125,6 +125,21 @@ if (carproPicker && carproHint) {
   const params = new URLSearchParams(window.location.search);
   if (params.get('pago') !== 'exitoso') return;
 
+  // Compra completada: limpiamos el carrito guardado y avisamos al webhook
+  // que la compra sí se completó (evita el correo de recordatorio).
+  if (typeof window.clearNucleoCart === 'function') window.clearNucleoCart();
+  try {
+    const savedEmail = localStorage.getItem('nucleo_cart_email');
+    if (savedEmail) {
+      fetch(ABANDONED_CART_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'cart_completed', email: savedEmail, timestamp: new Date().toISOString() }),
+      }).catch(() => {});
+    }
+    localStorage.removeItem('nucleo_cart_email');
+  } catch (e) {}
+
   const banner = document.getElementById('successBanner');
   const bannerText = document.getElementById('successBannerText');
   const manageBtn = document.getElementById('manageSubBtn');
@@ -173,15 +188,11 @@ if (scrollTopBtn) {
 }
 
 // --- Checkout dinámico con aroma prellenado ---
-// Cualquier botón con [data-product] crea la sesión de pago en el servidor
-// (api/create-checkout.js) mandando el aroma que el cliente eligió, para
-// que llegue ya prellenado en el formulario de Stripe.
 async function goToCheckout(btn) {
   const productKey = btn.dataset.product;
-  const catalogSource = btn.dataset.aromaFrom; // 'perfumes' | 'ambientales' | 'carpro' | 'aromas-sub' | undefined
+  const catalogSource = btn.dataset.aromaFrom;
   const aroma = catalogSource ? selectedAromas[catalogSource] : '';
 
-  // La Suscripción de Aromas requiere elegir el aroma inicial antes de pagar.
   if (btn.classList.contains('aroma-sub-cta') && !(aroma && aroma.trim())) {
     const hint = document.getElementById('aromaSubHint');
     if (hint) {
@@ -204,15 +215,11 @@ async function goToCheckout(btn) {
     });
     const data = await resp.json();
     if (data.url) {
-      // Redirección directa al checkout de pago de Stripe.
       window.location.href = data.url;
       return;
     }
     throw new Error(data.error || 'Sin URL de pago');
   } catch (err) {
-    // El flujo de compra/suscripción NUNCA debe caer a WhatsApp: si Stripe
-    // falla, mostramos el motivo real para poder corregirlo, y el cliente
-    // permanece en el sitio en lugar de ser desviado.
     console.error('No se pudo abrir el checkout de Stripe:', err);
     alert(
       'No pudimos abrir el pago en este momento.\n\n' +
@@ -225,12 +232,6 @@ async function goToCheckout(btn) {
   }
 }
 
-// Solo los botones de pago directo (suscripciones / compra inmediata) usan
-// goToCheckout. Los botones de "Añadir al carrito" también llevan
-// data-product, así que se excluyen aquí y se manejan en el módulo de carrito.
-// CORREGIDO: también se excluyen los botones de tamaño del selector de
-// aceite (.catalog-size), que llevan data-product solo para identificar
-// el tamaño elegido y NO deben disparar el checkout directo.
 document.querySelectorAll('[data-product]:not([data-add-to-cart]):not(.catalog-size)').forEach((btn) => {
   btn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -249,7 +250,6 @@ const catalogSub = document.getElementById('catalogModalSub');
 const catalogGenderFilter = document.getElementById('catalogGenderFilter');
 let currentGenderFilter = 'todos';
 
-// Panel de compra de aceite (destacados + tamaños + añadir al carrito).
 const catalogFeatured = document.getElementById('catalogFeatured');
 const catalogFeaturedChips = document.getElementById('catalogFeaturedChips');
 const catalogBuy = document.getElementById('catalogBuy');
@@ -257,7 +257,6 @@ const catalogBuyAroma = document.getElementById('catalogBuyAroma');
 const catalogBuySizes = document.getElementById('catalogBuySizes');
 const catalogBuyAdd = document.getElementById('catalogBuyAdd');
 
-// Aromas destacados ("Los más pedidos") para el modo compra de aceite.
 const FEATURED_AROMAS = [
   'Palacio de Hierro',
   'Metropolitan',
@@ -270,12 +269,8 @@ const FEATURED_AROMAS = [
 
 let currentCatalogData = [];
 let currentCatalogType = 'perfumes';
-// Cuando se define, al elegir un aroma se llama esta función en lugar del
-// comportamiento por defecto (se usa para el cambio de aroma en la gestión).
 let catalogOnSelect = null;
-// Modo compra de aceite: muestra destacados + selector de tamaño + añadir.
 let catalogBuyMode = false;
-// Aroma y tamaño elegidos dentro del modal en modo compra.
 let buyAroma = '';
 let buyProductKey = '';
 
@@ -284,7 +279,6 @@ function selectAromaFromCatalog(type, name) {
   document.querySelectorAll('[data-catalog="' + type + '"]').forEach((btn) => {
     btn.textContent = 'Aroma elegido: ' + name + ' (cambiar) →';
   });
-  // Refresca el texto de ayuda de la sección "Suscripción de Aromas".
   if (type === 'aromas-sub') {
     const hint = document.getElementById('aromaSubHint');
     if (hint) {
@@ -314,8 +308,6 @@ function renderCatalogRows(data) {
     row.addEventListener('click', () => {
       const name = row.dataset.name;
       if (catalogBuyMode) {
-        // En modo compra, elegir un aroma NO cierra el modal: se guarda para
-        // combinarlo con el tamaño y añadirlo al carrito.
         setBuyAroma(name);
       } else if (typeof catalogOnSelect === 'function') {
         const cb = catalogOnSelect;
@@ -329,17 +321,14 @@ function renderCatalogRows(data) {
   });
 }
 
-// --- Modo compra de aceite: destacados, aroma y tamaño ---
 function setBuyAroma(name) {
   buyAroma = name;
   catalogBuyAroma.textContent = name;
   catalogBuy.style.display = 'block';
-  // Marca visualmente el chip destacado correspondiente (si aplica).
   catalogFeaturedChips.querySelectorAll('.catalog-featured-chip').forEach((c) => {
     c.classList.toggle('selected', c.dataset.aroma === name);
   });
   updateBuyAddState();
-  // Lleva el foco al panel de compra para continuar el flujo.
   catalogBuy.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -357,7 +346,6 @@ function renderFeaturedChips() {
   });
 }
 
-// Selección del tamaño dentro del panel de compra.
 if (catalogBuySizes) {
   catalogBuySizes.querySelectorAll('.catalog-size').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -369,7 +357,6 @@ if (catalogBuySizes) {
   });
 }
 
-// Añadir al carrito el aceite (aroma + tamaño) y cerrar el modal.
 if (catalogBuyAdd) {
   catalogBuyAdd.addEventListener('click', () => {
     if (!buyAroma || !buyProductKey) return;
@@ -384,7 +371,6 @@ function filterCatalog(query) {
   const q = query.trim().toLowerCase();
   let data = currentCatalogData;
 
-  // Filtro por género (solo aplica al catálogo de perfumes).
   if (currentCatalogType === 'perfumes' && currentGenderFilter !== 'todos') {
     data = data.filter((item) => item.gender === currentGenderFilter);
   }
@@ -404,12 +390,10 @@ function filterCatalog(query) {
 function openCatalog(type, onSelect, options) {
   const opts = options || {};
   catalogOnSelect = typeof onSelect === 'function' ? onSelect : null;
-  // El modo compra solo aplica al catálogo de aromas ambientales.
   catalogBuyMode = opts.buy === true && type === 'ambientales';
   currentCatalogType = type;
   currentCatalogData = type === 'perfumes' ? (window.PERFUMES_DATA || []) : (window.AMBIENTALES_DATA || []);
 
-  // Reset del filtro de género cada vez que se abre el catálogo.
   currentGenderFilter = 'todos';
   if (catalogGenderFilter) {
     catalogGenderFilter.style.display = type === 'perfumes' ? 'flex' : 'none';
@@ -418,7 +402,6 @@ function openCatalog(type, onSelect, options) {
     });
   }
 
-  // Reset del estado de compra.
   buyAroma = '';
   buyProductKey = '';
 
@@ -531,7 +514,6 @@ document.addEventListener('keydown', (e) => {
   const esc = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  // ---- Paso 1: buscar suscripciones por correo ----
   async function submitEmail() {
     const email = input.value.trim();
     errorMsg.textContent = '';
@@ -564,7 +546,6 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  // ---- Paso 2: pintar la lista de suscripciones ----
   function renderList(subs) {
     listEmail.textContent = currentEmail;
     if (!subs.length) {
@@ -575,7 +556,6 @@ document.addEventListener('keydown', (e) => {
       const tamano = s.tamano ? ' · ' + esc(s.tamano) : '';
       const aromaActual = s.aroma ? esc(s.aroma) : 'Sin aroma definido';
 
-      // Zona de cambio de aroma (solo aplica a suscripciones con aroma).
       let aromaBloque = '';
       if (s.puedeCambiar) {
         aromaBloque =
@@ -604,7 +584,6 @@ document.addEventListener('keydown', (e) => {
       );
     }).join('');
 
-    // Estado local del aroma pendiente por tarjeta.
     const pendiente = {};
 
     listEl.querySelectorAll('[data-choose]').forEach((btn) => {
@@ -613,7 +592,6 @@ document.addEventListener('keydown', (e) => {
       const saveBtn = listEl.querySelector('[data-save="' + i + '"]');
       const msg = listEl.querySelector('[data-msg="' + i + '"]');
       btn.addEventListener('click', () => {
-        // Reutilizamos el catálogo de aromas ambientales con callback.
         openCatalog('ambientales', (name) => {
           pendiente[i] = name;
           btn.textContent = 'Nuevo aroma: ' + name + ' (cambiar)';
@@ -656,7 +634,6 @@ document.addEventListener('keydown', (e) => {
     });
   }
 
-  // ---- Portal de Stripe para pago / cancelación ----
   portalLink.addEventListener('click', async () => {
     if (!currentEmail) return;
     const original = portalLink.textContent;
@@ -692,8 +669,6 @@ document.addEventListener('keydown', (e) => {
    CARRITO DE COMPRA (varios productos en un solo pago Stripe)
    ============================================================ */
 (function initCart() {
-  // Nombre y precio (MXN) de cada producto que se puede agregar al carrito.
-  // Los planes de suscripción NO se incluyen: van por su propio flujo.
   const PRODUCT_INFO = {
     a60:        { name: 'Difusor A60',      price: 1199 },
     a300:       { name: 'Difusor A300',     price: 3999 },
@@ -710,15 +685,25 @@ document.addEventListener('keydown', (e) => {
     aceite1l:   { name: 'Aceite 1 litro',   price: 2000 },
   };
 
-  // Colores elegidos por producto (ej. Difusor A60: Blanco / Negro).
+  const CART_STORAGE_KEY = 'nucleo_cart';
+  const CART_EMAIL_KEY = 'nucleo_cart_email';
+
   const selectedColors = {};
 
-  // Estado del carrito: cada línea = { productKey, name, price, quantity, color, aroma }
+  // Estado del carrito: se recupera de localStorage si existe, así el
+  // carrito sobrevive si el cliente cierra el checkout de Stripe y vuelve.
   let cart = [];
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (raw) cart = JSON.parse(raw) || [];
+  } catch (e) { cart = []; }
+
+  function persistCart() {
+    try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch (e) {}
+  }
 
   const money = (n) => '$' + n.toLocaleString('es-MX') + ' MXN';
 
-  // ---------- Elementos del DOM ----------
   const fab = document.getElementById('cartFab');
   const countEl = document.getElementById('cartCount');
   const drawer = document.getElementById('cartDrawer');
@@ -729,10 +714,10 @@ document.addEventListener('keydown', (e) => {
   const totalEl = document.getElementById('cartTotal');
   const payBtn = document.getElementById('cartPayBtn');
   const toastEl = document.getElementById('toast');
+  const cartEmailInput = document.getElementById('cartEmailInput');
 
   if (!fab || !drawer) return;
 
-  // ---------- Toast de confirmación ----------
   let toastTimer;
   function showToast(msg) {
     toastEl.textContent = msg;
@@ -741,7 +726,6 @@ document.addEventListener('keydown', (e) => {
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
   }
 
-  // ---------- Selectores de color (Difusor A60) ----------
   document.querySelectorAll('[data-color-picker]').forEach((picker) => {
     const key = picker.dataset.colorPicker;
     picker.querySelectorAll('.color-chip').forEach((chip) => {
@@ -757,7 +741,6 @@ document.addEventListener('keydown', (e) => {
     });
   });
 
-  // ---------- Selectores de cantidad ----------
   document.querySelectorAll('[data-qty]').forEach((group) => {
     const input = group.querySelector('.qty-input');
     const dec = group.querySelector('[data-qty-dec]');
@@ -773,13 +756,11 @@ document.addEventListener('keydown', (e) => {
     input.addEventListener('blur', clamp);
   });
 
-  // ---------- Añadir al carrito ----------
   function addToCart(btn) {
     const key = btn.dataset.product;
     const info = PRODUCT_INFO[key];
     if (!info) return;
 
-    // Color obligatorio si el producto tiene selector de color (A60).
     const colorFrom = btn.dataset.colorFrom;
     let color = '';
     if (colorFrom) {
@@ -790,7 +771,6 @@ document.addEventListener('keydown', (e) => {
       }
     }
 
-    // Aroma de regalo obligatorio si el producto lo incluye.
     const aromaFrom = btn.dataset.aromaFrom;
     let aroma = '';
     if (aromaFrom) {
@@ -801,14 +781,12 @@ document.addEventListener('keydown', (e) => {
       }
     }
 
-    // Cantidad desde el control de la tarjeta (si existe).
     const group = btn.closest('.feature-copy, .card, .feature, .size-price-row') || document;
     const qtyInput = btn.parentElement.querySelector('.qty-input')
       || (btn.closest('[data-qty]') ? btn.closest('[data-qty]').querySelector('.qty-input') : null)
       || group.querySelector('.qty-input');
     const qty = qtyInput ? Math.max(1, parseInt(qtyInput.value, 10) || 1) : 1;
 
-    // Si ya existe una línea idéntica (mismo producto, color y aroma) se suma.
     const existing = cart.find((it) => it.productKey === key && it.color === color && it.aroma === aroma);
     if (existing) {
       existing.quantity += qty;
@@ -830,7 +808,6 @@ document.addEventListener('keydown', (e) => {
     });
   });
 
-  // ---------- Cambios de cantidad / eliminar dentro del carrito ----------
   function changeQty(index, delta) {
     const item = cart[index];
     if (!item) return;
@@ -843,8 +820,9 @@ document.addEventListener('keydown', (e) => {
     renderCart();
   }
 
-  // ---------- Render ----------
   function renderCart() {
+    persistCart();
+
     const totalUnits = cart.reduce((s, it) => s + it.quantity, 0);
     countEl.textContent = totalUnits;
     countEl.style.display = totalUnits > 0 ? 'grid' : 'none';
@@ -893,7 +871,6 @@ document.addEventListener('keydown', (e) => {
     });
   }
 
-  // ---------- Abrir / cerrar drawer ----------
   function openDrawer() {
     drawer.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -909,10 +886,38 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
   });
 
-  // ---------- Pagar (crea la sesión de Stripe con todo el carrito) ----------
+  // --- Recuperación de carrito abandonado: captura de correo opcional ---
+  if (cartEmailInput) {
+    try {
+      const savedEmail = localStorage.getItem(CART_EMAIL_KEY);
+      if (savedEmail) cartEmailInput.value = savedEmail;
+    } catch (e) {}
+
+    let emailTimer;
+    cartEmailInput.addEventListener('input', () => {
+      clearTimeout(emailTimer);
+      emailTimer = setTimeout(() => {
+        const email = cartEmailInput.value.trim();
+        if (!email || !email.includes('@')) return;
+        try { localStorage.setItem(CART_EMAIL_KEY, email); } catch (e) {}
+        fetch(ABANDONED_CART_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'cart_started',
+            email,
+            cart: cart.map((it) => ({ name: it.name, quantity: it.quantity, aroma: it.aroma, color: it.color })),
+            total: cart.reduce((s, it) => s + it.price * it.quantity, 0),
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+      }, 800);
+    });
+  }
+
   payBtn.addEventListener('click', async () => {
     if (!cart.length) return;
-    const original = payBtn.textContent;
+    const original = payBtn.innerHTML;
     payBtn.textContent = 'Abriendo pago…';
     payBtn.disabled = true;
     try {
@@ -943,14 +948,11 @@ document.addEventListener('keydown', (e) => {
         '\n\nPor favor inténtalo de nuevo en unos segundos.'
       );
     } finally {
-      payBtn.textContent = original;
+      payBtn.innerHTML = original;
       payBtn.disabled = false;
     }
   });
 
-  // Puente para añadir un aceite ambiental al carrito desde fuera del IIFE
-  // (usado por el modal de catálogo en modo "comprar aceite"). Reutiliza el
-  // mismo estado, render y toast que el resto del carrito.
   window.addOilToCart = function ({ productKey, aroma }) {
     const info = PRODUCT_INFO[productKey];
     if (!info) return;
@@ -969,6 +971,12 @@ document.addEventListener('keydown', (e) => {
     setTimeout(() => fab.classList.remove('bump'), 400);
   };
 
-  // Estado inicial.
+  // Permite vaciar el carrito desde fuera (se usa al completar una compra).
+  window.clearNucleoCart = function () {
+    cart = [];
+    persistCart();
+    renderCart();
+  };
+
   renderCart();
 })();
