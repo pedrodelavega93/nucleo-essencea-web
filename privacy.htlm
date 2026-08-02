@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviso de Privacidad — NÚCLEO essences</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .legal-page{ max-width:760px; margin:0 auto; padding:120px 24px 80px; }
+  .legal-page h1{ font-family:'Playfair Display', serif; font-size:2rem; margin-bottom:8px; }
+  .legal-page h2{ font-family:'Playfair Display', serif; font-size:1.2rem; margin:32px 0 10px; color:var(--gold-2); }
+  .legal-page p, .legal-page li{ color:var(--muted); line-height:1.7; font-size:0.94rem; }
+  .legal-page a{ color:var(--gold-2); }
+  .legal-page .updated{ font-size:0.8rem; color:var(--muted); margin-bottom:32px; }
+  .legal-page .back-link{ display:inline-block; margin-bottom:24px; color:var(--gold-2); text-decoration:none; font-size:0.85rem; }
+</style>
+</head>
+<body>
+<div class="legal-page">
+  <a href="index.html" class="back-link">← Volver a NÚCLEO essences</a>
+  <h1 class="serif">Aviso de Privacidad</h1>
+  <p class="updated">Última actualización: [completar fecha]</p>
+
+  <p>NÚCLEO essences (en adelante, "NÚCLEO"), con domicilio en [completar domicilio fiscal completo], es responsable del tratamiento de tus datos personales conforme a lo establecido en la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.</p>
+
+  <h2>1. Datos personales que recabamos</h2>
+  <p>Para procesar tu pedido, renta de equipo o suscripción, recabamos: nombre completo, dirección de envío o instalación, teléfono celular, correo electrónico, y datos de pago (procesados directamente por Stripe, Inc. — NÚCLEO nunca almacena el número completo de tu tarjeta).</p>
+
+  <h2>2. Finalidades del tratamiento</h2>
+  <ul>
+    <li>Procesar y entregar tus pedidos, rentas de equipo y suscripciones.</li>
+    <li>Contactarte sobre el estado de tu pedido o instalación.</li>
+    <li>Gestionar cobros recurrentes en el caso de suscripciones mensuales.</li>
+    <li>Enviarte, si nos diste tu correo con ese fin, un recordatorio si dejaste un carrito de compra sin finalizar.</li>
+    <li>Dar cumplimiento a obligaciones legales y fiscales.</li>
+  </ul>
+
+  <h2>3. Transferencia de datos</h2>
+  <p>Tus datos de pago se comparten con Stripe, Inc., procesador de pagos que cuenta con sus propias políticas de privacidad y seguridad (certificación PCI-DSS). No vendemos ni compartimos tus datos personales con terceros para fines de mercadotecnia ajenos a NÚCLEO essences.</p>
+
+  <h2>4. Derechos ARCO</h2>
+  <p>Tienes derecho a Acceder, Rectificar, Cancelar u Oponerte (derechos ARCO) al tratamiento de tus datos personales. Para ejercerlos, escríbenos a <a href="https://wa.me/528116551406" target="_blank" rel="noopener">WhatsApp</a> indicando tu nombre completo y la solicitud específica.</p>
+
+  <h2>5. Uso de cookies y almacenamiento local</h2>
+  <p>Este sitio utiliza el almacenamiento local de tu navegador para recordar el contenido de tu carrito de compra entre visitas. No utilizamos cookies de rastreo publicitario de terceros.</p>
+
+  <h2>6. Cambios a este aviso</h2>
+  <p>NÚCLEO essences podrá modificar este Aviso de Privacidad en cualquier momento. Los cambios se publicarán en esta misma página con su fecha de actualización correspondiente.</p>
+
+  <h2>7. Contacto</h2>
+  <p>Para dudas sobre este aviso, contáctanos por <a href="https://wa.me/528116551406" target="_blank" rel="noopener">WhatsApp</a> o <a href="https://www.instagram.com/nucleo.essences" target="_blank" rel="noopener">Instagram</a>.</p>
+</div>
+</body>
+</html>
