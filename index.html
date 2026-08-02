@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NÚCLEO essences — Aromatización que define experiencias</title>
+<meta name="description" content="Difusores, aceites, home sprays y perfumes de autor — donde el aroma también comunica lujo. Renta mensual y suscripción de aromas para hoteles, spas y negocios en Monterrey.">
+
+<!-- Vista previa al compartir (WhatsApp, Instagram, Facebook) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="NÚCLEO essences — Aromatización que define experiencias">
+<meta property="og:description" content="Difusores, aceites, home sprays y perfumes de autor. Renta mensual de equipos profesionales para hoteles, spas y negocios.">
+<meta property="og:image" content="https://nucleoessences.com/assets/og-image.jpg">
+<meta property="og:url" content="https://nucleoessences.com">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NÚCLEO essences — Aromatización que define experiencias">
+<meta name="twitter:description" content="Difusores, aceites, home sprays y perfumes de autor. Renta mensual de equipos profesionales para hoteles, spas y negocios.">
+<meta name="twitter:image" content="https://nucleoessences.com/assets/og-image.jpg">
+
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -618,6 +631,48 @@
   </div>
 </section>
 
+<!-- ============ PREGUNTAS FRECUENTES ============ -->
+<section class="catalog-section alt faq-section" id="faq">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Ayuda</div>
+      <h2 class="serif">Preguntas frecuentes</h2>
+      <p>Si tienes alguna otra duda, escríbenos por WhatsApp — te respondemos en minutos.</p>
+    </div>
+
+    <div class="faq-list reveal">
+      <details class="faq-item">
+        <summary>¿Cómo funciona la renta mensual de difusores?</summary>
+        <p>Eliges el paquete (Esencia, Aura o Sublime) y el aroma de tu preferencia. Instalamos el equipo, incluimos mantenimiento mensual, y el cargo se hace automáticamente cada mes a tu tarjeta registrada, sin contrato forzoso — el mínimo es de 30 días.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Puedo cancelar cuando quiera?</summary>
+        <p>Sí. Tanto la renta de difusores como la suscripción de aromas se pueden cancelar en cualquier momento desde el botón «Gestionar mi suscripción», sin penalización, una vez cumplido el mínimo de 30 días.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Qué pasa si el equipo en renta se daña?</summary>
+        <p>El mantenimiento mensual está incluido en tu paquete. Si detectas alguna falla fuera de uso normal, contáctanos por WhatsApp y coordinamos la revisión o reemplazo del equipo.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Cuánto tarda el envío?</summary>
+        <p>El envío a domicilio dentro de la Zona Metropolitana de Monterrey tarda de 2 a 5 días hábiles. También puedes elegir recoger tu pedido sin costo en Abi Corpus Hair Studio (José Peón y Contreras 2125-A, Contry Sol, Guadalupe), con el mismo tiempo estimado de preparación.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Los perfumes son originales?</summary>
+        <p>No. Nuestras fragancias son versiones inspiradas, elaboradas con esencia artesanal propia de NÚCLEO essences. No están afiliadas, patrocinadas ni avaladas por las marcas mencionadas — los nombres se usan solo como referencia olfativa para ayudarte a elegir.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Cómo cambio el aroma de mi suscripción?</summary>
+        <p>Desde el botón «Gestionar mi suscripción» en la página, ingresando el correo con el que te suscribiste. Puedes cambiar tu aroma con al menos 5 días de anticipación a tu próxima entrega (1 semana en el caso de la renta de difusores).</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Qué métodos de pago aceptan?</summary>
+        <p>Aceptamos tarjeta de crédito o débito y Apple Pay, procesados de forma segura a través de Stripe. NÚCLEO essences nunca almacena los datos de tu tarjeta.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <!-- ============ FOOTER ============ -->
 <footer>
   <div class="wrap">
@@ -641,6 +696,11 @@
           <h4>Contacto</h4>
           <a href="https://wa.me/528116551406" target="_blank" rel="noopener">WhatsApp</a>
           <a href="https://www.instagram.com/nucleo.essences?igsh=M3lwbmJ3NjB0MjFx&utm_source=qr" target="_blank" rel="noopener">Instagram</a>
+        </div>
+        <div class="footer-col">
+          <h4>Ayuda</h4>
+          <a href="#faq">Preguntas frecuentes</a>
+          <a href="privacy.html">Aviso de Privacidad</a>
         </div>
       </div>
     </div>
@@ -723,7 +783,14 @@
         <span class="cart-total serif" id="cartTotal">$0 MXN</span>
       </div>
       <p class="cart-note">El costo de envío o la opción de recoger en tienda se elige en el pago seguro de Stripe.</p>
-      <button class="cart-pay-btn" id="cartPayBtn">Pagar de forma segura</button>
+      <div class="cart-email-capture" id="cartEmailCapture">
+        <label for="cartEmailInput" class="cart-email-label">¿Te recordamos tu carrito si no completas la compra? (opcional)</label>
+        <input type="email" id="cartEmailInput" class="cart-email-input" placeholder="tu@correo.com" autocomplete="email">
+      </div>
+      <button class="cart-pay-btn" id="cartPayBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Pagar de forma segura
+      </button>
     </div>
   </div>
 </div>
