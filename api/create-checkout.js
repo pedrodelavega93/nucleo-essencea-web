@@ -74,6 +74,10 @@ function buildShippingOptions() {
         type: 'fixed_amount',
         fixed_amount: { amount: 0, currency: 'mxn' },
         display_name: 'Recoger en: Abi Corpus Hair Studio (José Peón y Contreras 2125-A, Contry Sol, Guadalupe)',
+        delivery_estimate: {
+          minimum: { unit: 'business_day', value: 2 },
+          maximum: { unit: 'business_day', value: 5 },
+        },
       },
     },
   ];
