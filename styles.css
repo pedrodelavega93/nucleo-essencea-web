@@ -203,7 +203,7 @@ section{ position:relative; }
   letter-spacing:0.5em;
   color:var(--gold);
   margin-top:14px;
-  padding-left:0.5em; /* optical centering for tracked italic */
+  padding-left:0.5em;
 }
 
 .hero .tagline{
@@ -247,10 +247,6 @@ section{ position:relative; }
   align-items:center;
   gap:8px;
   cursor:pointer;
-  /* El <button> trae fondo/tipografía/borde por defecto del navegador
-     (que se veía como pill blanco con texto invisible); reseteamos todo de
-     forma explícita para igualar los pills <a> (fondo transparente, texto
-     claro, borde dorado). `.pill` aporta el resto (radio, padding, tamaño). */
   -webkit-appearance:none;
   appearance:none;
   margin:0;
@@ -272,7 +268,6 @@ section{ position:relative; }
   color:var(--gold-2);
 }
 .pill-dropdown.open .nav-caret{ transform:rotate(180deg); }
-/* Puente invisible para que el hover no se corte entre botón y menú */
 .pill-dropdown::after{
   content:'';
   position:absolute;
@@ -909,6 +904,48 @@ section{ position:relative; }
 }
 .note-box strong{ color:var(--gold-2); font-weight:500; }
 
+/* ---------- FAQ ---------- */
+.faq-list{
+  max-width:760px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.faq-item{
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:4px 20px;
+}
+.faq-item summary{
+  padding:16px 0;
+  cursor:pointer;
+  font-family:'Playfair Display', serif;
+  font-size:1.02rem;
+  color:var(--cream);
+  list-style:none;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.faq-item summary::-webkit-details-marker{ display:none; }
+.faq-item summary::after{
+  content:'+';
+  font-family:'Jost', sans-serif;
+  font-size:1.3rem;
+  color:var(--gold);
+  flex:none;
+  transition:transform 0.25s ease;
+}
+.faq-item[open] summary::after{ transform:rotate(45deg); }
+.faq-item p{
+  margin:0 0 18px;
+  color:var(--muted);
+  line-height:1.65;
+  font-size:0.92rem;
+}
+
 /* ---------- footer ---------- */
 footer{
   background:#000;
@@ -1375,7 +1412,6 @@ a:focus-visible, button:focus-visible{
    CARRITO DE COMPRA
    ============================================================ */
 
-/* Reset para los botones que reutilizan estilos de enlace */
 button.buy-btn,
 button.buy-mini{
   background:transparent;
@@ -1458,7 +1494,6 @@ button.buy-mini{
 .qty-input::-webkit-outer-spin-button,
 .qty-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 
-/* En filas de tamaño/precio el control es más compacto */
 .size-price-row .qty-control{ margin:0; }
 .size-price-row .qty-btn{ width:28px; height:28px; font-size:1rem; }
 .size-price-row .qty-input{ width:34px; height:28px; font-size:0.8rem; }
@@ -1609,8 +1644,33 @@ button.buy-mini{
   line-height:1.55;
   margin:0 0 16px;
 }
-.cart-pay-btn{
+
+/* ---------- Captura de correo para carrito abandonado ---------- */
+.cart-email-capture{ margin-bottom:16px; }
+.cart-email-label{
   display:block;
+  font-size:0.72rem;
+  color:var(--muted);
+  margin-bottom:6px;
+  line-height:1.4;
+}
+.cart-email-input{
+  width:100%;
+  padding:10px 14px;
+  background:var(--black);
+  border:1px solid var(--line);
+  border-radius:4px;
+  color:var(--cream);
+  font-family:'Jost', sans-serif;
+  font-size:0.85rem;
+}
+.cart-email-input:focus{ outline:none; border-color:var(--gold); }
+
+.cart-pay-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
   width:100%;
   padding:14px 18px;
   background:var(--gold);
@@ -1701,7 +1761,6 @@ button.buy-mini{
   transition:opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
   z-index:70;
 }
-/* Puente invisible para que el hover no se corte entre botón y menú */
 .nav-dropdown::after{
   content:'';
   position:absolute;
