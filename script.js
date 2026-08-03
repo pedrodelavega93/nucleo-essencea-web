@@ -4,7 +4,7 @@
 
 // URL del webhook de Zapier para el correo de recuperación de carrito
 // abandonado. REEMPLAZAR con la URL real de tu "Catch Hook" en Zapier.
-const ABANDONED_CART_WEBHOOK = 'https://hooks.zapier.com/hooks/catch/REEMPLAZAR/CON/TU/URL/';
+const ABANDONED_CART_WEBHOOK = 'https://hook.us2.make.com/95k56of8z8yv179ea7dtp54pnc0h3s9y';
 
 // --- Nav flotante: aparece después del hero ---
 const topnav = document.querySelector('.topnav');
