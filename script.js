@@ -187,6 +187,14 @@ if (scrollTopBtn) {
   });
 }
 
+// --- Botón flotante "bajar al final" ---
+const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+if (scrollBottomBtn) {
+  scrollBottomBtn.addEventListener('click', () => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  });
+}
+
 // --- Checkout dinámico con aroma prellenado ---
 async function goToCheckout(btn) {
   const productKey = btn.dataset.product;
@@ -971,7 +979,6 @@ document.addEventListener('keydown', (e) => {
     setTimeout(() => fab.classList.remove('bump'), 400);
   };
 
-  // Permite vaciar el carrito desde fuera (se usa al completar una compra).
   window.clearNucleoCart = function () {
     cart = [];
     persistCart();
