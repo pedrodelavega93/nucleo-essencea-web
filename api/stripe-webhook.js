@@ -26,6 +26,16 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const REMITENTE = 'NÚCLEO essences <pedidos@nucleoessences.com>';
 const WHATSAPP_URL = 'https://wa.me/528116551406';
 
+// Arma el enlace de WhatsApp con un mensaje prellenado para solicitar
+// factura, incluyendo el ID de pago como referencia del pedido.
+function enlaceFactura(paymentId) {
+  const mensaje =
+    'Hola, quisiera solicitar factura para mi pedido' +
+    (paymentId ? ' (ID de pago: ' + paymentId + ')' : '') +
+    '. Mi RFC es: ____________, razón social: ____________, uso de CFDI: ____________.';
+  return WHATSAPP_URL + '?text=' + encodeURIComponent(mensaje);
+}
+
 // Lee el cuerpo crudo de la petición sin que Vercel lo parsee.
 function leerRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -176,9 +186,10 @@ function filasClienteHtml({ nombre, correo, direccion }) {
 }
 
 // Plantilla HTML del correo con la identidad dorado/negro de la marca.
-function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direccion }) {
+function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direccion, paymentId }) {
   const resumenHtml = escaparHtml(resumen).replace(/\s\|\s/g, '<br>');
   const clienteHtml = filasClienteHtml({ nombre, correo, direccion });
+  const facturaLink = enlaceFactura(paymentId);
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
@@ -226,6 +237,9 @@ function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direc
                   </td>
                 </tr>
               </table>
+              <p style="margin:18px 0 0; font-size:13px; line-height:1.5; text-align:center; color:#8a8a8a;">
+                ¿Necesitas factura? <a href="${facturaLink}" style="color:#c9a24b; text-decoration:underline;">Solicítala aquí</a>
+              </p>
             </td>
           </tr>
           <tr>
@@ -245,7 +259,7 @@ function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direc
 }
 
 // Versión en texto plano (fallback para clientes sin HTML).
-function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direccion }) {
+function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direccion, paymentId }) {
   return [
     '¡Gracias por tu compra en NÚCLEO essences! 🌿',
     '',
@@ -258,6 +272,8 @@ function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direcc
     total ? 'Total: ' + total : '',
     '',
     mensajeEntrega,
+    '',
+    '¿Necesitas factura? Solicítala aquí: ' + enlaceFactura(paymentId),
     '',
     'Con aroma, NÚCLEO essences',
     WHATSAPP_URL,
@@ -435,12 +451,19 @@ module.exports = async (req, res) => {
     const resumen = construirResumen(session);
     const total = formatearTotal(session);
 
+    // ID de pago: se calcula aquí (antes del correo al cliente) porque el
+    // enlace "¿Necesitas factura?" lo incluye como referencia del pedido.
+    const paymentId =
+      (typeof session.payment_intent === 'string' && session.payment_intent) ||
+      (session.payment_intent && session.payment_intent.id) ||
+      session.id;
+
     const { error } = await resend.emails.send({
       from: REMITENTE,
       to: email,
       subject: '¡Gracias por tu compra en NÚCLEO essences! 🌿',
-      html: plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo: email, direccion }),
-      text: plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo: email, direccion }),
+      html: plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo: email, direccion, paymentId }),
+      text: plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo: email, direccion, paymentId }),
     });
 
     if (error) {
@@ -454,11 +477,6 @@ module.exports = async (req, res) => {
     console.log('[v0] Correo de confirmación enviado a', email);
 
     // ── Segundo correo: notificación interna al dueño del negocio ──
-    const paymentId =
-      (typeof session.payment_intent === 'string' && session.payment_intent) ||
-      (session.payment_intent && session.payment_intent.id) ||
-      session.id;
-
     const montoAsunto =
       typeof session.amount_total === 'number'
         ? (session.amount_total / 100).toLocaleString('es-MX', {
