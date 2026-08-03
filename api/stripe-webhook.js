@@ -190,7 +190,7 @@ function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direc
           <tr>
             <td style="background-color:#000000; padding:28px 24px; text-align:center; border-bottom:1px solid #c9a24b;">
               <h1 style="margin:0; font-size:24px; letter-spacing:2px; color:#c9a24b;">NÚCLEO essences</h1>
-              <p style="margin:8px 0 0; font-size:13px; letter-spacing:3px; color:#8a8a8a; text-transform:uppercase;">Aromas que transforman espacios</p>
+              <p style="margin:8px 0 0; font-size:13px; letter-spacing:3px; color:#8a8a8a; text-transform:uppercase;">Aromatización y fragancias que definen experiencias y transforman tu estilo.</p>
             </td>
           </tr>
           <tr>
