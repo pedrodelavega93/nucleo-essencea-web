@@ -16,6 +16,11 @@
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Catálogo de perfumes (marca y género) — se usa para completar
+// automáticamente esos datos en el resumen del pedido a partir del
+// nombre del aroma que eligió el cliente.
+const { buscarAroma } = require('./aroma-catalog');
+
 // ------------------------------------------------------------
 // Cada "price_..." es el Price ID real de Stripe (Dashboard →
 // Product catalog → el producto → sección "Pricing" → el ID que
@@ -130,10 +135,19 @@ module.exports = async (req, res) => {
 
         if (DIFUSOR_KEYS.includes(item.productKey)) hayDifusor = true;
 
-        // Variantes elegidas por el cliente (color y/o aroma).
+        // Variantes elegidas por el cliente (color y/o aroma). Para el
+        // aroma, buscamos su marca y género en el catálogo para que
+        // queden reflejados tanto en Stripe como en el correo interno.
         const variantes = [];
         if (item.color) variantes.push('Color: ' + String(item.color));
-        if (item.aroma) variantes.push('Aroma: ' + String(item.aroma));
+        if (item.aroma) {
+          const info = buscarAroma(item.aroma);
+          variantes.push(
+            info
+              ? `Aroma: ${item.aroma} — ${info.marca} — ${info.genero}`
+              : 'Aroma: ' + String(item.aroma)
+          );
+        }
 
         // Recuperamos el Price real de Stripe para reutilizar su monto,
         // moneda, nombre e imagen (Stripe sigue siendo la fuente de verdad
