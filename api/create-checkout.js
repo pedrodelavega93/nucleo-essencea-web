@@ -85,6 +85,17 @@ function buildShippingOptions() {
         },
       },
     },
+    {
+      shipping_rate_data: {
+        type: 'fixed_amount',
+        fixed_amount: { amount: 25000, currency: 'mxn' }, // $250 MXN
+        display_name: 'Envío nacional (fuera de Nuevo León)',
+        delivery_estimate: {
+          minimum: { unit: 'business_day', value: 5 },
+          maximum: { unit: 'business_day', value: 7 },
+        },
+      },
+    },
   ];
 }
 
