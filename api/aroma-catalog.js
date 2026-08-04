@@ -565,6 +565,14 @@ const CATALOGO_AROMAS = {
   'Z ZEGNA': { marca: 'ERMENEGILDO ZEGNA', genero: 'Hombre' },
 };
 
+// Perfumes agregados: J'adoube / Blockade (Mind Games), Loewe 001 Man/Woman,
+// Eden Sweet Peach | 35 (Kayali Fragrances).
+CATALOGO_AROMAS['EDEN SWEET PEACH | 35 EAU DE PARFUM'] = { marca: 'KAYALI FRAGRANCES', genero: 'Mujer' };
+CATALOGO_AROMAS['JADOUBE'] = { marca: 'MIND GAMES', genero: 'Unisex' };
+CATALOGO_AROMAS['BLOCKADE'] = { marca: 'MIND GAMES', genero: 'Unisex' };
+CATALOGO_AROMAS['LOEWE 001 MAN'] = { marca: 'LOEWE', genero: 'Hombre' };
+CATALOGO_AROMAS['LOEWE 001 WOMAN'] = { marca: 'LOEWE', genero: 'Mujer' };
+
 // Normaliza un texto de aroma (quita tildes, comillas, espacios extra)
 // para buscarlo en CATALOGO_AROMAS sin importar cómo lo haya escrito
 // el cliente o cómo esté guardado el nombre del producto.
