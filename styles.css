@@ -387,7 +387,7 @@ section{ position:relative; }
   align-items:center;
   gap:72px;
   width:max-content;
-  animation:trust-scroll 22s linear infinite;
+  animation:trust-scroll 88s linear infinite;
 }
 
 .trust-marquee:hover .trust-track{ animation-play-state:paused; }
@@ -420,7 +420,7 @@ section{ position:relative; }
 }
 
 @media (max-width:640px){
-  .trust-track{ gap:44px; animation-duration:16s; }
+  .trust-track{ gap:44px; animation-duration:64s; }
   .trust-logo{ height:40px; }
   .trust-logo img{ max-width:110px; }
 }
