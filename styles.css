@@ -354,6 +354,77 @@ section{ position:relative; }
   text-transform:uppercase;
 }
 
+/* ============================================================
+   NEGOCIOS QUE HAN CONFIADO EN NOSOTROS — tira de logos
+   ============================================================ */
+.trust-section{
+  padding:40px 0 44px;
+  background:var(--black);
+  border-bottom:1px solid var(--line);
+  overflow:hidden;
+}
+
+.trust-label{
+  text-align:center;
+  font-family:'Jost', sans-serif;
+  font-size:0.72rem;
+  letter-spacing:0.28em;
+  text-transform:uppercase;
+  color:var(--gold);
+  font-weight:500;
+  margin-bottom:28px;
+}
+
+.trust-marquee{
+  width:100%;
+  overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  mask-image:linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+
+.trust-track{
+  display:flex;
+  align-items:center;
+  gap:72px;
+  width:max-content;
+  animation:trust-scroll 22s linear infinite;
+}
+
+.trust-marquee:hover .trust-track{ animation-play-state:paused; }
+
+.trust-logo{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:56px;
+}
+
+.trust-logo img{
+  max-height:100%;
+  max-width:160px;
+  width:auto;
+  object-fit:contain;
+  filter:grayscale(100%) brightness(1.8) contrast(0.9) opacity(0.65);
+  transition:filter 0.25s ease, transform 0.25s ease;
+}
+
+.trust-logo img:hover{
+  filter:grayscale(0%) brightness(1) contrast(1) opacity(1);
+  transform:scale(1.05);
+}
+
+@keyframes trust-scroll{
+  from{ transform:translateX(0); }
+  to{   transform:translateX(-50%); }
+}
+
+@media (max-width:640px){
+  .trust-track{ gap:44px; animation-duration:16s; }
+  .trust-logo{ height:40px; }
+  .trust-logo img{ max-width:110px; }
+}
+
 /* ---------- product sections ---------- */
 .catalog-section{ padding:96px 0; }
 .catalog-section.alt{ background:var(--panel); }
