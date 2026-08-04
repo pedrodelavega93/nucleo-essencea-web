@@ -572,6 +572,10 @@ CATALOGO_AROMAS['JADOUBE'] = { marca: 'MIND GAMES', genero: 'Unisex' };
 CATALOGO_AROMAS['BLOCKADE'] = { marca: 'MIND GAMES', genero: 'Unisex' };
 CATALOGO_AROMAS['LOEWE 001 MAN'] = { marca: 'LOEWE', genero: 'Hombre' };
 CATALOGO_AROMAS['LOEWE 001 WOMAN'] = { marca: 'LOEWE', genero: 'Mujer' };
+CATALOGO_AROMAS['GOOD GIRL JASMINE ABSOLUTE'] = { marca: 'CAROLINA HERRERA', genero: 'Mujer' };
+CATALOGO_AROMAS['BAD BOY COBALT ABSOLUTE'] = { marca: 'CAROLINA HERRERA', genero: 'Hombre' };
+CATALOGO_AROMAS['LIONORA'] = { marca: 'MIND GAMES', genero: 'Unisex' };
+CATALOGO_AROMAS['QUEENING'] = { marca: 'MIND GAMES', genero: 'Unisex' };
 
 // Normaliza un texto de aroma (quita tildes, comillas, espacios extra)
 // para buscarlo en CATALOGO_AROMAS sin importar cómo lo haya escrito
