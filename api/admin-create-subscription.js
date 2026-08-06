@@ -18,6 +18,16 @@
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Normaliza un teléfono a formato E.164 (+52XXXXXXXXXX) para que
+// coincida con lo que guarda Stripe y se pueda buscar después.
+function normalizarTelefono(input) {
+  if (!input) return '';
+  let digitos = String(input).replace(/[^\d]/g, '');
+  if (!digitos) return '';
+  if (digitos.length === 10) digitos = '52' + digitos;
+  return '+' + digitos;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -45,8 +55,10 @@ module.exports = async (req, res) => {
     if (!password || password !== process.env.ADMIN_PASSWORD) {
       return res.status(401).json({ error: 'Contraseña incorrecta.' });
     }
-    if (!correo || !correo.includes('@')) {
-      return res.status(400).json({ error: 'Correo del cliente no válido.' });
+    const correoValido = correo && typeof correo === 'string' && correo.includes('@');
+    const telefonoValido = telefono && typeof telefono === 'string' && telefono.trim();
+    if (!correoValido && !telefonoValido) {
+      return res.status(400).json({ error: 'Ingresa al menos un correo o un número de WhatsApp del cliente.' });
     }
     if (!nombre || !nombre.trim()) {
       return res.status(400).json({ error: 'Falta el nombre del cliente.' });
@@ -58,27 +70,34 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'El monto mensual no es válido.' });
     }
 
-    const correoNorm = correo.trim().toLowerCase();
+    const correoNorm = correoValido ? correo.trim().toLowerCase() : '';
+    const telefonoNorm = telefonoValido ? normalizarTelefono(telefono) : '';
 
-    // Reutilizamos al cliente si ya existe en Stripe con ese correo;
-    // si no, lo creamos.
+    // Reutilizamos al cliente si ya existe en Stripe (buscando primero por
+    // correo si lo dieron; si no, por teléfono); si no existe, lo creamos.
     let customer;
-    const existentes = await stripe.customers.list({ email: correoNorm, limit: 1 });
+    let existentes = { data: [] };
+    if (correoNorm) {
+      existentes = await stripe.customers.list({ email: correoNorm, limit: 1 });
+    } else if (telefonoNorm) {
+      existentes = await stripe.customers.search({ query: `phone:'${telefonoNorm}'`, limit: 1 });
+    }
+
     if (existentes.data.length) {
       customer = existentes.data[0];
-      // Actualizamos nombre/teléfono si vienen y no los tenía.
+      // Actualizamos nombre/teléfono/correo si vienen y no los tenía.
       const cambios = {};
       if (nombre && nombre.trim() && !customer.name) cambios.name = nombre.trim();
-      if (telefono && telefono.trim() && !customer.phone) cambios.phone = telefono.trim();
+      if (telefonoNorm && !customer.phone) cambios.phone = telefonoNorm;
+      if (correoNorm && !customer.email) cambios.email = correoNorm;
       if (Object.keys(cambios).length) {
         customer = await stripe.customers.update(customer.id, cambios);
       }
     } else {
-      customer = await stripe.customers.create({
-        email: correoNorm,
-        name: nombre.trim(),
-        phone: telefono ? telefono.trim() : undefined,
-      });
+      const datosCustomer = { name: nombre.trim() };
+      if (correoNorm) datosCustomer.email = correoNorm;
+      if (telefonoNorm) datosCustomer.phone = telefonoNorm;
+      customer = await stripe.customers.create(datosCustomer);
     }
 
     const metadata = {
