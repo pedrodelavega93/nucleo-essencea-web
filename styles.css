@@ -1226,6 +1226,13 @@ footer{
   border-radius:999px;
 }
 .plan-spec strong{ color:var(--gold-2); font-weight:500; }
+.plan-note{
+  font-size:0.74rem;
+  line-height:1.5;
+  color:var(--muted);
+  margin:-8px 0 18px;
+}
+.plan-note strong{ color:var(--gold-2); font-weight:500; }
 .plan-features{
   list-style:none;
   margin:0 0 24px;
