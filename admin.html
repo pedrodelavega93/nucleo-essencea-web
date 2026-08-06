@@ -107,6 +107,7 @@
     <button class="filter-chip" data-filter="tarjeta">Tarjeta</button>
     <button class="filter-chip" data-filter="renta">Renta de Difusores</button>
     <button class="filter-chip" data-filter="aromas">Suscripción de Aromas</button>
+    <button class="filter-chip" data-filter="proximos">Próximas a vencer (7 días)</button>
     <button class="filter-chip" data-filter="vencido">Pago vencido</button>
   </div>
 
@@ -270,12 +271,19 @@
     const activas = allSubs.filter((s) => s.estado !== 'canceled');
     const efectivo = activas.filter((s) => s.metodoPago === 'efectivo');
     const vencidas = activas.filter((s) => s.estado === 'past_due' || s.estado === 'unpaid');
+    const proximos = activas.filter((s) => diasHasta(s.proximaFechaISO) <= 7 && diasHasta(s.proximaFechaISO) >= 0);
     const row = document.getElementById('summaryRow');
     row.innerHTML = [
       ['Activas', activas.length],
       ['En efectivo', efectivo.length],
+      ['Próximas a vencer (7 días)', proximos.length],
       ['Pago vencido', vencidas.length],
     ].map(([l, n]) => `<div class="summary-card"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  }
+
+  function diasHasta(iso) {
+    const ms = new Date(iso).getTime() - Date.now();
+    return Math.floor(ms / 86400000);
   }
 
   function matchesFilter(s) {
@@ -285,13 +293,16 @@
       case 'renta': return !s.esAroma;
       case 'aromas': return s.esAroma;
       case 'vencido': return s.estado === 'past_due' || s.estado === 'unpaid';
+      case 'proximos': return s.estado !== 'canceled' && diasHasta(s.proximaFechaISO) <= 7 && diasHasta(s.proximaFechaISO) >= 0;
       default: return true;
     }
   }
 
   function renderTable() {
     const body = document.getElementById('subTableBody');
-    const visibles = allSubs.filter(matchesFilter);
+    const visibles = allSubs.filter(matchesFilter)
+      .slice()
+      .sort((a, b) => new Date(a.proximaFechaISO) - new Date(b.proximaFechaISO));
 
     if (!visibles.length) {
       body.innerHTML = `<tr><td colspan="8" class="empty-msg">No hay suscripciones que coincidan con este filtro.</td></tr>`;
@@ -300,8 +311,14 @@
 
     body.innerHTML = visibles.map((s) => {
       const puedeMarcarPago = s.metodoPago === 'efectivo' && s.estado !== 'canceled';
+      const dias = diasHasta(s.proximaFechaISO);
+      const porVencer = s.estado !== 'canceled' && dias <= 7 && dias >= 0;
+      const rowStyle = porVencer ? ' style="border-left:3px solid #d6a15c; background:rgba(214,161,92,0.06);"' : '';
+      const diasTag = porVencer
+        ? `<div class="cell-sub" style="color:#e0b48a;">${dias === 0 ? 'Vence hoy' : dias === 1 ? 'Vence mañana' : 'Vence en ' + dias + ' días'}</div>`
+        : '';
       return `
-        <tr data-id="${s.id}">
+        <tr data-id="${s.id}"${rowStyle}>
           <td>
             <div class="cell-name">${s.nombre || '(sin nombre)'}</div>
             <div class="cell-sub">${s.correo || ''}</div>
@@ -313,7 +330,7 @@
           </td>
           <td>${s.aroma || '—'}</td>
           <td>${money(s.montoMensual)}</td>
-          <td>${s.proximaFechaLabel}</td>
+          <td>${s.proximaFechaLabel}${diasTag}</td>
           <td><span class="badge status-${s.estado}">${s.estado}</span></td>
           <td><span class="badge ${s.metodoPago}">${s.metodoPago}</span></td>
           <td>
