@@ -220,11 +220,11 @@
   const gateBtn = document.getElementById('gateBtn');
   const gateErr = document.getElementById('gateErr');
 
-  async function api(path, body) {
-    const resp = await fetch('/api/' + path, {
+  async function api(action, body) {
+    const resp = await fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({ password }, body || {})),
+      body: JSON.stringify(Object.assign({ password, action }, body || {})),
     });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data.error || 'Error de conexión.');
@@ -240,7 +240,7 @@
     const prevPw = password;
     password = pw;
     try {
-      await api('admin-subscriptions');
+      await api('list');
       sessionStorage.setItem(STORAGE_KEY, pw);
       gate.style.display = 'none';
       panel.style.display = 'block';
@@ -348,7 +348,7 @@
     document.getElementById('loadingMsg').style.display = 'block';
     document.getElementById('subTable').style.display = 'none';
     try {
-      const data = await api('admin-subscriptions');
+      const data = await api('list');
       allSubs = data.subscriptions || [];
       renderSummary();
       renderTable();
@@ -385,7 +385,7 @@
       btn.disabled = true;
       btn.textContent = 'Cancelando…';
       try {
-        await api('admin-cancel-subscription', { subscriptionId: id, inmediato });
+        await api('cancel', { subscriptionId: id, inmediato });
         await loadSubs();
       } catch (err) {
         alert('No se pudo cancelar: ' + err.message);
@@ -396,7 +396,7 @@
       btn.disabled = true;
       btn.textContent = 'Marcando…';
       try {
-        await api('admin-mark-paid', { subscriptionId: id });
+        await api('markPaid', { subscriptionId: id });
         alert('Pago marcado correctamente.');
       } catch (err) {
         alert('No se pudo marcar el pago: ' + err.message);
@@ -432,7 +432,7 @@
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     try {
-      await api('admin-create-subscription', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual });
+      await api('create', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual });
       msg.className = 'modal-msg ok';
       msg.textContent = '¡Suscripción creada!';
       await loadSubs();
@@ -473,7 +473,7 @@
     try {
       const payload = { subscriptionId: editingId, planNombre, tamano, aroma };
       if (montoRaw) payload.montoMensual = montoRaw;
-      await api('admin-update-subscription', payload);
+      await api('update', payload);
       msg.className = 'modal-msg ok';
       msg.textContent = '¡Actualizado!';
       await loadSubs();
