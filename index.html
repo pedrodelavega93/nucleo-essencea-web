@@ -784,11 +784,15 @@
   <div class="sub-modal-inner">
     <button class="modal-close" id="subModalClose" aria-label="Cerrar">✕</button>
 
-    <!-- Paso 1: correo -->
+    <!-- Paso 1: correo o WhatsApp -->
     <div class="sub-step" id="subStepEmail">
       <h4 class="serif">Gestionar mi suscripción</h4>
-      <p>Ingresa el correo con el que te suscribiste para ver tus suscripciones
-        activas y cambiar tu aroma sin salir de aquí.</p>
+      <p>Ingresa el correo o el WhatsApp con el que te suscribiste para ver tus
+        suscripciones activas y cambiar tu aroma sin salir de aquí.</p>
+      <div class="sub-identifier-tabs" id="subIdentifierTabs">
+        <button type="button" class="sub-id-tab selected" data-mode="email">Correo</button>
+        <button type="button" class="sub-id-tab" data-mode="phone">WhatsApp</button>
+      </div>
       <input type="email" id="subEmailInput" class="sub-email-input" placeholder="tu@correo.com" autocomplete="email">
       <div class="sub-error" id="subError" role="alert"></div>
       <button class="sub-continue-btn" id="subContinueBtn">Ver mis suscripciones</button>
