@@ -1457,6 +1457,30 @@ footer{
   font-size:0.85rem;
   line-height:1.5;
 }
+.sub-identifier-tabs{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  margin:18px 0 0;
+}
+.sub-id-tab{
+  font-family:'Jost', sans-serif;
+  font-size:0.78rem;
+  letter-spacing:0.04em;
+  color:var(--muted);
+  background:var(--panel);
+  border:1px solid var(--line);
+  padding:8px 18px;
+  border-radius:999px;
+  cursor:pointer;
+  transition:all 0.22s ease;
+}
+.sub-id-tab:hover{ border-color:var(--gold); color:var(--gold-2); }
+.sub-id-tab.selected{
+  background:var(--gold);
+  border-color:var(--gold);
+  color:var(--black);
+}
 .sub-email-input{
   width:100%;
   margin:18px 0 0;
