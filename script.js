@@ -70,7 +70,47 @@ const modalVideo = document.getElementById('modalVideo');
 const modalLabel = document.getElementById('modalLabel');
 const modalClose = document.getElementById('modalClose');
 
+// --- Música ambiental flotante ---
+// Se pausa automáticamente al abrir cualquier video de producto, y
+// retoma justo donde iba al cerrar ese video (si el usuario la había
+// activado). Empieza siempre apagada — los navegadores bloquean el
+// autoplay con sonido, así que no tendría sentido intentarlo solo.
+const musicBtn = document.getElementById('musicFloat');
+const ambientAudio = document.getElementById('ambientAudio');
+let musicWasPlaying = false; // para saber si retomarla tras cerrar un video
+
+if (musicBtn && ambientAudio) {
+  const iconOn = musicBtn.querySelector('.music-icon-on');
+  const iconOff = musicBtn.querySelector('.music-icon-off');
+
+  musicBtn.addEventListener('click', () => {
+    if (ambientAudio.paused) {
+      ambientAudio.play().catch(() => {
+        /* si por alguna razón el navegador la bloquea, no pasa nada */
+      });
+      musicBtn.classList.add('playing');
+      musicBtn.setAttribute('aria-pressed', 'true');
+      iconOn.style.display = '';
+      iconOff.style.display = 'none';
+    } else {
+      ambientAudio.pause();
+      musicBtn.classList.remove('playing');
+      musicBtn.setAttribute('aria-pressed', 'false');
+      iconOn.style.display = 'none';
+      iconOff.style.display = '';
+    }
+  });
+}
+
 function openVideo(src, poster, label) {
+  // Pausamos la música ambiental (si estaba sonando) mientras se ve el video.
+  if (ambientAudio && !ambientAudio.paused) {
+    musicWasPlaying = true;
+    ambientAudio.pause();
+  } else {
+    musicWasPlaying = false;
+  }
+
   modalVideo.setAttribute('poster', poster || '');
   modalVideo.querySelector('source').setAttribute('src', src);
   modalVideo.load();
@@ -87,6 +127,12 @@ function closeVideo() {
   modalVideo.pause();
   modalVideo.currentTime = 0;
   document.body.style.overflow = '';
+
+  // Retomamos la música ambiental justo donde iba, si estaba sonando
+  // antes de abrir el video.
+  if (musicWasPlaying && ambientAudio) {
+    ambientAudio.play().catch(() => {});
+  }
 }
 
 document.querySelectorAll('[data-video]').forEach((btn) => {
