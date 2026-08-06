@@ -19,7 +19,7 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // Catálogo de perfumes (marca y género) — se usa para completar
 // automáticamente esos datos en el resumen del pedido a partir del
 // nombre del aroma que eligió el cliente.
-const { buscarAroma } = require('./aroma-catalog');
+const { buscarAroma } = require('./_aroma-catalog');
 
 // ------------------------------------------------------------
 // Cada "price_..." es el Price ID real de Stripe (Dashboard →
