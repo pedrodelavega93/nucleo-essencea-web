@@ -7,7 +7,15 @@
 //   - Solo se permite si faltan 5 días o más para la próxima
 //     entrega/cobro (current_period_end).
 //   - El nuevo aroma se guarda en la metadata de la suscripción.
-//   - Se envía un correo de confirmación al cliente y al dueño.
+//   - Se envía un correo de confirmación al cliente y al dueño
+//     (solo si el cliente tiene correo registrado).
+//
+// Seguridad: en vez de verificar por correo (el cliente puede haber
+// entrado con correo O con WhatsApp), verificamos que la suscripción
+// pertenezca al customerId que Stripe nos devolvió cuando el cliente
+// hizo la búsqueda inicial en /api/list-subscriptions — ese customerId
+// nunca se le pide directamente al cliente, así que no se puede
+// adivinar ni falsificar fácilmente.
 //
 // Requiere STRIPE_SECRET_KEY y RESEND_API_KEY.
 // ============================================================
@@ -82,9 +90,9 @@ function correoCliente({ plan, aromaAnterior, aromaNuevo, proximaFecha }) {
 }
 
 // Correo interno para el dueño (simple).
-function correoDueno({ plan, correo, aromaAnterior, aromaNuevo, proximaFecha, subId }) {
+function correoDueno({ plan, cliente, aromaAnterior, aromaNuevo, proximaFecha, subId }) {
   const filas = [
-    ['Cliente', correo],
+    ['Cliente', cliente],
     ['Suscripción', plan],
     ['Aroma anterior', aromaAnterior],
     ['Aroma nuevo', aromaNuevo],
@@ -122,10 +130,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { email, subscriptionId, aroma } = req.body || {};
+    const { customerId, subscriptionId, aroma } = req.body || {};
 
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-      res.status(400).json({ error: 'Correo no válido.' });
+    if (!customerId || typeof customerId !== 'string') {
+      res.status(400).json({ error: 'Sesión no válida. Vuelve a buscar tu suscripción.' });
       return;
     }
     if (!subscriptionId || typeof subscriptionId !== 'string') {
@@ -137,24 +145,21 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const correo = email.trim().toLowerCase();
     const nuevoAroma = aroma.trim().slice(0, 200);
 
-    // Recuperamos la suscripción y su cliente para verificar identidad.
+    // Recuperamos la suscripción para verificar identidad.
     const sub = await stripe.subscriptions.retrieve(subscriptionId);
     if (!sub || !sub.customer) {
       res.status(404).json({ error: 'No encontramos esa suscripción.' });
       return;
     }
 
-    const customer = await stripe.customers.retrieve(
-      typeof sub.customer === 'string' ? sub.customer : sub.customer.id
-    );
-    const correoCustomer = (customer && customer.email ? customer.email : '').toLowerCase();
+    const subCustomerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
 
-    // Seguridad: la suscripción debe pertenecer al correo indicado.
-    if (correoCustomer !== correo) {
-      res.status(403).json({ error: 'Esta suscripción no coincide con el correo proporcionado.' });
+    // Seguridad: la suscripción debe pertenecer al customerId de la
+    // búsqueda inicial (por correo o por WhatsApp).
+    if (subCustomerId !== customerId) {
+      res.status(403).json({ error: 'Esta suscripción no coincide con tu sesión.' });
       return;
     }
 
@@ -187,28 +192,41 @@ module.exports = async (req, res) => {
       metadata: Object.assign({}, meta, { aroma_elegido: nuevoAroma }),
     });
 
-    // Correos de confirmación (no bloquean la respuesta si fallan).
-    try {
-      await resend.emails.send({
-        from: REMITENTE,
-        to: correo,
-        subject: 'Cambio de aroma confirmado — NÚCLEO essences 🌿',
-        html: correoCliente({ plan, aromaAnterior, aromaNuevo: nuevoAroma, proximaFecha: proximaFechaLabel }),
-        text: [
-          'Cambio de aroma confirmado — NÚCLEO essences',
-          'Suscripción: ' + plan,
-          'Aroma anterior: ' + aromaAnterior,
-          'Aroma nuevo: ' + nuevoAroma,
-          'Próxima entrega: ' + proximaFechaLabel,
-          '',
-          'Con aroma, NÚCLEO essences',
-          WHATSAPP_URL,
-        ].join('\n'),
-      });
+    // Datos del cliente (para los correos) — puede no tener correo si
+    // se suscribió solo con WhatsApp.
+    const customer = await stripe.customers.retrieve(customerId);
+    const correoCliente_ = customer && !customer.deleted ? customer.email || '' : '';
+    const clienteLabel = correoCliente_ || (customer && customer.phone) || customerId;
 
+    // Correos de confirmación (no bloquean la respuesta si fallan).
+    // Solo se envían si el cliente tiene correo registrado.
+    if (correoCliente_) {
+      try {
+        await resend.emails.send({
+          from: REMITENTE,
+          to: correoCliente_,
+          subject: 'Cambio de aroma confirmado — NÚCLEO essences 🌿',
+          html: correoCliente({ plan, aromaAnterior, aromaNuevo: nuevoAroma, proximaFecha: proximaFechaLabel }),
+          text: [
+            'Cambio de aroma confirmado — NÚCLEO essences',
+            'Suscripción: ' + plan,
+            'Aroma anterior: ' + aromaAnterior,
+            'Aroma nuevo: ' + nuevoAroma,
+            'Próxima entrega: ' + proximaFechaLabel,
+            '',
+            'Con aroma, NÚCLEO essences',
+            WHATSAPP_URL,
+          ].join('\n'),
+        });
+      } catch (mailErr) {
+        console.error('[v0] Error enviando correo de confirmación al cliente:', mailErr);
+      }
+    }
+
+    try {
       const interno = correoDueno({
         plan,
-        correo,
+        cliente: clienteLabel,
         aromaAnterior,
         aromaNuevo: nuevoAroma,
         proximaFecha: proximaFechaLabel,
@@ -217,12 +235,12 @@ module.exports = async (req, res) => {
       await resend.emails.send({
         from: REMITENTE,
         to: CORREO_DUENO,
-        subject: 'Cambio de aroma: ' + correo + ' → ' + nuevoAroma,
+        subject: 'Cambio de aroma: ' + clienteLabel + ' → ' + nuevoAroma,
         html: interno.html,
         text: interno.text,
       });
     } catch (mailErr) {
-      console.error('[v0] Error enviando correos de cambio de aroma:', mailErr);
+      console.error('[v0] Error enviando correo interno de cambio de aroma:', mailErr);
     }
 
     res.status(200).json({
