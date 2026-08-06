@@ -148,6 +148,10 @@ async function accionCreate(body) {
     dado_de_alta_por: 'admin',
   };
 
+  const producto = await stripe.products.create({
+    name: planNombre || 'Suscripción NÚCLEO essences (efectivo)',
+  });
+
   const subscription = await stripe.subscriptions.create({
     customer: customer.id,
     items: [
@@ -156,7 +160,7 @@ async function accionCreate(body) {
           currency: 'mxn',
           unit_amount: Math.round(Number(montoMensual) * 100),
           recurring: { interval: 'month' },
-          product_data: { name: planNombre || 'Suscripción NÚCLEO essences (efectivo)' },
+          product: producto.id,
         },
       },
     ],
@@ -198,6 +202,9 @@ async function accionUpdate(body) {
 
   if (montoMensual !== undefined && montoMensual !== null && montoMensual !== '') {
     const item = sub.items.data[0];
+    const producto = await stripe.products.create({
+      name: planNombre || metaActual.plan_nombre || 'Suscripción NÚCLEO essences',
+    });
     updatePayload.items = [
       {
         id: item.id,
@@ -205,7 +212,7 @@ async function accionUpdate(body) {
           currency: item.price.currency,
           unit_amount: Math.round(Number(montoMensual) * 100),
           recurring: { interval: 'month' },
-          product_data: { name: planNombre || metaActual.plan_nombre || 'Suscripción NÚCLEO essences' },
+          product: producto.id,
         },
       },
     ];
