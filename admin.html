@@ -170,6 +170,10 @@
       <label>Monto mensual (MXN)</label>
       <input type="number" id="nMonto" placeholder="Ej. 1800">
     </div>
+    <div class="field">
+      <label>Fecha en que se suscribió (opcional — si no la das, se usa hoy)</label>
+      <input type="date" id="nFechaInicio">
+    </div>
     <div class="modal-actions">
       <button class="admin-btn ghost" data-close="modalNueva">Cancelar</button>
       <button class="admin-btn" id="nGuardar">Dar de alta</button>
@@ -410,7 +414,7 @@
   // ---- modal: nueva suscripción ----
   const modalNueva = document.getElementById('modalNueva');
   document.getElementById('btnNueva').addEventListener('click', () => {
-    ['nNombre','nCorreo','nTelefono','nPlan','nTamano','nAroma','nMonto'].forEach((id) => document.getElementById(id).value = '');
+    ['nNombre','nCorreo','nTelefono','nPlan','nTamano','nAroma','nMonto','nFechaInicio'].forEach((id) => document.getElementById(id).value = '');
     document.getElementById('nMsg').textContent = '';
     modalNueva.classList.add('open');
   });
@@ -424,6 +428,7 @@
     const tamano = document.getElementById('nTamano').value.trim();
     const aroma = document.getElementById('nAroma').value.trim();
     const montoMensual = document.getElementById('nMonto').value;
+    const fechaInicio = document.getElementById('nFechaInicio').value;
     const msg = document.getElementById('nMsg');
 
     msg.className = 'modal-msg';
@@ -432,7 +437,7 @@
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     try {
-      await api('create', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual });
+      await api('create', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio });
       msg.className = 'modal-msg ok';
       msg.textContent = '¡Suscripción creada!';
       await loadSubs();
