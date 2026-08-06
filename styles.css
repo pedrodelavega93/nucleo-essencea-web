@@ -1322,6 +1322,31 @@ footer{
 @media (max-width:600px){
   .success-banner-close{ position:static; }
 }
+/* ---------- música ambiental flotante ---------- */
+.music-float{
+  position:fixed;
+  bottom:210px;
+  right:22px;
+  z-index:90;
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  background:var(--panel-2);
+  border:1px solid var(--gold);
+  color:var(--gold-2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+  transition:background 0.3s ease, color 0.3s ease;
+}
+.music-float:hover{ background:var(--gold); color:#171310; }
+.music-float svg{ width:20px; height:20px; }
+.music-float.playing{ border-color:var(--gold-2); color:var(--gold); }
+@media (max-width:600px){
+  .music-float{ bottom:200px; right:16px; width:44px; height:44px; }
+}
 
 /* ---------- scroll-to-top float ---------- */
 .scrolltop-float{
