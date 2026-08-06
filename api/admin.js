@@ -99,8 +99,11 @@ async function accionCreate(body) {
 
   const correoValido = correo && typeof correo === 'string' && correo.includes('@');
   const telefonoValido = telefono && typeof telefono === 'string' && telefono.trim();
-  if (!correoValido && !telefonoValido) {
-    throw { status: 400, error: 'Ingresa al menos un correo o un número de WhatsApp del cliente.' };
+  if (!correoValido) {
+    throw {
+      status: 400,
+      error: 'El correo es obligatorio: Stripe lo necesita para poder generarte el recibo mensual de esta suscripción (aunque el pago sea en efectivo). El WhatsApp puede quedar como dato de contacto adicional.',
+    };
   }
   if (!nombre || !nombre.trim()) {
     throw { status: 400, error: 'Falta el nombre del cliente.' };
