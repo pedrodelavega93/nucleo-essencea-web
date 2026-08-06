@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>NÚCLEO essences — Panel de suscripciones</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body{ background:var(--black); }
+  .admin-wrap{ max-width:1180px; margin:0 auto; padding:32px 20px 80px; }
+  .admin-top{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
+  .admin-top .wordmark{ font-family:'Playfair Display', serif; font-size:1.4rem; font-weight:700; letter-spacing:0.08em; }
+  .admin-top .wordmark em{ display:block; font-style:italic; font-weight:400; font-size:0.62rem; letter-spacing:0.3em; color:var(--gold); }
+
+  /* ---- gate de contraseña ---- */
+  #gate{ max-width:360px; margin:14vh auto; text-align:center; }
+  #gate h1{ font-family:'Playfair Display', serif; font-size:1.6rem; margin:0 0 8px; }
+  #gate p{ color:var(--muted); font-size:0.9rem; margin:0 0 24px; }
+  #gate input{ width:100%; padding:13px 16px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--cream); font-family:'Jost',sans-serif; font-size:0.95rem; margin-bottom:12px; }
+  #gate input:focus{ outline:none; border-color:var(--gold); }
+  #gate button{ width:100%; padding:13px; background:var(--gold); color:var(--black); border:none; border-radius:6px; font-family:'Jost',sans-serif; font-weight:600; font-size:0.85rem; letter-spacing:0.05em; cursor:pointer; }
+  #gate .err{ color:#e08a8a; font-size:0.82rem; margin-top:10px; min-height:16px; }
+
+  /* ---- filtros y acciones ---- */
+  .admin-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:22px; }
+  .admin-btn{ background:var(--gold); color:var(--black); border:none; border-radius:6px; padding:11px 18px; font-family:'Jost',sans-serif; font-size:0.82rem; font-weight:600; letter-spacing:0.03em; cursor:pointer; }
+  .admin-btn.ghost{ background:transparent; color:var(--gold-2); border:1px solid var(--line); }
+  .admin-btn.danger{ background:transparent; color:#e08a8a; border:1px solid #5a2c2c; }
+  .admin-btn:hover{ opacity:0.88; }
+  .admin-btn:disabled{ opacity:0.5; cursor:default; }
+
+  .filter-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .filter-chip{ font-family:'Jost',sans-serif; font-size:0.76rem; color:var(--muted); background:var(--panel-2); border:1px solid var(--line); padding:8px 14px; border-radius:999px; cursor:pointer; }
+  .filter-chip.selected{ background:var(--gold); color:var(--black); border-color:var(--gold); }
+
+  .summary-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:24px; }
+  .summary-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px 18px; min-width:140px; }
+  .summary-card .n{ font-family:'Playfair Display', serif; font-size:1.5rem; color:var(--gold-2); }
+  .summary-card .l{ font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+
+  /* ---- tabla ---- */
+  .sub-table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:8px; }
+  table.sub-table{ width:100%; border-collapse:collapse; font-size:0.85rem; min-width:900px; }
+  .sub-table th{ text-align:left; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); padding:12px 14px; border-bottom:1px solid var(--line); background:var(--panel); white-space:nowrap; }
+  .sub-table td{ padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .sub-table tr:last-child td{ border-bottom:none; }
+  .sub-table tr:hover td{ background:rgba(184,144,94,0.05); }
+  .cell-name{ color:var(--cream); font-weight:500; }
+  .cell-sub{ font-size:0.76rem; color:var(--muted); margin-top:2px; }
+  .badge{ display:inline-block; font-size:0.66rem; letter-spacing:0.05em; text-transform:uppercase; padding:3px 9px; border-radius:999px; border:1px solid var(--line); }
+  .badge.efectivo{ color:#8fce9b; border-color:#2f5a37; background:rgba(143,206,155,0.08); }
+  .badge.tarjeta{ color:var(--gold-2); border-color:var(--line); }
+  .badge.status-active{ color:#8fce9b; border-color:#2f5a37; }
+  .badge.status-past_due, .badge.status-unpaid{ color:#e0b48a; border-color:#5a4128; }
+  .badge.status-canceled{ color:#e08a8a; border-color:#5a2c2c; }
+  .row-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .mini-btn{ font-family:'Jost',sans-serif; font-size:0.7rem; background:none; border:1px solid var(--line); color:var(--cream); padding:6px 10px; border-radius:5px; cursor:pointer; white-space:nowrap; }
+  .mini-btn:hover{ border-color:var(--gold); color:var(--gold-2); }
+  .mini-btn.danger:hover{ border-color:#5a2c2c; color:#e08a8a; }
+  .empty-msg{ padding:40px; text-align:center; color:var(--muted); }
+
+  /* ---- modal ---- */
+  .modal-bg{ position:fixed; inset:0; background:rgba(6,5,4,0.88); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:300; padding:20px; }
+  .modal-bg.open{ display:flex; }
+  .modal-box{ width:100%; max-width:440px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:28px 26px; max-height:88vh; overflow-y:auto; }
+  .modal-box h3{ font-family:'Playfair Display', serif; margin:0 0 18px; font-size:1.3rem; color:var(--gold-2); }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:0.72rem; color:var(--muted); margin-bottom:5px; }
+  .field input, .field select{ width:100%; padding:10px 12px; background:var(--black); border:1px solid var(--line); border-radius:5px; color:var(--cream); font-family:'Jost',sans-serif; font-size:0.88rem; }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--gold); }
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; }
+  .modal-actions .admin-btn{ flex:1; }
+  .modal-msg{ font-size:0.8rem; margin-top:10px; min-height:18px; }
+  .modal-msg.ok{ color:#8fce9b; }
+  .modal-msg.err{ color:#e08a8a; }
+
+  .loading{ text-align:center; padding:40px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ============ GATE DE CONTRASEÑA ============ -->
+<div id="gate">
+  <h1 class="serif">Panel de suscripciones</h1>
+  <p>Acceso privado — NÚCLEO essences</p>
+  <input type="password" id="gatePassword" placeholder="Contraseña">
+  <button id="gateBtn">Entrar</button>
+  <div class="err" id="gateErr"></div>
+</div>
+
+<!-- ============ PANEL (oculto hasta autenticar) ============ -->
+<div class="admin-wrap" id="panel" style="display:none;">
+  <div class="admin-top">
+    <div class="wordmark">NÚCLEO<em>essences</em></div>
+    <div class="admin-actions">
+      <button class="admin-btn" id="btnNueva">+ Nueva suscripción en efectivo</button>
+      <button class="admin-btn ghost" id="btnRefrescar">Actualizar</button>
+    </div>
+  </div>
+
+  <div class="summary-row" id="summaryRow"></div>
+
+  <div class="filter-tabs" id="filterTabs">
+    <button class="filter-chip selected" data-filter="todas">Todas</button>
+    <button class="filter-chip" data-filter="efectivo">Efectivo</button>
+    <button class="filter-chip" data-filter="tarjeta">Tarjeta</button>
+    <button class="filter-chip" data-filter="renta">Renta de Difusores</button>
+    <button class="filter-chip" data-filter="aromas">Suscripción de Aromas</button>
+    <button class="filter-chip" data-filter="vencido">Pago vencido</button>
+  </div>
+
+  <div class="sub-table-wrap">
+    <div class="loading" id="loadingMsg">Cargando suscripciones…</div>
+    <table class="sub-table" id="subTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Tipo / Plan</th>
+          <th>Aroma</th>
+          <th>Monto</th>
+          <th>Próximo cobro</th>
+          <th>Estado</th>
+          <th>Pago</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="subTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ MODAL: NUEVA SUSCRIPCIÓN EN EFECTIVO ============ -->
+<div class="modal-bg" id="modalNueva">
+  <div class="modal-box">
+    <h3>Nueva suscripción en efectivo</h3>
+    <div class="field">
+      <label>Nombre del cliente</label>
+      <input type="text" id="nNombre" placeholder="Nombre completo">
+    </div>
+    <div class="field">
+      <label>Correo</label>
+      <input type="email" id="nCorreo" placeholder="cliente@correo.com">
+    </div>
+    <div class="field">
+      <label>WhatsApp (opcional)</label>
+      <input type="text" id="nTelefono" placeholder="81 1234 5678">
+    </div>
+    <div class="field">
+      <label>Tipo de suscripción</label>
+      <select id="nTipo">
+        <option value="suscripcion_renta">Renta de Difusores</option>
+        <option value="suscripcion_aromas">Suscripción de Aromas</option>
+      </select>
+    </div>
+    <div class="field">
+      <label id="nPlanLabel">Paquete (Esencia / Aura / Sublime)</label>
+      <input type="text" id="nPlan" placeholder="Ej. Paquete 02 — Aura">
+    </div>
+    <div class="field" id="nTamanoField">
+      <label>Tamaño (solo Suscripción de Aromas)</label>
+      <input type="text" id="nTamano" placeholder="Ej. 500 ml">
+    </div>
+    <div class="field">
+      <label>Aroma elegido</label>
+      <input type="text" id="nAroma" placeholder="Ej. Black Opium">
+    </div>
+    <div class="field">
+      <label>Monto mensual (MXN)</label>
+      <input type="number" id="nMonto" placeholder="Ej. 1800">
+    </div>
+    <div class="modal-actions">
+      <button class="admin-btn ghost" data-close="modalNueva">Cancelar</button>
+      <button class="admin-btn" id="nGuardar">Dar de alta</button>
+    </div>
+    <div class="modal-msg" id="nMsg"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: EDITAR SUSCRIPCIÓN ============ -->
+<div class="modal-bg" id="modalEditar">
+  <div class="modal-box">
+    <h3>Modificar suscripción</h3>
+    <div class="field">
+      <label>Plan / paquete</label>
+      <input type="text" id="ePlan">
+    </div>
+    <div class="field">
+      <label>Tamaño (si aplica)</label>
+      <input type="text" id="eTamano">
+    </div>
+    <div class="field">
+      <label>Aroma</label>
+      <input type="text" id="eAroma">
+    </div>
+    <div class="field">
+      <label>Monto mensual (MXN) — deja vacío para no cambiarlo</label>
+      <input type="number" id="eMonto" placeholder="Sin cambio">
+    </div>
+    <div class="modal-actions">
+      <button class="admin-btn ghost" data-close="modalEditar">Cancelar</button>
+      <button class="admin-btn" id="eGuardar">Guardar cambios</button>
+    </div>
+    <div class="modal-msg" id="eMsg"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'nucleo_admin_pw';
+  let password = sessionStorage.getItem(STORAGE_KEY) || '';
+  let allSubs = [];
+  let currentFilter = 'todas';
+  let editingId = '';
+
+  const gate = document.getElementById('gate');
+  const panel = document.getElementById('panel');
+  const gatePassword = document.getElementById('gatePassword');
+  const gateBtn = document.getElementById('gateBtn');
+  const gateErr = document.getElementById('gateErr');
+
+  async function api(path, body) {
+    const resp = await fetch('/api/' + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ password }, body || {})),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || 'Error de conexión.');
+    return data;
+  }
+
+  async function tryEnter() {
+    const pw = gatePassword.value.trim();
+    if (!pw) return;
+    gateErr.textContent = '';
+    gateBtn.disabled = true;
+    gateBtn.textContent = 'Entrando…';
+    const prevPw = password;
+    password = pw;
+    try {
+      await api('admin-subscriptions');
+      sessionStorage.setItem(STORAGE_KEY, pw);
+      gate.style.display = 'none';
+      panel.style.display = 'block';
+      loadSubs();
+    } catch (err) {
+      password = prevPw;
+      gateErr.textContent = 'Contraseña incorrecta o error de conexión.';
+    } finally {
+      gateBtn.disabled = false;
+      gateBtn.textContent = 'Entrar';
+    }
+  }
+  gateBtn.addEventListener('click', tryEnter);
+  gatePassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryEnter(); });
+
+  // Si ya había una contraseña guardada en esta pestaña, entra directo.
+  if (password) {
+    gatePassword.value = password;
+    tryEnter();
+  }
+
+  function money(n) {
+    if (n == null) return '—';
+    return '$' + Number(n).toLocaleString('es-MX') + ' MXN';
+  }
+
+  function renderSummary() {
+    const activas = allSubs.filter((s) => s.estado !== 'canceled');
+    const efectivo = activas.filter((s) => s.metodoPago === 'efectivo');
+    const vencidas = activas.filter((s) => s.estado === 'past_due' || s.estado === 'unpaid');
+    const row = document.getElementById('summaryRow');
+    row.innerHTML = [
+      ['Activas', activas.length],
+      ['En efectivo', efectivo.length],
+      ['Pago vencido', vencidas.length],
+    ].map(([l, n]) => `<div class="summary-card"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  }
+
+  function matchesFilter(s) {
+    switch (currentFilter) {
+      case 'efectivo': return s.metodoPago === 'efectivo';
+      case 'tarjeta': return s.metodoPago === 'tarjeta';
+      case 'renta': return !s.esAroma;
+      case 'aromas': return s.esAroma;
+      case 'vencido': return s.estado === 'past_due' || s.estado === 'unpaid';
+      default: return true;
+    }
+  }
+
+  function renderTable() {
+    const body = document.getElementById('subTableBody');
+    const visibles = allSubs.filter(matchesFilter);
+
+    if (!visibles.length) {
+      body.innerHTML = `<tr><td colspan="8" class="empty-msg">No hay suscripciones que coincidan con este filtro.</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = visibles.map((s) => {
+      const puedeMarcarPago = s.metodoPago === 'efectivo' && s.estado !== 'canceled';
+      return `
+        <tr data-id="${s.id}">
+          <td>
+            <div class="cell-name">${s.nombre || '(sin nombre)'}</div>
+            <div class="cell-sub">${s.correo || ''}</div>
+            ${s.telefono ? `<div class="cell-sub">${s.telefono}</div>` : ''}
+          </td>
+          <td>
+            <div>${s.etiqueta}</div>
+            ${s.tamano ? `<div class="cell-sub">${s.tamano}</div>` : ''}
+          </td>
+          <td>${s.aroma || '—'}</td>
+          <td>${money(s.montoMensual)}</td>
+          <td>${s.proximaFechaLabel}</td>
+          <td><span class="badge status-${s.estado}">${s.estado}</span></td>
+          <td><span class="badge ${s.metodoPago}">${s.metodoPago}</span></td>
+          <td>
+            <div class="row-actions">
+              <button class="mini-btn" data-action="editar" data-id="${s.id}">Editar</button>
+              ${puedeMarcarPago ? `<button class="mini-btn" data-action="pago" data-id="${s.id}">Marcar pago</button>` : ''}
+              ${s.estado !== 'canceled' ? `<button class="mini-btn danger" data-action="cancelar" data-id="${s.id}">Dar de baja</button>` : ''}
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  async function loadSubs() {
+    document.getElementById('loadingMsg').style.display = 'block';
+    document.getElementById('subTable').style.display = 'none';
+    try {
+      const data = await api('admin-subscriptions');
+      allSubs = data.subscriptions || [];
+      renderSummary();
+      renderTable();
+      document.getElementById('loadingMsg').style.display = 'none';
+      document.getElementById('subTable').style.display = 'table';
+    } catch (err) {
+      document.getElementById('loadingMsg').textContent = 'Error cargando: ' + err.message;
+    }
+  }
+
+  document.getElementById('btnRefrescar').addEventListener('click', loadSubs);
+
+  document.getElementById('filterTabs').addEventListener('click', (e) => {
+    const chip = e.target.closest('.filter-chip');
+    if (!chip) return;
+    document.querySelectorAll('.filter-chip').forEach((c) => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    currentFilter = chip.dataset.filter;
+    renderTable();
+  });
+
+  // ---- delegación de acciones en la tabla ----
+  document.getElementById('subTableBody').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const sub = allSubs.find((s) => s.id === id);
+    if (!sub) return;
+
+    if (btn.dataset.action === 'editar') {
+      openEditar(sub);
+    } else if (btn.dataset.action === 'cancelar') {
+      const inmediato = confirm('¿Cancelar de inmediato? Aceptar = cancelar ya. Cancelar (botón) = se cancela al terminar el periodo ya pagado.');
+      btn.disabled = true;
+      btn.textContent = 'Cancelando…';
+      try {
+        await api('admin-cancel-subscription', { subscriptionId: id, inmediato });
+        await loadSubs();
+      } catch (err) {
+        alert('No se pudo cancelar: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Dar de baja';
+      }
+    } else if (btn.dataset.action === 'pago') {
+      btn.disabled = true;
+      btn.textContent = 'Marcando…';
+      try {
+        await api('admin-mark-paid', { subscriptionId: id });
+        alert('Pago marcado correctamente.');
+      } catch (err) {
+        alert('No se pudo marcar el pago: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Marcar pago';
+      }
+    }
+  });
+
+  // ---- modal: nueva suscripción ----
+  const modalNueva = document.getElementById('modalNueva');
+  document.getElementById('btnNueva').addEventListener('click', () => {
+    ['nNombre','nCorreo','nTelefono','nPlan','nTamano','nAroma','nMonto'].forEach((id) => document.getElementById(id).value = '');
+    document.getElementById('nMsg').textContent = '';
+    modalNueva.classList.add('open');
+  });
+
+  document.getElementById('nGuardar').addEventListener('click', async () => {
+    const nombre = document.getElementById('nNombre').value.trim();
+    const correo = document.getElementById('nCorreo').value.trim();
+    const telefono = document.getElementById('nTelefono').value.trim();
+    const tipoPedido = document.getElementById('nTipo').value;
+    const planNombre = document.getElementById('nPlan').value.trim();
+    const tamano = document.getElementById('nTamano').value.trim();
+    const aroma = document.getElementById('nAroma').value.trim();
+    const montoMensual = document.getElementById('nMonto').value;
+    const msg = document.getElementById('nMsg');
+
+    msg.className = 'modal-msg';
+    msg.textContent = '';
+    const btn = document.getElementById('nGuardar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      await api('admin-create-subscription', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual });
+      msg.className = 'modal-msg ok';
+      msg.textContent = '¡Suscripción creada!';
+      await loadSubs();
+      setTimeout(() => modalNueva.classList.remove('open'), 700);
+    } catch (err) {
+      msg.className = 'modal-msg err';
+      msg.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Dar de alta';
+    }
+  });
+
+  // ---- modal: editar suscripción ----
+  const modalEditar = document.getElementById('modalEditar');
+  function openEditar(sub) {
+    editingId = sub.id;
+    document.getElementById('ePlan').value = sub.planNombre || '';
+    document.getElementById('eTamano').value = sub.tamano || '';
+    document.getElementById('eAroma').value = sub.aroma || '';
+    document.getElementById('eMonto').value = '';
+    document.getElementById('eMsg').textContent = '';
+    modalEditar.classList.add('open');
+  }
+
+  document.getElementById('eGuardar').addEventListener('click', async () => {
+    const planNombre = document.getElementById('ePlan').value.trim();
+    const tamano = document.getElementById('eTamano').value.trim();
+    const aroma = document.getElementById('eAroma').value.trim();
+    const montoRaw = document.getElementById('eMonto').value;
+    const msg = document.getElementById('eMsg');
+    const btn = document.getElementById('eGuardar');
+
+    msg.className = 'modal-msg';
+    msg.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      const payload = { subscriptionId: editingId, planNombre, tamano, aroma };
+      if (montoRaw) payload.montoMensual = montoRaw;
+      await api('admin-update-subscription', payload);
+      msg.className = 'modal-msg ok';
+      msg.textContent = '¡Actualizado!';
+      await loadSubs();
+      setTimeout(() => modalEditar.classList.remove('open'), 700);
+    } catch (err) {
+      msg.className = 'modal-msg err';
+      msg.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar cambios';
+    }
+  });
+
+  // cerrar modales
+  document.querySelectorAll('[data-close]').forEach((btn) => {
+    btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('open'));
+  });
+  document.querySelectorAll('.modal-bg').forEach((bg) => {
+    bg.addEventListener('click', (e) => { if (e.target === bg) bg.classList.remove('open'); });
+  });
+})();
+</script>
+</body>
+</html>
