@@ -1,932 +1,1036 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NÚCLEO essences — Aromatización y fragancias que definen experiencias</title>
-<meta name="description" content="Difusores, aceites, home sprays y perfumes de autor — donde el aroma también comunica lujo. Renta mensual y suscripción de aromas para hoteles, spas y negocios en Monterrey.">
+// ============================================================
+// NÚCLEO essences — comportamiento del sitio
+// ============================================================
 
-<!-- Vista previa al compartir (WhatsApp, Instagram, Facebook) -->
-<meta property="og:type" content="website">
-<meta property="og:title" content="NÚCLEO essences — Aromatización y fragancias que definen experiencias">
-<meta property="og:description" content="Difusores, aceites, home sprays y perfumes de autor. Renta mensual de equipos profesionales para hoteles, spas y negocios.">
-<meta property="og:image" content="https://nucleoessences.com/assets/og-image.jpg">
-<meta property="og:url" content="https://nucleoessences.com">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="NÚCLEO essences — Aromatización y fragancias que definen experiencias">
-<meta name="twitter:description" content="Difusores, aceites, home sprays y perfumes de autor. Renta mensual de equipos profesionales para hoteles, spas y negocios.">
-<meta name="twitter:image" content="https://nucleoessences.com/assets/og-image.jpg">
+// URL del webhook de Zapier para el correo de recuperación de carrito
+// abandonado. REEMPLAZAR con la URL real de tu "Catch Hook" en Zapier.
+const ABANDONED_CART_WEBHOOK = 'https://hook.us2.make.com/95k56of8z8yv179ea7dtp54pnc0h3s9y';
 
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
+// --- Nav flotante: aparece después del hero ---
+const topnav = document.querySelector('.topnav');
+const hero = document.querySelector('.hero');
+if (topnav && hero) {
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        topnav.classList.toggle('show', !entry.isIntersecting);
+      });
+    },
+    { threshold: 0.05 }
+  );
+  io.observe(hero);
+}
 
-<!-- ============ NAV FLOTANTE ============ -->
-<header class="topnav">
-  <div class="wordmark">NÚCLEO<em>essences</em></div>
-  <nav>
-    <a href="#difusores">Difusores</a>
-    <div class="nav-dropdown" data-nav-dropdown>
-      <button type="button" class="nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
-        NÚCLEO BUSINESS
-        <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <div class="nav-dropdown-menu" role="menu">
-        <a href="#suscripcion" role="menuitem">Renta de Difusores</a>
-        <a href="#suscripcion-aromas" role="menuitem">Suscripción de Aromas</a>
-      </div>
-    </div>
-    <a href="#home-sprays">Home Sprays</a>
-    <a href="#perfumes">Perfumes</a>
-    <a href="#aceites">Aceites</a>
-  </nav>
-</header>
+// --- Dropdown "NÚCLEO BUSINESS" en el nav superior ---
+document.querySelectorAll('[data-nav-dropdown]').forEach((dd) => {
+  const toggle = dd.querySelector('.nav-dropdown-toggle');
+  if (!toggle) return;
 
-<!-- ============ HERO ============ -->
-<section class="hero">
-  <div class="mist" aria-hidden="true">
-    <span></span><span></span><span></span><span></span><span></span><span></span>
-  </div>
-  <div class="hero-content">
-    <div class="eyebrow">Aromatización y fragancias que definen experiencias y transforman tu estilo.</div>
-    <h1>NÚCLEO<em>essences</em></h1>
-    <p class="tagline">Difusores, aceites, home sprays y perfumes de autor —
-      <strong>donde el aroma también comunica lujo.</strong></p>
-    <div class="hero-links">
-      <a class="pill" href="#difusores">Difusores</a>
-      <div class="pill-dropdown" data-nav-dropdown>
-        <button type="button" class="pill pill-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
-          NÚCLEO BUSINESS
-          <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="nav-dropdown-menu" role="menu">
-          <a href="#suscripcion" role="menuitem">Renta de Difusores</a>
-          <a href="#suscripcion-aromas" role="menuitem">Suscripción Mensual de Aromas</a>
-        </div>
-      </div>
-      <a class="pill" href="#home-sprays">Home Sprays</a>
-      <a class="pill" href="#perfumes">Perfumes</a>
-      <a class="pill" href="#aceites">Aceites para difusor</a>
-    </div>
-  </div>
-  <div class="scroll-cue" aria-hidden="true"></div>
-</section>
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    const abierto = dd.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+  });
 
-<div class="band">Hoteles · Suites · Lobbies · Spas · Hogar · Auto</div>
+  dd.querySelectorAll('.nav-dropdown-menu a').forEach((link) => {
+    link.addEventListener('click', () => {
+      dd.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
 
-<!-- ============ NEGOCIOS QUE HAN CONFIADO EN NOSOTROS ============ -->
-<section class="trust-section">
-  <div class="wrap">
-    <div class="trust-label">Negocios que han confiado en nosotros</div>
-  </div>
-  <div class="trust-marquee">
-    <div class="trust-track">
-      <div class="trust-logo"><img src="assets/logos/umai-sushi.png" alt="Umai Sushi"></div>
-      <div class="trust-logo"><img src="assets/logos/abi-corpus.png" alt="Abi Corpus Hair Studio"></div>
-      <div class="trust-logo"><img src="assets/logos/glow-fitness.png" alt="Glow Fitness"></div>
-      <div class="trust-logo"><img src="assets/logos/umai-sushi.png" alt="Umai Sushi"></div>
-      <div class="trust-logo"><img src="assets/logos/abi-corpus.png" alt="Abi Corpus Hair Studio"></div>
-      <div class="trust-logo"><img src="assets/logos/glow-fitness.png" alt="Glow Fitness"></div>
-      <div class="trust-logo"><img src="assets/logos/umai-sushi.png" alt="Umai Sushi"></div>
-      <div class="trust-logo"><img src="assets/logos/abi-corpus.png" alt="Abi Corpus Hair Studio"></div>
-      <div class="trust-logo"><img src="assets/logos/glow-fitness.png" alt="Glow Fitness"></div>
-      <div class="trust-logo"><img src="assets/logos/umai-sushi.png" alt="Umai Sushi"></div>
-      <div class="trust-logo"><img src="assets/logos/abi-corpus.png" alt="Abi Corpus Hair Studio"></div>
-      <div class="trust-logo"><img src="assets/logos/glow-fitness.png" alt="Glow Fitness"></div>
-      <!-- Segunda mitad: copia exacta de la primera, para el loop infinito -->
-      <div class="trust-logo"><img src="assets/logos/umai-sushi.png" alt="Umai Sushi"></div>
-      <div class="trust-logo"><img src="assets/logos/abi-corpus.png" alt="Abi Corpus Hair Studio"></div>
-      <div class="trust-logo"><img src="assets/logos/glow-fitness.png" alt="Glow Fitness"></div>
-      <div class="trust-logo"><img src="assets/logos/umai-sushi.png" alt="Umai Sushi"></div>
-      <div class="trust-logo"><img src="assets/logos/abi-corpus.png" alt="Abi Corpus Hair Studio"></div>
-      <div class="trust-logo"><img src="assets/logos/glow-fitness.png" alt="Glow Fitness"></div>
-      <div class="trust-logo"><img src="assets/logos/umai-sushi.png" alt="Umai Sushi"></div>
-      <div class="trust-logo"><img src="assets/logos/abi-corpus.png" alt="Abi Corpus Hair Studio"></div>
-      <div class="trust-logo"><img src="assets/logos/glow-fitness.png" alt="Glow Fitness"></div>
-      <div class="trust-logo"><img src="assets/logos/umai-sushi.png" alt="Umai Sushi"></div>
-      <div class="trust-logo"><img src="assets/logos/abi-corpus.png" alt="Abi Corpus Hair Studio"></div>
-      <div class="trust-logo"><img src="assets/logos/glow-fitness.png" alt="Glow Fitness"></div>
-    </div>
-  </div>
-</section>
+  document.addEventListener('click', (e) => {
+    if (!dd.contains(e.target)) {
+      dd.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+});
 
-<!-- ============ DIFUSORES ============ -->
-<section class="catalog-section" id="difusores">
-  <div class="wrap">
+// --- Revelado suave de secciones al hacer scroll ---
+const revealEls = document.querySelectorAll('.reveal');
+if (revealEls.length) {
+  const revealIO = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          revealIO.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.14 }
+  );
+  revealEls.forEach((el) => revealIO.observe(el));
+}
 
-    <div class="section-head reveal">
-      <div class="eyebrow">Difusores de aroma</div>
-      <h2 class="serif">Tecnología de vapor en frío</h2>
-      <p>Convierte el aceite aromático concentrado en partículas ultrafinas y las
-        distribuye de forma uniforme en cualquier espacio, desde una suite boutique
-        hasta el interior de tu auto.</p>
-    </div>
+// --- Modal de video ("Ver funcionamiento") ---
+const modal = document.getElementById('videoModal');
+const modalVideo = document.getElementById('modalVideo');
+const modalLabel = document.getElementById('modalLabel');
+const modalClose = document.getElementById('modalClose');
 
-    <div class="subgroup-label reveal">Línea profesional</div>
-    <div class="grid">
+function openVideo(src, poster, label) {
+  modalVideo.setAttribute('poster', poster || '');
+  modalVideo.querySelector('source').setAttribute('src', src);
+  modalVideo.load();
+  modalLabel.textContent = label || '';
+  modal.classList.add('open');
+  modalVideo.play().catch(() => {
+    /* autoplay bloqueado por el navegador: el usuario puede darle play manualmente */
+  });
+  document.body.style.overflow = 'hidden';
+}
 
-      <!-- A60 -->
-      <article class="card reveal">
-        <div class="card-media">
-          <img src="assets/a60-product.jpg" alt="Difusor NÚCLEO A60 Bluetooth, blanco y negro">
-          <button class="video-btn" data-video="assets/a60-video.mp4" data-poster="assets/a60-poster.jpg" data-label="A60 Bluetooth — funcionamiento">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            Ver en acción
-          </button>
-        </div>
-        <div class="card-body">
-          <h3>A60 Bluetooth</h3>
-          <div class="chips">
-            <span class="chip">Cobertura de 120 m²</span>
-            <span class="chip">Capacidad 100 ml</span>
-            <span class="chip">Control vía Bluetooth</span>
-          </div>
-          <div class="color-picker" data-color-picker="a60">
-            <span class="color-picker-label">Color:</span>
-            <button type="button" class="color-chip" data-color="Blanco" aria-pressed="false">Blanco</button>
-            <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
-          </div>
-          <p class="no-aroma-note">No incluye aroma</p>
-          <button type="button" class="catalog-link small" data-catalog="ambientales" data-catalog-mode="buy">¿Quieres aceite para tu difusor? Elige tu presentación →</button>
-          <div class="price">$1,199<span>MXN</span></div>
-          <div class="qty-control" data-qty>
-            <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-            <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-            <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-          </div>
-          <button type="button" class="buy-btn add-to-cart" data-add-to-cart data-product="a60" data-color-from="a60">Añadir al carrito</button>
-        </div>
-      </article>
+function closeVideo() {
+  modal.classList.remove('open');
+  modalVideo.pause();
+  modalVideo.currentTime = 0;
+  document.body.style.overflow = '';
+}
 
-      <!-- A300 -->
-      <article class="card reveal">
-        <div class="card-media">
-          <img src="assets/a300.jpg" alt="Difusor profesional NÚCLEO A300">
-          <button class="video-btn" data-video="assets/a300-video.mp4" data-poster="assets/difusor-pro-poster.jpg" data-label="A300 — funcionamiento">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            Ver en acción
-          </button>
-        </div>
-        <div class="card-body">
-          <h3>A300</h3>
-          <div class="chips">
-            <span class="chip">Uso profesional</span>
-            <span class="chip">Aroma continuo</span>
-            <span class="chip">Control vía Bluetooth</span>
-            <span class="chip">Cobertura 120–200 m²</span>
-          </div>
-          <p class="gift-note">Incluye aroma de regalo (250 ml) a elegir del catálogo</p>
-          <button class="catalog-link small" data-catalog="ambientales">Elige tu aroma de regalo →</button>
-          <div class="price">$3,999<span>MXN</span></div>
-          <div class="qty-control" data-qty>
-            <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-            <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-            <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-          </div>
-          <button type="button" class="buy-btn add-to-cart" data-add-to-cart data-product="a300" data-aroma-from="ambientales">Añadir al carrito</button>
-        </div>
-      </article>
+document.querySelectorAll('[data-video]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    openVideo(btn.dataset.video, btn.dataset.poster, btn.dataset.label);
+  });
+});
 
-      <!-- A1000 -->
-      <article class="card reveal">
-        <div class="card-media">
-          <img src="assets/a1000.jpg" alt="Difusor profesional NÚCLEO A1000">
-          <button class="video-btn" data-video="assets/difusor-pro-video.mp4" data-poster="assets/difusor-pro-poster.jpg" data-label="A1000 — funcionamiento">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            Ver en acción
-          </button>
-        </div>
-        <div class="card-body">
-          <h3>A1000</h3>
-          <div class="chips">
-            <span class="chip">Uso profesional</span>
-            <span class="chip">Lobbies &amp; suites</span>
-            <span class="chip">Control vía Bluetooth</span>
-            <span class="chip">Cobertura 600–1,600 m²</span>
-          </div>
-          <p class="gift-note">Incluye aroma de regalo (500 ml) a elegir del catálogo</p>
-          <button class="catalog-link small" data-catalog="ambientales">Elige tu aroma de regalo →</button>
-          <div class="price">$8,999<span>MXN</span></div>
-          <div class="qty-control" data-qty>
-            <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-            <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-            <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-          </div>
-          <button type="button" class="buy-btn add-to-cart" data-add-to-cart data-product="a1000" data-aroma-from="ambientales">Añadir al carrito</button>
-        </div>
-      </article>
+modalClose.addEventListener('click', closeVideo);
+modal.addEventListener('click', (e) => {
+  if (e.target === modal) closeVideo();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modal.classList.contains('open')) closeVideo();
+});
 
-      <!-- A3000 -->
-      <article class="card reveal">
-        <div class="card-media">
-          <img src="assets/a3000.jpg" alt="Difusor profesional NÚCLEO A3000">
-          <button class="video-btn" data-video="assets/difusor-pro-video.mp4" data-poster="assets/difusor-pro-poster.jpg" data-label="A3000 — funcionamiento">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            Ver en acción
-          </button>
-        </div>
-        <div class="card-body">
-          <h3>A3000</h3>
-          <div class="chips">
-            <span class="chip">Uso profesional</span>
-            <span class="chip">Espacios amplios</span>
-            <span class="chip">Control vía Bluetooth</span>
-            <span class="chip">Cobertura 800–2,000 m²</span>
-          </div>
-          <p class="gift-note">Incluye aroma de regalo (500 ml) a elegir del catálogo</p>
-          <button class="catalog-link small" data-catalog="ambientales">Elige tu aroma de regalo →</button>
-          <div class="price">$11,999<span>MXN</span></div>
-          <div class="qty-control" data-qty>
-            <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-            <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-            <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-          </div>
-          <button type="button" class="buy-btn add-to-cart" data-add-to-cart data-product="a3000" data-aroma-from="ambientales">Añadir al carrito</button>
-        </div>
-      </article>
+// --- Selección de aromas del cliente (para autollenar el checkout) ---
+const selectedAromas = { perfumes: '', ambientales: '', carpro: '', 'aromas-sub': '' };
 
-      <!-- A5000 -->
-      <article class="card reveal">
-        <div class="card-media">
-          <img src="assets/a5000.jpg" alt="Difusor profesional NÚCLEO A5000">
-          <button class="video-btn" data-video="assets/difusor-pro-video.mp4" data-poster="assets/difusor-pro-poster.jpg" data-label="A5000 — funcionamiento">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            Ver en acción
-          </button>
-        </div>
-        <div class="card-body">
-          <h3>A5000</h3>
-          <div class="chips">
-            <span class="chip">Uso profesional</span>
-            <span class="chip">Hoteles &amp; spas</span>
-            <span class="chip">Control vía Bluetooth</span>
-            <span class="chip">Cobertura 2,000–3,600 m²</span>
-          </div>
-          <p class="gift-note">Incluye aroma de regalo (500 ml) a elegir del catálogo</p>
-          <button class="catalog-link small" data-catalog="ambientales">Elige tu aroma de regalo →</button>
-          <div class="price">$16,999<span>MXN</span></div>
-          <div class="qty-control" data-qty>
-            <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-            <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-            <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-          </div>
-          <button type="button" class="buy-btn add-to-cart" data-add-to-cart data-product="a5000" data-aroma-from="ambientales">Añadir al carrito</button>
-        </div>
-      </article>
+// --- Selector de aroma de regalo (CAR PRO) ---
+const carproPicker = document.getElementById('carproAromaPicker');
+const carproHint = document.getElementById('carproAromaHint');
+if (carproPicker && carproHint) {
+  carproPicker.querySelectorAll('.mini-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      carproPicker.querySelectorAll('.mini-chip').forEach((c) => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      selectedAromas.carpro = chip.dataset.aroma;
+      carproHint.textContent = 'Aroma seleccionado: ' + chip.dataset.aroma + ' ✓ (ya quedará prellenado en tu pago)';
+    });
+  });
+}
 
-    </div>
+// --- Banner de pago exitoso + botón "Gestionar mi suscripción" ---
+(function initSuccessBanner() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('pago') !== 'exitoso') return;
 
-    <div class="subgroup-label reveal">Para tu auto</div>
-    <div class="feature reveal">
-      <div class="feature-media">
-        <img src="assets/carpro-new.jpg" alt="Difusor NÚCLEO CAR PRO instalado en el auto">
-      </div>
-      <div class="feature-copy">
-        <h3 class="serif">CAR PRO</h3>
-        <hr class="rule">
-        <p class="desc">Aroma que te acompaña a donde vayas. Convierte cada viaje en
-          una experiencia de lujo: botón táctil, funcionamiento ultra silencioso y
-          batería de hasta 60 horas de uso continuo.</p>
-        <div class="chips" style="margin-bottom:26px;">
-          <span class="chip">Aluminio premium</span>
-          <span class="chip">Batería 2000 mAh</span>
-          <span class="chip">Incluye aceite de regalo</span>
-          <span class="chip">Botón táctil</span>
-          <span class="chip">Cobertura de hasta 30 m²</span>
-        </div>
-        <div class="color-picker" data-color-picker="carpro">
-          <span class="color-picker-label">Color:</span>
-          <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
-          <button type="button" class="color-chip" data-color="Plata" aria-pressed="false">Plata</button>
-        </div>
-        <p class="gift-note">Incluye aroma de regalo (10 ml) — elige uno de estas 4 opciones:</p>
-        <div class="mini-picker" id="carproAromaPicker">
-          <button type="button" class="mini-chip" data-aroma="Palacio de Hierro">Palacio de Hierro</button>
-          <button type="button" class="mini-chip" data-aroma="Santal 33">Santal 33</button>
-          <button type="button" class="mini-chip" data-aroma="Hotel Xcaret">Hotel Xcaret</button>
-          <button type="button" class="mini-chip" data-aroma="Pink Peony">Pink Peony</button>
-          <button type="button" class="mini-chip" data-aroma="Berries/Muy Mucho">Berries/Muy Mucho</button>
-        </div>
-        <p class="mini-picker-hint" id="carproAromaHint">Selecciona tu aroma — quedará prellenado automáticamente en tu pago.</p>
-        <div class="price serif" style="font-size:1.7rem; margin-bottom:22px;">$1,399<span style="font-family:'Jost',sans-serif; font-size:0.7rem; color:var(--muted); margin-left:6px;">MXN</span></div>
-        <button class="buy-btn" style="border:1px solid var(--gold); background:none; cursor:pointer; width:100%; max-width:260px;" data-video="assets/carpro-video.mp4" data-poster="assets/carpro-poster.jpg" data-label="CAR PRO — funcionamiento">Ver funcionamiento</button>
-        <div class="qty-control" data-qty style="margin-top:14px;">
-          <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-          <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-          <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-        </div>
-        <button type="button" class="buy-btn add-to-cart" style="max-width:260px; margin-top:10px; cursor:pointer;" data-add-to-cart data-product="carpro" data-aroma-from="carpro" data-color-from="carpro">Añadir al carrito</button>
-      </div>
-    </div>
+  // Compra completada: limpiamos el carrito guardado y avisamos al webhook
+  // que la compra sí se completó (evita el correo de recordatorio).
+  if (typeof window.clearNucleoCart === 'function') window.clearNucleoCart();
+  try {
+    const savedEmail = localStorage.getItem('nucleo_cart_email');
+    if (savedEmail) {
+      fetch(ABANDONED_CART_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'cart_completed', email: savedEmail, timestamp: new Date().toISOString() }),
+      }).catch(() => {});
+    }
+    localStorage.removeItem('nucleo_cart_email');
+  } catch (e) {}
 
-  </div>
-</section>
+  const banner = document.getElementById('successBanner');
+  const bannerText = document.getElementById('successBannerText');
+  const manageBtn = document.getElementById('manageSubBtn');
+  const closeBtn = document.getElementById('successBannerClose');
+  if (!banner) return;
 
-<!-- ============ PLAN DE SUSCRIPCIÓN ============ -->
-<section class="catalog-section alt" id="suscripcion">
-  <div class="wrap">
+  banner.classList.add('show');
+  closeBtn.addEventListener('click', () => banner.classList.remove('show'));
 
-    <div class="section-head reveal">
-      <div class="eyebrow">Servicio profesional</div>
-      <h2 class="serif">Renta Mensual de Equipos de Aromatización</h2>
-      <p>Todos los paquetes incluyen difusor profesional automático y programable
-        vía Bluetooth, mantenimiento mensual, aroma a elección, cambio de aroma
-        mensual, sin contrato forzoso (mínimo 30 días) y asistencia técnica.</p>
-    </div>
+  const sessionId = params.get('session_id');
+  if (params.get('sub') === '1' && sessionId) {
+    bannerText.textContent = '¡Tu suscripción quedó activa!';
+    manageBtn.style.display = 'inline-block';
+    manageBtn.addEventListener('click', async () => {
+      manageBtn.textContent = 'Abriendo…';
+      try {
+        const resp = await fetch('/api/create-portal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ checkoutSessionId: sessionId }),
+        });
+        const data = await resp.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error(data.error || 'Sin URL de portal');
+      } catch (err) {
+        console.error('No se pudo abrir el portal:', err);
+        manageBtn.textContent = 'Gestionar mi suscripción →';
+        alert('No se pudo abrir el portal de gestión. Escríbenos por WhatsApp para ayudarte con tu suscripción.');
+      }
+    });
+  }
+})();
 
-    <div class="plans-grid reveal">
+// --- Botón flotante "subir arriba" ---
+const scrollTopBtn = document.getElementById('scrollTopBtn');
+if (scrollTopBtn) {
+  window.addEventListener('scroll', () => {
+    scrollTopBtn.classList.toggle('show', window.scrollY > window.innerHeight * 0.6);
+  });
+  scrollTopBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
 
-      <!-- ESENCIA -->
-      <article class="plan-card">
-        <div class="plan-name">Paquete 01</div>
-        <h3 class="serif">Esencia</h3>
-        <div class="plan-price">$1,600<span>/ mes</span></div>
-        <div class="plan-specs">
-          <span class="plan-spec"><strong>6</strong> horas activo</span>
-          <span class="plan-spec"><strong>60 s</strong> activación</span>
-          <span class="plan-spec"><strong>10 min</strong> pausa</span>
-        </div>
-        <p class="plan-hook">¿Buscas otro horario? Se ajusta en la instalación — más horas activas disponibles con cargo extra.</p>
-        <p class="plan-note"><strong>Ajustes personalizados:</strong> cualquier cambio en los segundos de activación y pausa puede gestionarse directamente al momento de la instalación del equipo.</p>
-        <ul class="plan-features">
-          <li>Difusor profesional programable vía Bluetooth</li>
-          <li>Mantenimiento del equipo mensual</li>
-          <li>Aroma a elección</li>
-          <li>Cambio de aroma con 1 semana de anticipación</li>
-          <li>Sin contrato forzoso — mínimo 30 días</li>
-          <li>Asistencia técnica incluida</li>
-        </ul>
-        <button class="catalog-link" data-catalog="ambientales">Elige tu aroma en el catálogo →</button>
-        <a class="buy-btn plan-cta" href="#" rel="noopener" data-product="esencia" data-aroma-from="ambientales">Solicitar este paquete</a>
-      </article>
+// --- Botón flotante "bajar al final" ---
+const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+if (scrollBottomBtn) {
+  scrollBottomBtn.addEventListener('click', () => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  });
+}
 
-      <!-- AURA -->
-      <article class="plan-card featured">
-        <div class="plan-badge">Más popular</div>
-        <div class="plan-name">Paquete 02</div>
-        <h3 class="serif">Aura</h3>
-        <div class="plan-price">$1,800<span>/ mes</span></div>
-        <div class="plan-specs">
-          <span class="plan-spec"><strong>8</strong> horas activo</span>
-          <span class="plan-spec"><strong>120 s</strong> activación</span>
-          <span class="plan-spec"><strong>5 min</strong> pausa</span>
-        </div>
-        <p class="plan-hook">¿Buscas otro horario? Se ajusta en la instalación — más horas activas disponibles con cargo extra.</p>
-        <p class="plan-note"><strong>Ajustes personalizados:</strong> cualquier cambio en los segundos de activación y pausa puede gestionarse directamente al momento de la instalación del equipo.</p>
-        <ul class="plan-features">
-          <li>Difusor profesional programable vía Bluetooth</li>
-          <li>Mantenimiento del equipo mensual</li>
-          <li>Aroma a elección</li>
-          <li>Cambio de aroma con 1 semana de anticipación</li>
-          <li>Sin contrato forzoso — mínimo 30 días</li>
-          <li>Asistencia técnica incluida</li>
-        </ul>
-        <button class="catalog-link" data-catalog="ambientales">Elige tu aroma en el catálogo →</button>
-        <a class="buy-btn plan-cta" href="#" rel="noopener" data-product="aura" data-aroma-from="ambientales">Solicitar este paquete</a>
-      </article>
+// --- Checkout dinámico con aroma prellenado ---
+async function goToCheckout(btn) {
+  const productKey = btn.dataset.product;
+  const catalogSource = btn.dataset.aromaFrom;
+  const aroma = catalogSource ? selectedAromas[catalogSource] : '';
 
-      <!-- SUBLIME -->
-      <article class="plan-card">
-        <div class="plan-name">Paquete 03</div>
-        <h3 class="serif">Sublime</h3>
-        <div class="plan-price">$2,000<span>/ mes</span></div>
-        <div class="plan-specs">
-          <span class="plan-spec"><strong>10</strong> horas activo</span>
-          <span class="plan-spec"><strong>180 s</strong> activación</span>
-          <span class="plan-spec"><strong>3 min</strong> pausa</span>
-        </div>
-        <p class="plan-hook">¿Buscas otro horario? Se ajusta en la instalación — más horas activas disponibles con cargo extra.</p>
-        <p class="plan-note"><strong>Ajustes personalizados:</strong> cualquier cambio en los segundos de activación y pausa puede gestionarse directamente al momento de la instalación del equipo.</p>
-        <ul class="plan-features">
-          <li>Difusor profesional programable vía Bluetooth</li>
-          <li>Mantenimiento del equipo mensual</li>
-          <li>Aroma a elección</li>
-          <li>Cambio de aroma con 1 semana de anticipación</li>
-          <li>Sin contrato forzoso — mínimo 30 días</li>
-          <li>Asistencia técnica incluida</li>
-        </ul>
-        <button class="catalog-link" data-catalog="ambientales">Elige tu aroma en el catálogo →</button>
-        <a class="buy-btn plan-cta" href="#" rel="noopener" data-product="sublime" data-aroma-from="ambientales">Solicitar este paquete</a>
-      </article>
+  if (btn.classList.contains('aroma-sub-cta') && !(aroma && aroma.trim())) {
+    const hint = document.getElementById('aromaSubHint');
+    if (hint) {
+      hint.textContent = 'Primero elige tu aroma inicial en el catálogo ☝️';
+      hint.classList.remove('selected');
+    }
+    openCatalog('aromas-sub');
+    return;
+  }
 
-    </div>
+  const originalText = btn.textContent;
+  btn.textContent = 'Abriendo pago…';
+  btn.style.pointerEvents = 'none';
 
-    <div class="note-box reveal">
-      <strong>Incluye aroma premium:</strong> aceite ambiental del aroma de tu elección
-      dentro de nuestro catálogo. Para cambiar de fragancia, hazlo directamente desde el
-      botón <strong>«Gestionar mi suscripción»</strong> con al menos
-      <strong>1 semana de anticipación</strong>. El cargo se realiza
-      automáticamente cada mes a la tarjeta registrada, hasta que decidas cancelar tu suscripción.
-    </div>
+  try {
+    const resp = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productKey, aroma }),
+    });
+    const data = await resp.json();
+    if (data.url) {
+      window.location.href = data.url;
+      return;
+    }
+    throw new Error(data.error || 'Sin URL de pago');
+  } catch (err) {
+    console.error('No se pudo abrir el checkout de Stripe:', err);
+    alert(
+      'No pudimos abrir el pago en este momento.\n\n' +
+      'Detalle: ' + (err && err.message ? err.message : 'error desconocido') +
+      '\n\nPor favor inténtalo de nuevo en unos segundos.'
+    );
+  } finally {
+    btn.textContent = originalText;
+    btn.style.pointerEvents = '';
+  }
+}
 
-  </div>
-</section>
+document.querySelectorAll('[data-product]:not([data-add-to-cart]):not(.catalog-size)').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    goToCheckout(btn);
+  });
+});
 
-<!-- ============ HOME SPRAYS ============ -->
-<section class="catalog-section alt" id="home-sprays">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Home Sprays</div>
-      <h2 class="serif">Aerosol ambiental premium</h2>
-      <p>Esencia artesanal en un aerosol de acción inmediata — para perfumar
-        textiles, closets y habitaciones con un solo gesto.</p>
-    </div>
+// --- Modal de catálogo (perfumes / aromas ambientales) ---
+const catalogModal = document.getElementById('catalogModal');
+const catalogClose = document.getElementById('catalogModalClose');
+const catalogInput = document.getElementById('catalogSearchInput');
+const catalogResults = document.getElementById('catalogResults');
+const catalogCount = document.getElementById('catalogResultsCount');
+const catalogTitle = document.getElementById('catalogModalTitle');
+const catalogSub = document.getElementById('catalogModalSub');
+const catalogGenderFilter = document.getElementById('catalogGenderFilter');
+let currentGenderFilter = 'todos';
 
-    <div class="feature reveal">
-      <div class="feature-media">
-        <img src="assets/home-spray-new.jpg" alt="Home Spray NÚCLEO essences, aerosol ambiental premium 250 ml">
-      </div>
-      <div class="feature-copy">
-        <h3 class="serif">Aerosol Ambiental Premium</h3>
-        <hr class="rule">
-        <p class="desc">Envase ámbar con gatillo pulverizador, diseñado para una
-          difusión pareja y una fragancia que se sostiene en el ambiente por horas.</p>
-        <div class="size-price-list">
-          <div class="size-price-row">
-            <span class="size">250 ml</span>
-            <span class="price serif">$600 <span style="font-family:'Jost',sans-serif;font-size:0.65rem;color:var(--muted);">MXN</span></span>
-          </div>
-        </div>
-        <button class="catalog-link" data-catalog="ambientales">Consulta los aromas en nuestro catálogo →</button>
-        <div class="qty-control" data-qty>
-          <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-          <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-          <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-        </div>
-        <button type="button" class="buy-btn add-to-cart" style="cursor:pointer;" data-add-to-cart data-product="aerosol250" data-aroma-from="ambientales">Añadir al carrito</button>
-      </div>
-    </div>
-  </div>
-</section>
+const catalogFeatured = document.getElementById('catalogFeatured');
+const catalogFeaturedChips = document.getElementById('catalogFeaturedChips');
+const catalogBuy = document.getElementById('catalogBuy');
+const catalogBuyAroma = document.getElementById('catalogBuyAroma');
+const catalogBuySizes = document.getElementById('catalogBuySizes');
+const catalogBuyAdd = document.getElementById('catalogBuyAdd');
 
-<!-- ============ PERFUMES ============ -->
-<section class="catalog-section" id="perfumes">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Perfumes</div>
-      <h2 class="serif">Eau de Parfum · Esencia artesanal</h2>
-      <p>Tres presentaciones de envase para tu perfume NÚCLEO essences.
-        La fragancia queda a tu elección dentro del catálogo disponible.</p>
-    </div>
+const FEATURED_AROMAS = [
+  'Palacio de Hierro',
+  'Metropolitan',
+  'Hotel Xcaret',
+  'Santal 33',
+  'Berries/Muy Mucho',
+  'Pink Peony',
+  'Green Tea & Bergamot',
+];
 
-    <div class="note-box reveal">
-      <strong>Importante:</strong> nuestras fragancias son versiones <strong>inspiradas</strong> en
-      perfumes de marcas reconocidas — elaboradas con esencia artesanal propia de NÚCLEO essences.
-      No son productos originales ni están afiliados, patrocinados o avalados por las casas de
-      diseñador mencionadas; los nombres se listan únicamente como referencia olfativa para
-      ayudarte a elegir tu favorito.
-    </div>
+let currentCatalogData = [];
+let currentCatalogType = 'perfumes';
+let catalogOnSelect = null;
+let catalogBuyMode = false;
+let buyAroma = '';
+let buyProductKey = '';
 
-    <div class="feature reveal">
-      <div class="feature-media">
-        <img src="assets/perfume-new.jpg" alt="Perfume NÚCLEO essences Eau de Parfum 100 ml sostenido con guante negro">
-      </div>
-      <div class="feature-copy">
-        <h3 class="serif">Eau de Parfum</h3>
-        <hr class="rule">
-        <p class="desc">Esencia artesanal en envase de autor. Disponible en tres
-          tamaños — la fragancia se elige del catálogo al momento del pedido.</p>
-        <button class="catalog-link" data-catalog="perfumes">Consulta los perfumes en nuestro catálogo →</button>
-        <div class="size-price-list">
-          <div class="size-price-row">
-            <span class="size">30 ml</span>
-            <span class="row-right">
-              <span class="price serif">$280 <span style="font-family:'Jost',sans-serif;font-size:0.65rem;color:var(--muted);">MXN</span></span>
-              <span class="qty-control" data-qty>
-                <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-                <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-                <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-              </span>
-              <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="perfume30" data-aroma-from="perfumes">Añadir</button>
-            </span>
-          </div>
-          <div class="size-price-row">
-            <span class="size">60 ml</span>
-            <span class="row-right">
-              <span class="price serif">$390 <span style="font-family:'Jost',sans-serif;font-size:0.65rem;color:var(--muted);">MXN</span></span>
-              <span class="qty-control" data-qty>
-                <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-                <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-                <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-              </span>
-              <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="perfume60" data-aroma-from="perfumes">Añadir</button>
-            </span>
-          </div>
-          <div class="size-price-row">
-            <span class="size">100 ml</span>
-            <span class="row-right">
-              <span class="price serif">$600 <span style="font-family:'Jost',sans-serif;font-size:0.65rem;color:var(--muted);">MXN</span></span>
-              <span class="qty-control" data-qty>
-                <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-                <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-                <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-              </span>
-              <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="perfume100" data-aroma-from="perfumes">Añadir</button>
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+function selectAromaFromCatalog(type, name) {
+  selectedAromas[type] = name;
+  document.querySelectorAll('[data-catalog="' + type + '"]').forEach((btn) => {
+    btn.textContent = 'Aroma elegido: ' + name + ' (cambiar) →';
+  });
+  if (type === 'aromas-sub') {
+    const hint = document.getElementById('aromaSubHint');
+    if (hint) {
+      hint.textContent = 'Aroma inicial: ' + name + ' ✓ — ya puedes suscribirte.';
+      hint.classList.add('selected');
+    }
+  }
+}
 
-<!-- ============ ACEITES PARA DIFUSOR ============ -->
-<section class="catalog-section alt" id="aceites">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Aceites para difusor</div>
-      <h2 class="serif">Aceite ambiental premium</h2>
-      <p>La misma esencia artesanal que enciende tus difusores NÚCLEO,
-        en tres presentaciones según el consumo de tu espacio.</p>
-    </div>
+function renderCatalogRows(data) {
+  if (!data.length) {
+    catalogResults.innerHTML = '<div class="catalog-empty">Sin resultados — prueba con otro nombre o marca.</div>';
+    catalogCount.textContent = '';
+    return;
+  }
+  catalogCount.textContent = data.length + (currentCatalogType === 'perfumes' ? ' perfumes' : ' aromas');
+  const rows = data.map((item) => {
+    const safeName = item.name.replace(/"/g, '&quot;');
+    if (currentCatalogType === 'perfumes') {
+      return '<div class="catalog-row" data-name="' + safeName + '"><span class="cr-name">' + item.name + '</span><span class="cr-meta">' + item.brand + ' · ' + item.gender + '</span></div>';
+    }
+    const meta = item.accords ? item.accords : item.category;
+    return '<div class="catalog-row" data-name="' + safeName + '"><span class="cr-name">' + item.name + '</span><span class="cr-meta">' + meta + '</span></div>';
+  });
+  catalogResults.innerHTML = rows.join('');
+  catalogResults.querySelectorAll('.catalog-row').forEach((row) => {
+    row.addEventListener('click', () => {
+      const name = row.dataset.name;
+      if (catalogBuyMode) {
+        setBuyAroma(name);
+      } else if (typeof catalogOnSelect === 'function') {
+        const cb = catalogOnSelect;
+        closeCatalog();
+        cb(name);
+      } else {
+        selectAromaFromCatalog(currentCatalogType, name);
+        closeCatalog();
+      }
+    });
+  });
+}
 
-    <div class="feature reveal">
-      <div class="feature-media">
-        <img src="assets/aceite-new.jpg" alt="Aceite ambiental para difusor NÚCLEO essences">
-      </div>
-      <div class="feature-copy">
-        <h3 class="serif">Aceite Ambiental Premium</h3>
-        <hr class="rule">
-        <p class="desc">La misma esencia artesanal que enciende tus difusores
-          NÚCLEO, en tres presentaciones según el consumo de tu espacio.</p>
-        <button class="catalog-link" data-catalog="ambientales">Consulta los aromas en nuestro catálogo →</button>
-        <div class="size-price-list">
-          <div class="size-price-row">
-            <span class="size">250 ml</span>
-            <span class="row-right">
-              <span class="price serif">$900 <span style="font-family:'Jost',sans-serif;font-size:0.65rem;color:var(--muted);">MXN</span></span>
-              <span class="qty-control" data-qty>
-                <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-                <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-                <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-              </span>
-              <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="aceite250" data-aroma-from="ambientales">Añadir</button>
-            </span>
-          </div>
-          <div class="size-price-row">
-            <span class="size">500 ml</span>
-            <span class="row-right">
-              <span class="price serif">$1,300 <span style="font-family:'Jost',sans-serif;font-size:0.65rem;color:var(--muted);">MXN</span></span>
-              <span class="qty-control" data-qty>
-                <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-                <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-                <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-              </span>
-              <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="aceite500" data-aroma-from="ambientales">Añadir</button>
-            </span>
-          </div>
-          <div class="size-price-row">
-            <span class="size">1 litro</span>
-            <span class="row-right">
-              <span class="price serif">$2,000 <span style="font-family:'Jost',sans-serif;font-size:0.65rem;color:var(--muted);">MXN</span></span>
-              <span class="qty-control" data-qty>
-                <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
-                <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
-                <button type="button" class="qty-btn" data-qty-inc aria-label="Aumentar cantidad">+</button>
-              </span>
-              <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="aceite1l" data-aroma-from="ambientales">Añadir</button>
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+function setBuyAroma(name) {
+  buyAroma = name;
+  catalogBuyAroma.textContent = name;
+  catalogBuy.style.display = 'block';
+  catalogFeaturedChips.querySelectorAll('.catalog-featured-chip').forEach((c) => {
+    c.classList.toggle('selected', c.dataset.aroma === name);
+  });
+  updateBuyAddState();
+  catalogBuy.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
-<!-- ============ SUSCRIPCIÓN DE AROMAS ============ -->
-<section class="catalog-section" id="suscripcion-aromas">
-  <div class="wrap">
+function updateBuyAddState() {
+  catalogBuyAdd.disabled = !(buyAroma && buyProductKey);
+}
 
-    <div class="section-head reveal">
-      <div class="eyebrow">NÚCLEO Business</div>
-      <h2 class="serif">Suscripción Mensual de Aromas</h2>
-      <p>Nunca te quedes sin aroma. Suscríbete y recibe automáticamente tu aceite
-        ambiental cada mes, en el aroma que elijas de nuestro catálogo, con envío
-        <strong>100% gratuito todos los meses</strong>. Puedes cambiar de aroma cuando
-        quieras desde «Gestionar mi suscripción», con al menos <strong>5 días de
-        anticipación</strong> a tu próxima entrega.</p>
-    </div>
+function renderFeaturedChips() {
+  catalogFeaturedChips.innerHTML = FEATURED_AROMAS.map((name) => {
+    const safe = name.replace(/"/g, '&quot;');
+    return '<button type="button" class="catalog-featured-chip" data-aroma="' + safe + '">' + name + '</button>';
+  }).join('');
+  catalogFeaturedChips.querySelectorAll('.catalog-featured-chip').forEach((chip) => {
+    chip.addEventListener('click', () => setBuyAroma(chip.dataset.aroma));
+  });
+}
 
-    <div class="aroma-sub-picker reveal">
-      <button class="catalog-link" data-catalog="aromas-sub">Elige el aroma inicial en el catálogo →</button>
-      <p class="aroma-sub-hint" id="aromaSubHint">Selecciona tu aroma antes de suscribirte — se aplicará a tu primera entrega.</p>
-    </div>
+if (catalogBuySizes) {
+  catalogBuySizes.querySelectorAll('.catalog-size').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      catalogBuySizes.querySelectorAll('.catalog-size').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      buyProductKey = btn.dataset.product;
+      updateBuyAddState();
+    });
+  });
+}
 
-    <div class="plans-grid reveal">
+if (catalogBuyAdd) {
+  catalogBuyAdd.addEventListener('click', () => {
+    if (!buyAroma || !buyProductKey) return;
+    if (typeof window.addOilToCart === 'function') {
+      window.addOilToCart({ productKey: buyProductKey, aroma: buyAroma });
+    }
+    closeCatalog();
+  });
+}
 
-      <!-- 250 ml -->
-      <article class="plan-card">
-        <div class="plan-name">Tamaño 01</div>
-        <h3 class="serif">250 ml</h3>
-        <div class="plan-price">$900<span>/ mes</span></div>
-        <div class="aroma-sub-ship">Envío gratis cada mes</div>
-        <ul class="plan-features">
-          <li>Aceite ambiental premium (250 ml) mensual</li>
-          <li>Aroma a elección del catálogo</li>
-          <li>Envío 100% gratuito todos los meses</li>
-          <li>Cambia tu aroma cuando quieras (5 días de anticipación)</li>
-          <li>Cancela cuando quieras</li>
-        </ul>
-        <button type="button" class="buy-btn plan-cta aroma-sub-cta" data-product="aromasub250" data-aroma-from="aromas-sub">Suscribirme</button>
-      </article>
+function filterCatalog(query) {
+  const q = query.trim().toLowerCase();
+  let data = currentCatalogData;
 
-      <!-- 500 ml -->
-      <article class="plan-card featured">
-        <div class="plan-name">Tamaño 02</div>
-        <h3 class="serif">500 ml</h3>
-        <div class="plan-price">$1,300<span>/ mes</span></div>
-        <div class="aroma-sub-ship">Envío gratis cada mes</div>
-        <ul class="plan-features">
-          <li>Aceite ambiental premium (500 ml) mensual</li>
-          <li>Aroma a elección del catálogo</li>
-          <li>Envío 100% gratuito todos los meses</li>
-          <li>Cambia tu aroma cuando quieras (5 días de anticipación)</li>
-          <li>Cancela cuando quieras</li>
-        </ul>
-        <button type="button" class="buy-btn plan-cta aroma-sub-cta" data-product="aromasub500" data-aroma-from="aromas-sub">Suscribirme</button>
-      </article>
+  if (currentCatalogType === 'perfumes' && currentGenderFilter !== 'todos') {
+    data = data.filter((item) => item.gender === currentGenderFilter);
+  }
 
-      <!-- 1 litro -->
-      <article class="plan-card">
-        <div class="plan-name">Tamaño 03</div>
-        <h3 class="serif">1 litro</h3>
-        <div class="plan-price">$2,000<span>/ mes</span></div>
-        <div class="aroma-sub-ship">Envío gratis cada mes</div>
-        <ul class="plan-features">
-          <li>Aceite ambiental premium (1 litro) mensual</li>
-          <li>Aroma a elección del catálogo</li>
-          <li>Envío 100% gratuito todos los meses</li>
-          <li>Cambia tu aroma cuando quieras (5 días de anticipación)</li>
-          <li>Cancela cuando quieras</li>
-        </ul>
-        <button type="button" class="buy-btn plan-cta aroma-sub-cta" data-product="aromasub1l" data-aroma-from="aromas-sub">Suscribirme</button>
-      </article>
+  if (q) {
+    data = data.filter((item) => {
+      if (currentCatalogType === 'perfumes') {
+        return item.name.toLowerCase().includes(q) || item.brand.toLowerCase().includes(q);
+      }
+      return item.name.toLowerCase().includes(q) || (item.accords && item.accords.toLowerCase().includes(q));
+    });
+  }
 
-    </div>
+  renderCatalogRows(data);
+}
 
-    <div class="note-box reveal">
-      <strong>Envío siempre incluido:</strong> cada entrega mensual llega a tu domicilio
-      sin costo adicional. El cargo se realiza automáticamente cada mes a la tarjeta
-      registrada, hasta que decidas cancelar tu suscripción.
-    </div>
+function openCatalog(type, onSelect, options) {
+  const opts = options || {};
+  catalogOnSelect = typeof onSelect === 'function' ? onSelect : null;
+  catalogBuyMode = opts.buy === true && type === 'ambientales';
+  currentCatalogType = type;
+  currentCatalogData = type === 'perfumes' ? (window.PERFUMES_DATA || []) : (window.AMBIENTALES_DATA || []);
 
-  </div>
-</section>
+  currentGenderFilter = 'todos';
+  if (catalogGenderFilter) {
+    catalogGenderFilter.style.display = type === 'perfumes' ? 'flex' : 'none';
+    catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
+      chip.classList.toggle('selected', chip.dataset.gender === 'todos');
+    });
+  }
 
-<!-- ============ PREGUNTAS FRECUENTES ============ -->
-<section class="catalog-section alt faq-section" id="faq">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Ayuda</div>
-      <h2 class="serif">Preguntas frecuentes</h2>
-      <p>Si tienes alguna otra duda, escríbenos por WhatsApp — te respondemos en minutos.</p>
-    </div>
+  buyAroma = '';
+  buyProductKey = '';
 
-    <div class="faq-list reveal">
-      <details class="faq-item">
-        <summary>¿Cómo funciona la renta mensual de difusores?</summary>
-        <p>Eliges el paquete (Esencia, Aura o Sublime) y el aroma de tu preferencia. Instalamos el equipo, incluimos mantenimiento mensual, y el cargo se hace automáticamente cada mes a tu tarjeta registrada, sin contrato forzoso — el mínimo es de 30 días.</p>
-      </details>
-      <details class="faq-item">
-        <summary>¿Puedo cancelar cuando quiera?</summary>
-        <p>Sí. Tanto la renta de difusores como la suscripción de aromas se pueden cancelar en cualquier momento desde el botón «Gestionar mi suscripción», sin penalización, una vez cumplido el mínimo de 30 días.</p>
-      </details>
-      <details class="faq-item">
-        <summary>¿Qué pasa si el equipo en renta se daña?</summary>
-        <p>El mantenimiento mensual está incluido en tu paquete. Si detectas alguna falla fuera de uso normal, contáctanos por WhatsApp y coordinamos la revisión o reemplazo del equipo.</p>
-      </details>
-      <details class="faq-item">
-        <summary>¿Cuánto tarda el envío?</summary>
-        <p>El envío a domicilio dentro de la Zona Metropolitana de Monterrey tarda de 2 a 5 días hábiles. También puedes elegir recoger tu pedido sin costo en Abi Corpus Hair Studio (José Peón y Contreras 2125-A, Contry Sol, Guadalupe), con el mismo tiempo estimado de preparación.</p>
-      </details>
-      <details class="faq-item">
-        <summary>¿Los perfumes son originales?</summary>
-        <p>No. Nuestras fragancias son versiones inspiradas, elaboradas con esencia artesanal propia de NÚCLEO essences. No están afiliadas, patrocinadas ni avaladas por las marcas mencionadas — los nombres se usan solo como referencia olfativa para ayudarte a elegir.</p>
-      </details>
-      <details class="faq-item">
-        <summary>¿Cómo cambio el aroma de mi suscripción?</summary>
-        <p>Desde el botón «Gestionar mi suscripción» en la página, ingresando el correo con el que te suscribiste. Puedes cambiar tu aroma con al menos 5 días de anticipación a tu próxima entrega (1 semana en el caso de la renta de difusores).</p>
-      </details>
-      <details class="faq-item">
-        <summary>¿Qué métodos de pago aceptan?</summary>
-        <p>Aceptamos tarjeta de crédito o débito y Apple Pay, procesados de forma segura a través de Stripe. NÚCLEO essences nunca almacena los datos de tu tarjeta.</p>
-      </details>
-    </div>
-  </div>
-</section>
+  if (catalogBuyMode) {
+    catalogTitle.textContent = 'Elige tu aceite ambiental';
+    catalogSub.textContent = 'Escoge un aroma (o búscalo), elige la presentación y añádelo al carrito.';
+    renderFeaturedChips();
+    catalogFeatured.style.display = 'block';
+    catalogBuy.style.display = 'none';
+    catalogBuyAroma.textContent = '—';
+    catalogBuySizes.querySelectorAll('.catalog-size').forEach((b) => b.classList.remove('selected'));
+    updateBuyAddState();
+  } else {
+    catalogTitle.textContent = type === 'perfumes' ? 'Catálogo de perfumes' : 'Catálogo de aromas ambientales';
+    catalogSub.textContent = type === 'perfumes'
+      ? 'Busca por nombre o marca y toca el que quieras — se elegirá automáticamente.'
+      : 'Busca tu aroma favorito y toca el que quieras — se elegirá automáticamente.';
+    catalogFeatured.style.display = 'none';
+    catalogBuy.style.display = 'none';
+  }
 
-<!-- ============ FOOTER ============ -->
-<footer>
-  <div class="wrap">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <div class="wordmark">NÚCLEO<em>essences</em></div>
-        <p>Aromatización y fragancias que definen experiencias y transforman tu estilo. 
-          Donde el aroma también comunica elegancia y lujo — para hoteles, spas, hogar, auto y uso personal.</p>
-      </div>
-      <div class="footer-cols">
-        <div class="footer-col">
-          <h4>Catálogo</h4>
-          <a href="#difusores">Difusores</a>
-          <a href="#suscripcion">Renta de Difusores</a>
-          <a href="#suscripcion-aromas">Suscripción Mensual de Aromas</a>
-          <a href="#home-sprays">Home Sprays</a>
-          <a href="#perfumes">Perfumes</a>
-          <a href="#aceites">Aceites para difusor</a>
-        </div>
-        <div class="footer-col">
-          <h4>Contacto</h4>
-          <a href="https://wa.me/528116551406" target="_blank" rel="noopener">WhatsApp</a>
-          <a href="https://www.instagram.com/nucleo.essences?igsh=M3lwbmJ3NjB0MjFx&utm_source=qr" target="_blank" rel="noopener">Instagram</a>
-        </div>
-        <div class="footer-col">
-          <h4>Ayuda</h4>
-          <a href="#faq">Preguntas frecuentes</a>
-          <a href="privacy.html">Aviso de Privacidad</a>
-        </div>
-      </div>
-    </div>
-    <p class="footer-legal">Las fragancias ofrecidas son versiones inspiradas en perfumes de
-      diseñador, elaboradas con esencia artesanal propia de NÚCLEO essences. No son productos
-      originales ni cuentan con afiliación, patrocinio o aval de las marcas mencionadas.</p>
-    <div class="footer-bottom">
-      <span>© 2026 NÚCLEO essences. Todos los derechos reservados.</span>
-      <span>By NÚCLEO essences</span>
-      <a href="/admin.html" title="Panel privado" style="color:var(--gold-2); text-decoration:underline; font-size:0.78rem; letter-spacing:0.03em;">Panel</a>
-    </div>
-  </div>
-</footer>
+  catalogInput.value = '';
+  renderCatalogRows(currentCatalogData);
+  catalogModal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => catalogInput.focus(), 50);
+}
 
-<!-- ============ BANNER DE PAGO EXITOSO (SUSCRIPCIÓN) ============ -->
-<div class="success-banner" id="successBanner">
-  <div class="success-banner-inner">
-    <span id="successBannerText">¡Gracias por tu compra!</span>
-    <button class="success-banner-btn" id="manageSubBtn" style="display:none;">Gestionar mi suscripción →</button>
-    <button class="success-banner-close" id="successBannerClose" aria-label="Cerrar">✕</button>
-  </div>
-</div>
+function closeCatalog() {
+  catalogModal.classList.remove('open');
+  document.body.style.overflow = '';
+  catalogOnSelect = null;
+  catalogBuyMode = false;
+  buyAroma = '';
+  buyProductKey = '';
+}
 
-<!-- ============ SUBIR ARRIBA FLOTANTE ============ -->
-<button class="scrolltop-float" id="scrollTopBtn" aria-label="Subir al inicio">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
-</button>
+document.querySelectorAll('[data-catalog]').forEach((btn) => {
+  btn.addEventListener('click', () =>
+    openCatalog(btn.dataset.catalog, null, { buy: btn.dataset.catalogMode === 'buy' })
+  );
+});
+catalogClose.addEventListener('click', closeCatalog);
+catalogModal.addEventListener('click', (e) => {
+  if (e.target === catalogModal) closeCatalog();
+});
+catalogInput.addEventListener('input', () => filterCatalog(catalogInput.value));
+if (catalogGenderFilter) {
+  catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      currentGenderFilter = chip.dataset.gender;
+      catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((c) => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      filterCatalog(catalogInput.value);
+    });
+  });
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && catalogModal.classList.contains('open')) closeCatalog();
+});
 
-<!-- ============ BAJAR ABAJO FLOTANTE ============ -->
-<button class="scrollbottom-float" id="scrollBottomBtn" aria-label="Ir al final de la página">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12l7 7 7-7"/></svg>
-</button>
 
-<!-- ============ GESTIONAR SUSCRIPCIÓN FLOTANTE ============ -->
-<button class="manage-sub-float" id="manageSubFloat">Gestionar mi suscripción</button>
+/* ============ GESTIONAR SUSCRIPCIÓN (lista + cambio de aroma) ============ */
+(function () {
+  const openBtn = document.getElementById('manageSubFloat');
+  const modal = document.getElementById('subModal');
+  const closeBtn = document.getElementById('subModalClose');
+  const cancelBtn = document.getElementById('subCancelBtn');
+  const continueBtn = document.getElementById('subContinueBtn');
+  const input = document.getElementById('subEmailInput');
+  const errorMsg = document.getElementById('subError');
+  const stepEmail = document.getElementById('subStepEmail');
+  const stepList = document.getElementById('subStepList');
+  const listEmail = document.getElementById('subListEmail');
+  const listEl = document.getElementById('subList');
+  const portalLink = document.getElementById('subPortalLink');
+  const backBtn = document.getElementById('subBackBtn');
+  const idTabs = document.getElementById('subIdentifierTabs');
+  if (!openBtn || !modal) return;
 
-<!-- ============ MODAL GESTIONAR SUSCRIPCIÓN ============ -->
-<div class="sub-modal" id="subModal">
-  <div class="sub-modal-inner">
-    <button class="modal-close" id="subModalClose" aria-label="Cerrar">✕</button>
+  // Modo de búsqueda actual: 'email' o 'phone'.
+  let identifierMode = 'email';
+  // customerId de Stripe obtenido tras la búsqueda — se usa para las
+  // acciones posteriores (cambiar aroma, abrir portal) en vez del
+  // correo, así funciona igual sin importar si el cliente entró con
+  // correo o con WhatsApp.
+  let currentCustomerId = '';
+  let currentLabel = ''; // correo o teléfono, solo para mostrarlo en pantalla
 
-    <!-- Paso 1: correo o WhatsApp -->
-    <div class="sub-step" id="subStepEmail">
-      <h4 class="serif">Gestionar mi suscripción</h4>
-      <p>Ingresa el correo o el WhatsApp con el que te suscribiste para ver tus
-        suscripciones activas y cambiar tu aroma sin salir de aquí.</p>
-      <div class="sub-identifier-tabs" id="subIdentifierTabs">
-        <button type="button" class="sub-id-tab selected" data-mode="email">Correo</button>
-        <button type="button" class="sub-id-tab" data-mode="phone">WhatsApp</button>
-      </div>
-      <input type="email" id="subEmailInput" class="sub-email-input" placeholder="tu@correo.com" autocomplete="email">
-      <div class="sub-error" id="subError" role="alert"></div>
-      <button class="sub-continue-btn" id="subContinueBtn">Ver mis suscripciones</button>
-      <button class="sub-cancel-btn" id="subCancelBtn">Cancelar</button>
-    </div>
+  if (idTabs) {
+    idTabs.querySelectorAll('.sub-id-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        identifierMode = tab.dataset.mode;
+        idTabs.querySelectorAll('.sub-id-tab').forEach((t) => t.classList.remove('selected'));
+        tab.classList.add('selected');
+        errorMsg.textContent = '';
+        input.value = '';
+        if (identifierMode === 'phone') {
+          input.type = 'tel';
+          input.placeholder = '81 1234 5678';
+          input.setAttribute('inputmode', 'tel');
+          input.setAttribute('autocomplete', 'tel');
+        } else {
+          input.type = 'email';
+          input.placeholder = 'tu@correo.com';
+          input.setAttribute('inputmode', 'email');
+          input.setAttribute('autocomplete', 'email');
+        }
+        setTimeout(() => input.focus(), 30);
+      });
+    });
+  }
 
-    <!-- Paso 2: lista de suscripciones -->
-    <div class="sub-step" id="subStepList" style="display:none;">
-      <h4 class="serif">Tus suscripciones</h4>
-      <p id="subListEmail" class="sub-list-email"></p>
-      <div class="sub-list" id="subList"><!-- inyectado por JS --></div>
-      <button class="sub-portal-link" id="subPortalLink">Gestionar pago o cancelar en el portal de Stripe →</button>
-      <button class="sub-cancel-btn" id="subBackBtn">Usar otro correo</button>
-    </div>
-  </div>
-</div>
+  function showStep(which) {
+    stepEmail.style.display = which === 'email' ? 'block' : 'none';
+    stepList.style.display = which === 'list' ? 'block' : 'none';
+  }
 
-<!-- ============ BOTÓN VER CARRITO (fijo, arriba a la derecha) ============ -->
-<button class="cart-fab" id="cartFab" aria-label="Ver carrito">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-  </svg>
-  <span class="cart-fab-label">Ver carrito</span>
-  <span class="cart-count" id="cartCount" aria-hidden="true">0</span>
-</button>
+  function openModal() {
+    errorMsg.textContent = '';
+    input.value = '';
+    currentCustomerId = '';
+    currentLabel = '';
+    showStep('email');
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => input.focus(), 50);
+  }
+  function closeModal() {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
 
-<!-- ============ PANEL / DRAWER DEL CARRITO ============ -->
-<div class="cart-drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-label="Tu carrito">
-  <div class="cart-drawer-inner">
-    <div class="cart-drawer-head">
-      <h4 class="serif">Tu carrito</h4>
-      <button class="modal-close" id="cartDrawerClose" aria-label="Cerrar carrito">✕</button>
-    </div>
-    <div class="cart-items" id="cartItems"><!-- items inyectados por JS --></div>
-    <div class="cart-empty" id="cartEmpty">Tu carrito está vacío. Agrega productos para continuar.</div>
-    <div class="cart-foot" id="cartFoot">
-      <div class="cart-total-row">
-        <span>Total</span>
-        <span class="cart-total serif" id="cartTotal">$0 MXN</span>
-      </div>
-      <p class="cart-note">El costo de envío o la opción de recoger en tienda se elige en el pago seguro de Stripe.</p>
-      <div class="cart-email-capture" id="cartEmailCapture">
-        <label for="cartEmailInput" class="cart-email-label">¿Te recordamos tu carrito si no completas la compra? (opcional)</label>
-        <input type="email" id="cartEmailInput" class="cart-email-input" placeholder="tu@correo.com" autocomplete="email">
-      </div>
-      <button class="cart-pay-btn" id="cartPayBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Pagar de forma segura
-      </button>
-    </div>
-  </div>
-</div>
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  backBtn.addEventListener('click', () => { showStep('email'); setTimeout(() => input.focus(), 50); });
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
 
-<!-- ============ TOAST (confirmación al agregar) ============ -->
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-<!-- ============ WHATSAPP FLOTANTE ============ -->
-<a class="wa-float" href="https://wa.me/528116551406?text=Hola!%20Quisiera%20m%C3%A1s%20informaci%C3%B3n%20sobre%20los%20productos%20de%20N%C3%BAcleo%20essences." target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
-  <svg viewBox="0 0 32 32"><path d="M16 3C9.4 3 4 8.4 4 15c0 2.4.7 4.6 1.9 6.5L4 29l7.7-2c1.8 1 3.9 1.5 6.3 1.5 6.6 0 12-5.4 12-12S22.6 3 16 3zm0 21.8c-2 0-3.9-.5-5.5-1.5l-.4-.2-4.6 1.2 1.2-4.5-.3-.4C5.3 17.8 4.7 16 4.7 15c0-6.2 5.1-11.3 11.3-11.3S27.3 8.8 27.3 15 22.2 24.8 16 24.8zm6.2-8.5c-.3-.2-2-1-2.3-1.1-.3-.1-.5-.2-.8.2s-.9 1.1-1.1 1.3-.4.3-.7.1c-.3-.2-1.4-.5-2.6-1.6-1-.9-1.6-2-1.8-2.3-.2-.3 0-.5.1-.6.1-.1.3-.4.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.8-1.9-1-2.6c-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.3 1.4 3.5c.2.3 2.4 3.7 5.8 5.1.8.3 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 2-.8 2.3-1.6.3-.8.3-1.4.2-1.6-.1-.1-.3-.2-.6-.3z"/></svg>
-</a>
+  async function submitIdentifier() {
+    const valor = input.value.trim();
+    errorMsg.textContent = '';
 
-<!-- ============ MODAL DE VIDEO ============ -->
-<div class="video-modal" id="videoModal">
-  <div class="modal-inner">
-    <button class="modal-close" id="modalClose" aria-label="Cerrar video">✕</button>
-    <video id="modalVideo" controls playsinline>
-      <source src="" type="video/mp4">
-    </video>
-    <div class="modal-label" id="modalLabel"></div>
-  </div>
-</div>
+    if (identifierMode === 'email') {
+      if (!valor || !valor.includes('@')) {
+        errorMsg.textContent = 'Ingresa un correo válido.';
+        return;
+      }
+    } else {
+      const digitos = valor.replace(/[^\d]/g, '');
+      if (digitos.length < 10) {
+        errorMsg.textContent = 'Ingresa un número de WhatsApp válido (10 dígitos).';
+        return;
+      }
+    }
 
-<!-- ============ MODAL DE CATÁLOGO (perfumes / aromas) ============ -->
-<div class="catalog-modal" id="catalogModal">
-  <div class="catalog-modal-inner">
-    <div class="catalog-modal-head">
-      <div>
-        <h4 id="catalogModalTitle" class="serif">Catálogo de fragancias</h4>
-        <p id="catalogModalSub">Escribe para buscar tu aroma favorito</p>
-      </div>
-      <button class="modal-close" id="catalogModalClose" aria-label="Cerrar catálogo">✕</button>
-    </div>
-    <input type="text" id="catalogSearchInput" class="catalog-search-input" placeholder="Buscar por nombre o marca...">
-    <div class="catalog-gender-filter" id="catalogGenderFilter">
-  <button type="button" class="catalog-gender-chip selected" data-gender="todos">Todos</button>
-  <button type="button" class="catalog-gender-chip" data-gender="Caballero">Hombres</button>
-  <button type="button" class="catalog-gender-chip" data-gender="Dama">Mujeres</button>
-  <button type="button" class="catalog-gender-chip" data-gender="Unisex">Unisex</button>
-</div>
-    <div class="catalog-disclaimer">Los nombres se listan solo como referencia olfativa. Son versiones inspiradas, elaboradas por NÚCLEO essences — no son productos originales ni están afiliados a las marcas mencionadas.</div>
+    continueBtn.disabled = true;
+    continueBtn.textContent = 'Buscando...';
+    try {
+      const body = identifierMode === 'email' ? { email: valor } : { phone: valor };
+      const resp = await fetch('/api/list-subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (resp.ok && Array.isArray(data.subscriptions) && data.subscriptions.length) {
+        currentLabel = identifierMode === 'email' ? (data.email || valor) : valor;
+        renderList(data.subscriptions);
+        showStep('list');
+      } else {
+        errorMsg.textContent = data.error || 'No encontramos esa suscripción.';
+      }
+    } catch (err) {
+      errorMsg.textContent = 'Error de conexión. Intenta de nuevo.';
+    } finally {
+      continueBtn.disabled = false;
+      continueBtn.textContent = 'Ver mis suscripciones';
+    }
+  }
 
-    <!-- Destacados: solo se muestran en modo compra de aceite -->
-    <div id="catalogFeatured" class="catalog-featured" style="display:none;">
-      <div class="catalog-featured-title">Los más pedidos</div>
-      <div id="catalogFeaturedChips" class="catalog-featured-chips"><!-- chips inyectados por JS --></div>
-    </div>
+  function renderList(subs) {
+    listEmail.textContent = currentLabel;
+    // Usamos el customerId de la primera suscripción como identidad
+    // de sesión para el portal y los cambios de aroma.
+    currentCustomerId = subs[0] && subs[0].customerId ? subs[0].customerId : '';
 
-    <div id="catalogResultsCount" class="catalog-results-count"></div>
-    <div id="catalogResults" class="catalog-results"></div>
+    if (!subs.length) {
+      listEl.innerHTML = '<div class="sub-list-empty">No encontramos suscripciones activas con este dato.</div>';
+      return;
+    }
+    listEl.innerHTML = subs.map((s, i) => {
+      const tamano = s.tamano ? ' · ' + esc(s.tamano) : '';
+      const aromaActual = s.aroma ? esc(s.aroma) : 'Sin aroma definido';
 
-    <!-- Panel de compra de aceite: solo se muestra en modo compra de aceite -->
-    <div id="catalogBuy" class="catalog-buy" style="display:none;">
-      <div class="catalog-buy-aroma">
-        Aroma elegido: <strong id="catalogBuyAroma">—</strong>
-      </div>
-      <div class="catalog-buy-label">Elige tu presentación:</div>
-      <div id="catalogBuySizes" class="catalog-buy-sizes">
-        <button type="button" class="catalog-size" data-product="aceite250" data-size-label="250 ml" data-price="900">250 ml<span>$900 MXN</span></button>
-        <button type="button" class="catalog-size" data-product="aceite500" data-size-label="500 ml" data-price="1300">500 ml<span>$1,300 MXN</span></button>
-        <button type="button" class="catalog-size" data-product="aceite1l" data-size-label="1 litro" data-price="2000">1 litro<span>$2,000 MXN</span></button>
-      </div>
-      <button type="button" id="catalogBuyAdd" class="catalog-buy-add" disabled>Añadir al carrito</button>
-    </div>
-  </div>
-</div>
-<!-- Sección Contratos Renta Mensual -->
-<section style="background:#1F1F1F; padding:48px 20px; text-align:center;">
-  <h2 style="color:#fff; font-family:Georgia, 'Times New Roman', serif; font-size:22px; margin:0 0 10px; letter-spacing:0.5px;">
-    Firma tu contrato desde el celular
-  </h2>
-  <p style="color:#a9a49a; font-size:14px; font-style:italic; margin:0 0 24px; max-width:480px; margin-left:auto; margin-right:auto;">
-    Llena tus datos, firma con el dedo y adjunta tus fotos en minutos.
-  </p>
-  <a href="https://nucleo-essences-documentos-electron.vercel.app"
-     target="_blank"
-     rel="noopener noreferrer"
-     style="display:inline-block; background:#B8912F; color:#1F1F1F; padding:16px 36px; font-weight:700; font-size:14px; letter-spacing:1px; text-transform:uppercase; text-decoration:none; border-radius:6px;">
-    Contratos Renta Mensual
-  </a>
-</section>
+      let aromaBloque = '';
+      if (s.puedeCambiar) {
+        aromaBloque =
+          '<div class="sub-card-aroma">' +
+            '<button type="button" class="sub-choose-aroma" data-choose="' + i + '">Cambiar aroma (elegir del catálogo)</button>' +
+            '<button type="button" class="sub-save-aroma" data-save="' + i + '" disabled>Guardar</button>' +
+          '</div>' +
+          '<p class="sub-card-msg" data-msg="' + i + '"></p>';
+      } else {
+        aromaBloque =
+          '<div class="sub-card-locked">Ya no es posible cambiar el aroma para tu próxima entrega ' +
+          '(se requiere al menos 5 días de anticipación). Podrás cambiarlo de nuevo a partir del ' +
+          esc(s.cambiarDesdeLabel || s.proximaFechaLabel) + '.</div>';
+      }
 
-<script src="assets/perfumes-data.js"></script>
-<script src="assets/ambientales-data.js"></script>
-<script src="script.js"></script>
-</body>
-</html>
+      return (
+        '<div class="sub-card" data-card="' + i + '" data-sub-id="' + esc(s.id) + '">' +
+          '<div class="sub-card-head">' +
+            '<span class="sub-card-title">' + esc(s.etiqueta) + tamano + '</span>' +
+            '<span class="sub-card-badge">' + esc(s.estado === 'active' ? 'Activa' : s.estado) + '</span>' +
+          '</div>' +
+          '<div class="sub-card-row">Aroma actual: <strong data-aroma-actual="' + i + '">' + aromaActual + '</strong></div>' +
+          '<div class="sub-card-row">Próxima entrega: <strong>' + esc(s.proximaFechaLabel) + '</strong></div>' +
+          aromaBloque +
+        '</div>'
+      );
+    }).join('');
+
+    const pendiente = {};
+
+    listEl.querySelectorAll('[data-choose]').forEach((btn) => {
+      const i = btn.dataset.choose;
+      const card = listEl.querySelector('[data-card="' + i + '"]');
+      const saveBtn = listEl.querySelector('[data-save="' + i + '"]');
+      const msg = listEl.querySelector('[data-msg="' + i + '"]');
+      btn.addEventListener('click', () => {
+        openCatalog('ambientales', (name) => {
+          pendiente[i] = name;
+          btn.textContent = 'Nuevo aroma: ' + name + ' (cambiar)';
+          saveBtn.disabled = false;
+          if (msg) { msg.textContent = ''; msg.className = 'sub-card-msg'; }
+        });
+      });
+
+      saveBtn.addEventListener('click', async () => {
+        const nuevo = pendiente[i];
+        if (!nuevo) return;
+        const subId = card.dataset.subId;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Guardando...';
+        if (msg) { msg.textContent = ''; msg.className = 'sub-card-msg'; }
+        try {
+          const resp = await fetch('/api/update-aroma', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: currentCustomerId, subscriptionId: subId, aroma: nuevo }),
+          });
+          const data = await resp.json();
+          if (resp.ok && data.ok) {
+            const actualEl = listEl.querySelector('[data-aroma-actual="' + i + '"]');
+            if (actualEl) actualEl.textContent = data.aromaNuevo;
+            if (msg) { msg.textContent = '¡Listo! Tu próxima entrega llegará con ' + data.aromaNuevo + '. Te enviamos un correo de confirmación si tienes uno registrado.'; msg.className = 'sub-card-msg ok'; }
+            btn.textContent = 'Cambiar aroma (elegir del catálogo)';
+            delete pendiente[i];
+          } else {
+            if (msg) { msg.textContent = data.error || 'No se pudo cambiar el aroma.'; msg.className = 'sub-card-msg err'; }
+            saveBtn.disabled = false;
+          }
+        } catch (err) {
+          if (msg) { msg.textContent = 'Error de conexión. Intenta de nuevo.'; msg.className = 'sub-card-msg err'; }
+          saveBtn.disabled = false;
+        } finally {
+          saveBtn.textContent = 'Guardar';
+        }
+      });
+    });
+  }
+
+  portalLink.addEventListener('click', async () => {
+    if (!currentCustomerId) return;
+    const original = portalLink.textContent;
+    portalLink.textContent = 'Abriendo portal...';
+    portalLink.disabled = true;
+    try {
+      const resp = await fetch('/api/create-portal-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: currentCustomerId }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      portalLink.textContent = data.error || 'No se pudo abrir el portal.';
+    } catch (err) {
+      portalLink.textContent = 'Error de conexión. Intenta de nuevo.';
+    } finally {
+      setTimeout(() => { portalLink.textContent = original; portalLink.disabled = false; }, 2500);
+    }
+  });
+
+  continueBtn.addEventListener('click', submitIdentifier);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.nativeEvent?.isComposing) submitIdentifier();
+  });
+})();
+
+
+/* ============================================================
+   CARRITO DE COMPRA (varios productos en un solo pago Stripe)
+   ============================================================ */
+(function initCart() {
+  const PRODUCT_INFO = {
+    a60:        { name: 'Difusor A60',      price: 1199 },
+    a300:       { name: 'Difusor A300',     price: 3999 },
+    a1000:      { name: 'Difusor A1000',    price: 8999 },
+    a3000:      { name: 'Difusor A3000',    price: 11999 },
+    a5000:      { name: 'Difusor A5000',    price: 16999 },
+    carpro:     { name: 'CAR PRO',          price: 1399 },
+    aerosol250: { name: 'Home Spray 250 ml', price: 600 },
+    perfume30:  { name: 'Perfume 30 ml',    price: 280 },
+    perfume60:  { name: 'Perfume 60 ml',    price: 390 },
+    perfume100: { name: 'Perfume 100 ml',   price: 600 },
+    aceite250:  { name: 'Aceite 250 ml',    price: 900 },
+    aceite500:  { name: 'Aceite 500 ml',    price: 1300 },
+    aceite1l:   { name: 'Aceite 1 litro',   price: 2000 },
+  };
+
+  const CART_STORAGE_KEY = 'nucleo_cart';
+  const CART_EMAIL_KEY = 'nucleo_cart_email';
+
+  const selectedColors = {};
+
+  // Estado del carrito: se recupera de localStorage si existe, así el
+  // carrito sobrevive si el cliente cierra el checkout de Stripe y vuelve.
+  let cart = [];
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (raw) cart = JSON.parse(raw) || [];
+  } catch (e) { cart = []; }
+
+  function persistCart() {
+    try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch (e) {}
+  }
+
+  const money = (n) => '$' + n.toLocaleString('es-MX') + ' MXN';
+
+  const fab = document.getElementById('cartFab');
+  const countEl = document.getElementById('cartCount');
+  const drawer = document.getElementById('cartDrawer');
+  const drawerClose = document.getElementById('cartDrawerClose');
+  const itemsEl = document.getElementById('cartItems');
+  const emptyEl = document.getElementById('cartEmpty');
+  const footEl = document.getElementById('cartFoot');
+  const totalEl = document.getElementById('cartTotal');
+  const payBtn = document.getElementById('cartPayBtn');
+  const toastEl = document.getElementById('toast');
+  const cartEmailInput = document.getElementById('cartEmailInput');
+
+  if (!fab || !drawer) return;
+
+  let toastTimer;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+  }
+
+  document.querySelectorAll('[data-color-picker]').forEach((picker) => {
+    const key = picker.dataset.colorPicker;
+    picker.querySelectorAll('.color-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        picker.querySelectorAll('.color-chip').forEach((c) => {
+          c.classList.remove('selected');
+          c.setAttribute('aria-pressed', 'false');
+        });
+        chip.classList.add('selected');
+        chip.setAttribute('aria-pressed', 'true');
+        selectedColors[key] = chip.dataset.color;
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-qty]').forEach((group) => {
+    const input = group.querySelector('.qty-input');
+    const dec = group.querySelector('[data-qty-dec]');
+    const inc = group.querySelector('[data-qty-inc]');
+    const clamp = () => {
+      let v = parseInt(input.value, 10);
+      if (isNaN(v) || v < 1) v = 1;
+      input.value = v;
+    };
+    dec.addEventListener('click', () => { input.value = Math.max(1, (parseInt(input.value, 10) || 1) - 1); });
+    inc.addEventListener('click', () => { input.value = (parseInt(input.value, 10) || 1) + 1; });
+    input.addEventListener('change', clamp);
+    input.addEventListener('blur', clamp);
+  });
+
+  function addToCart(btn) {
+    const key = btn.dataset.product;
+    const info = PRODUCT_INFO[key];
+    if (!info) return;
+
+    const colorFrom = btn.dataset.colorFrom;
+    let color = '';
+    if (colorFrom) {
+      color = selectedColors[colorFrom] || '';
+      if (!color) {
+        showToast('Elige un color (Blanco o Negro) antes de agregar.');
+        return;
+      }
+    }
+
+    const aromaFrom = btn.dataset.aromaFrom;
+    let aroma = '';
+    if (aromaFrom) {
+      aroma = (selectedAromas[aromaFrom] || '').trim();
+      if (!aroma) {
+        showToast('Elige primero el aroma del catálogo para este producto.');
+        return;
+      }
+    }
+
+    const group = btn.closest('.feature-copy, .card, .feature, .size-price-row') || document;
+    const qtyInput = btn.parentElement.querySelector('.qty-input')
+      || (btn.closest('[data-qty]') ? btn.closest('[data-qty]').querySelector('.qty-input') : null)
+      || group.querySelector('.qty-input');
+    const qty = qtyInput ? Math.max(1, parseInt(qtyInput.value, 10) || 1) : 1;
+
+    const existing = cart.find((it) => it.productKey === key && it.color === color && it.aroma === aroma);
+    if (existing) {
+      existing.quantity += qty;
+    } else {
+      cart.push({ productKey: key, name: info.name, price: info.price, quantity: qty, color, aroma });
+    }
+
+    if (qtyInput) qtyInput.value = 1;
+    renderCart();
+    showToast(info.name + ' agregado al carrito');
+    fab.classList.add('bump');
+    setTimeout(() => fab.classList.remove('bump'), 400);
+  }
+
+  document.querySelectorAll('[data-add-to-cart]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      addToCart(btn);
+    });
+  });
+
+  function changeQty(index, delta) {
+    const item = cart[index];
+    if (!item) return;
+    item.quantity += delta;
+    if (item.quantity < 1) cart.splice(index, 1);
+    renderCart();
+  }
+  function removeItem(index) {
+    cart.splice(index, 1);
+    renderCart();
+  }
+
+  function renderCart() {
+    persistCart();
+
+    const totalUnits = cart.reduce((s, it) => s + it.quantity, 0);
+    countEl.textContent = totalUnits;
+    countEl.style.display = totalUnits > 0 ? 'grid' : 'none';
+
+    if (!cart.length) {
+      itemsEl.innerHTML = '';
+      emptyEl.style.display = 'block';
+      footEl.style.display = 'none';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    footEl.style.display = 'block';
+
+    itemsEl.innerHTML = cart.map((it, i) => {
+      const variantes = [];
+      if (it.color) variantes.push('Color: ' + it.color);
+      if (it.aroma) variantes.push('Aroma: ' + it.aroma);
+      const meta = variantes.length ? '<div class="ci-meta">' + variantes.join(' · ') + '</div>' : '';
+      return (
+        '<div class="cart-item" data-index="' + i + '">' +
+          '<div class="ci-info">' +
+            '<div class="ci-name serif">' + it.name + '</div>' +
+            meta +
+            '<div class="ci-price">' + money(it.price) + ' c/u</div>' +
+          '</div>' +
+          '<div class="ci-controls">' +
+            '<div class="ci-qty">' +
+              '<button type="button" class="qty-btn" data-ci-dec aria-label="Quitar uno">−</button>' +
+              '<span class="ci-qty-val">' + it.quantity + '</span>' +
+              '<button type="button" class="qty-btn" data-ci-inc aria-label="Agregar uno">+</button>' +
+            '</div>' +
+            '<button type="button" class="ci-remove" data-ci-remove aria-label="Eliminar del carrito">Eliminar</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+
+    const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+    totalEl.textContent = money(total);
+
+    itemsEl.querySelectorAll('.cart-item').forEach((row) => {
+      const i = parseInt(row.dataset.index, 10);
+      row.querySelector('[data-ci-dec]').addEventListener('click', () => changeQty(i, -1));
+      row.querySelector('[data-ci-inc]').addEventListener('click', () => changeQty(i, 1));
+      row.querySelector('[data-ci-remove]').addEventListener('click', () => removeItem(i));
+    });
+  }
+
+  function openDrawer() {
+    drawer.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  fab.addEventListener('click', openDrawer);
+  drawerClose.addEventListener('click', closeDrawer);
+  drawer.addEventListener('click', (e) => { if (e.target === drawer) closeDrawer(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+  });
+
+  // --- Recuperación de carrito abandonado: captura de correo opcional ---
+  if (cartEmailInput) {
+    try {
+      const savedEmail = localStorage.getItem(CART_EMAIL_KEY);
+      if (savedEmail) cartEmailInput.value = savedEmail;
+    } catch (e) {}
+
+    let emailTimer;
+    cartEmailInput.addEventListener('input', () => {
+      clearTimeout(emailTimer);
+      emailTimer = setTimeout(() => {
+        const email = cartEmailInput.value.trim();
+        if (!email || !email.includes('@')) return;
+        try { localStorage.setItem(CART_EMAIL_KEY, email); } catch (e) {}
+        fetch(ABANDONED_CART_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'cart_started',
+            email,
+            cart: cart.map((it) => ({ name: it.name, quantity: it.quantity, aroma: it.aroma, color: it.color })),
+            total: cart.reduce((s, it) => s + it.price * it.quantity, 0),
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+      }, 800);
+    });
+  }
+
+  payBtn.addEventListener('click', async () => {
+    if (!cart.length) return;
+    const original = payBtn.innerHTML;
+    payBtn.textContent = 'Abriendo pago…';
+    payBtn.disabled = true;
+    try {
+      const resp = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart.map((it) => ({
+            productKey: it.productKey,
+            quantity: it.quantity,
+            color: it.color,
+            aroma: it.aroma,
+            name: it.name,
+          })),
+        }),
+      });
+      const data = await resp.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      throw new Error(data.error || 'Sin URL de pago');
+    } catch (err) {
+      console.error('No se pudo abrir el checkout del carrito:', err);
+      alert(
+        'No pudimos abrir el pago en este momento.\n\n' +
+        'Detalle: ' + (err && err.message ? err.message : 'error desconocido') +
+        '\n\nPor favor inténtalo de nuevo en unos segundos.'
+      );
+    } finally {
+      payBtn.innerHTML = original;
+      payBtn.disabled = false;
+    }
+  });
+
+  window.addOilToCart = function ({ productKey, aroma }) {
+    const info = PRODUCT_INFO[productKey];
+    if (!info) return;
+    const aromaVal = (aroma || '').trim();
+    const existing = cart.find(
+      (it) => it.productKey === productKey && it.color === '' && it.aroma === aromaVal
+    );
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({ productKey, name: info.name, price: info.price, quantity: 1, color: '', aroma: aromaVal });
+    }
+    renderCart();
+    showToast(info.name + (aromaVal ? ' · ' + aromaVal : '') + ' agregado al carrito');
+    fab.classList.add('bump');
+    setTimeout(() => fab.classList.remove('bump'), 400);
+  };
+
+  window.clearNucleoCart = function () {
+    cart = [];
+    persistCart();
+    renderCart();
+  };
+
+  renderCart();
+})();
