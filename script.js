@@ -482,24 +482,65 @@ document.addEventListener('keydown', (e) => {
   const input = document.getElementById('subEmailInput');
   const errorMsg = document.getElementById('subError');
   const stepEmail = document.getElementById('subStepEmail');
+  const stepOtp = document.getElementById('subStepOtp');
   const stepList = document.getElementById('subStepList');
   const listEmail = document.getElementById('subListEmail');
   const listEl = document.getElementById('subList');
   const portalLink = document.getElementById('subPortalLink');
   const backBtn = document.getElementById('subBackBtn');
+  const idTabs = document.getElementById('subIdentifierTabs');
+  const otpInput = document.getElementById('subOtpInput');
+  const otpError = document.getElementById('subOtpError');
+  const otpHint = document.getElementById('subOtpHint');
+  const otpContinueBtn = document.getElementById('subOtpContinueBtn');
+  const otpResendBtn = document.getElementById('subOtpResendBtn');
+  const otpBackBtn = document.getElementById('subOtpBackBtn');
   if (!openBtn || !modal) return;
 
-  let currentEmail = '';
+  // Modo de búsqueda actual: 'email' o 'phone'.
+  let identifierMode = 'email';
+  let identifierValue = ''; // el correo o teléfono que escribió, para reenviar el código
+  // customerId de Stripe obtenido tras verificar el código — se usa
+  // para las acciones posteriores (cambiar aroma, abrir portal).
+  let currentCustomerId = '';
+  let currentLabel = ''; // correo o teléfono, solo para mostrarlo en pantalla
+
+  if (idTabs) {
+    idTabs.querySelectorAll('.sub-id-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        identifierMode = tab.dataset.mode;
+        idTabs.querySelectorAll('.sub-id-tab').forEach((t) => t.classList.remove('selected'));
+        tab.classList.add('selected');
+        errorMsg.textContent = '';
+        input.value = '';
+        if (identifierMode === 'phone') {
+          input.type = 'tel';
+          input.placeholder = '81 1234 5678';
+          input.setAttribute('inputmode', 'tel');
+          input.setAttribute('autocomplete', 'tel');
+        } else {
+          input.type = 'email';
+          input.placeholder = 'tu@correo.com';
+          input.setAttribute('inputmode', 'email');
+          input.setAttribute('autocomplete', 'email');
+        }
+        setTimeout(() => input.focus(), 30);
+      });
+    });
+  }
 
   function showStep(which) {
     stepEmail.style.display = which === 'email' ? 'block' : 'none';
+    stepOtp.style.display = which === 'otp' ? 'block' : 'none';
     stepList.style.display = which === 'list' ? 'block' : 'none';
   }
 
   function openModal() {
     errorMsg.textContent = '';
     input.value = '';
-    currentEmail = '';
+    currentCustomerId = '';
+    currentLabel = '';
+    identifierValue = '';
     showStep('email');
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -522,42 +563,127 @@ document.addEventListener('keydown', (e) => {
   const esc = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  async function submitEmail() {
-    const email = input.value.trim();
+  function identifierBody() {
+    return identifierMode === 'email' ? { email: identifierValue } : { phone: identifierValue };
+  }
+
+  // ---- Paso 1: pedir el código ----
+  async function submitIdentifier() {
+    const valor = input.value.trim();
     errorMsg.textContent = '';
-    if (!email || !email.includes('@')) {
-      errorMsg.textContent = 'Ingresa un correo válido.';
-      return;
+
+    if (identifierMode === 'email') {
+      if (!valor || !valor.includes('@')) {
+        errorMsg.textContent = 'Ingresa un correo válido.';
+        return;
+      }
+    } else {
+      const digitos = valor.replace(/[^\d]/g, '');
+      if (digitos.length < 10) {
+        errorMsg.textContent = 'Ingresa un número de WhatsApp válido (10 dígitos).';
+        return;
+      }
     }
 
+    identifierValue = valor;
     continueBtn.disabled = true;
-    continueBtn.textContent = 'Buscando...';
+    continueBtn.textContent = 'Enviando...';
     try {
-      const resp = await fetch('/api/list-subscriptions', {
+      const resp = await fetch('/api/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(identifierBody()),
       });
       const data = await resp.json();
-      if (resp.ok && Array.isArray(data.subscriptions)) {
-        currentEmail = data.email || email;
-        renderList(data.subscriptions);
-        showStep('list');
+      if (resp.ok && data.ok) {
+        otpHint.textContent = 'Te enviamos un código de 6 dígitos a ' + (data.emailMasked || 'tu correo') + '.';
+        otpError.textContent = '';
+        otpInput.value = '';
+        showStep('otp');
+        setTimeout(() => otpInput.focus(), 50);
       } else {
-        errorMsg.textContent = data.error || 'No encontramos esa suscripción.';
+        errorMsg.textContent = data.error || 'No se pudo enviar el código.';
       }
     } catch (err) {
       errorMsg.textContent = 'Error de conexión. Intenta de nuevo.';
     } finally {
       continueBtn.disabled = false;
-      continueBtn.textContent = 'Ver mis suscripciones';
+      continueBtn.textContent = 'Enviar código';
     }
   }
 
+  // ---- Paso 2: verificar el código ----
+  async function submitOtp() {
+    const codigo = otpInput.value.trim();
+    otpError.textContent = '';
+    if (!codigo || codigo.length !== 6) {
+      otpError.textContent = 'Ingresa el código de 6 dígitos completo.';
+      return;
+    }
+
+    otpContinueBtn.disabled = true;
+    otpContinueBtn.textContent = 'Verificando...';
+    try {
+      const body = Object.assign({ code: codigo }, identifierBody());
+      const resp = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (resp.ok && Array.isArray(data.subscriptions) && data.subscriptions.length) {
+        currentLabel = identifierMode === 'email' ? (data.email || identifierValue) : identifierValue;
+        renderList(data.subscriptions);
+        showStep('list');
+      } else {
+        otpError.textContent = data.error || 'Código incorrecto.';
+      }
+    } catch (err) {
+      otpError.textContent = 'Error de conexión. Intenta de nuevo.';
+    } finally {
+      otpContinueBtn.disabled = false;
+      otpContinueBtn.textContent = 'Entrar';
+    }
+  }
+
+  otpResendBtn.addEventListener('click', async () => {
+    otpError.textContent = '';
+    otpResendBtn.disabled = true;
+    const original = otpResendBtn.textContent;
+    otpResendBtn.textContent = 'Reenviando...';
+    try {
+      const resp = await fetch('/api/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(identifierBody()),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.ok) {
+        otpHint.textContent = 'Te reenviamos el código a ' + (data.emailMasked || 'tu correo') + '.';
+      } else {
+        otpError.textContent = data.error || 'No se pudo reenviar el código.';
+      }
+    } catch (err) {
+      otpError.textContent = 'Error de conexión. Intenta de nuevo.';
+    } finally {
+      otpResendBtn.disabled = false;
+      otpResendBtn.textContent = original;
+    }
+  });
+
+  otpBackBtn.addEventListener('click', () => {
+    showStep('email');
+    setTimeout(() => input.focus(), 50);
+  });
+
   function renderList(subs) {
-    listEmail.textContent = currentEmail;
+    listEmail.textContent = currentLabel;
+    // Usamos el customerId de la primera suscripción como identidad
+    // de sesión para el portal y los cambios de aroma.
+    currentCustomerId = subs[0] && subs[0].customerId ? subs[0].customerId : '';
+
     if (!subs.length) {
-      listEl.innerHTML = '<div class="sub-list-empty">No encontramos suscripciones activas con este correo.</div>';
+      listEl.innerHTML = '<div class="sub-list-empty">No encontramos suscripciones activas con este dato.</div>';
       return;
     }
     listEl.innerHTML = subs.map((s, i) => {
@@ -619,13 +745,13 @@ document.addEventListener('keydown', (e) => {
           const resp = await fetch('/api/update-aroma', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: currentEmail, subscriptionId: subId, aroma: nuevo }),
+            body: JSON.stringify({ customerId: currentCustomerId, subscriptionId: subId, aroma: nuevo }),
           });
           const data = await resp.json();
           if (resp.ok && data.ok) {
             const actualEl = listEl.querySelector('[data-aroma-actual="' + i + '"]');
             if (actualEl) actualEl.textContent = data.aromaNuevo;
-            if (msg) { msg.textContent = '¡Listo! Tu próxima entrega llegará con ' + data.aromaNuevo + '. Te enviamos un correo de confirmación.'; msg.className = 'sub-card-msg ok'; }
+            if (msg) { msg.textContent = '¡Listo! Tu próxima entrega llegará con ' + data.aromaNuevo + '. Te enviamos un correo de confirmación si tienes uno registrado.'; msg.className = 'sub-card-msg ok'; }
             btn.textContent = 'Cambiar aroma (elegir del catálogo)';
             delete pendiente[i];
           } else {
@@ -643,7 +769,7 @@ document.addEventListener('keydown', (e) => {
   }
 
   portalLink.addEventListener('click', async () => {
-    if (!currentEmail) return;
+    if (!currentCustomerId) return;
     const original = portalLink.textContent;
     portalLink.textContent = 'Abriendo portal...';
     portalLink.disabled = true;
@@ -651,7 +777,7 @@ document.addEventListener('keydown', (e) => {
       const resp = await fetch('/api/create-portal-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: currentEmail }),
+        body: JSON.stringify({ customerId: currentCustomerId }),
       });
       const data = await resp.json();
       if (resp.ok && data.url) {
@@ -666,9 +792,13 @@ document.addEventListener('keydown', (e) => {
     }
   });
 
-  continueBtn.addEventListener('click', submitEmail);
+  continueBtn.addEventListener('click', submitIdentifier);
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.nativeEvent?.isComposing) submitEmail();
+    if (e.key === 'Enter' && !e.nativeEvent?.isComposing) submitIdentifier();
+  });
+  otpContinueBtn.addEventListener('click', submitOtp);
+  otpInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.nativeEvent?.isComposing) submitOtp();
   });
 })();
 
