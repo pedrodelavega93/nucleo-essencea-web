@@ -1147,6 +1147,7 @@ footer{
   grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
   gap:28px;
   align-items:stretch;
+  margin-bottom:32px;
 }
 .plan-card{
   position:relative;
