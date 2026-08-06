@@ -30,6 +30,17 @@ function fechaLegible(date) {
   }
 }
 
+// Normaliza un teléfono a formato E.164 (+52XXXXXXXXXX) para poder
+// buscarlo con la Search API de Stripe. Acepta con o sin código de
+// país, con o sin espacios/guiones.
+function normalizarTelefono(input) {
+  if (!input) return '';
+  let digitos = String(input).replace(/[^\d]/g, '');
+  if (!digitos) return '';
+  if (digitos.length === 10) digitos = '52' + digitos;
+  return '+' + digitos;
+}
+
 // A partir del tipo de pedido guardado en la metadata, devuelve una
 // etiqueta amigable y si se trata de la Suscripción de Aromas.
 function describirTipo(meta) {
@@ -60,25 +71,44 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { email } = req.body || {};
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-      res.status(400).json({ error: 'Ingresa un correo válido.' });
+    const { email, phone } = req.body || {};
+
+    const correo = email && typeof email === 'string' && email.includes('@')
+      ? email.trim().toLowerCase()
+      : '';
+    const telefono = phone && typeof phone === 'string' ? normalizarTelefono(phone) : '';
+
+    if (!correo && !telefono) {
+      res.status(400).json({ error: 'Ingresa un correo o un número de WhatsApp válido.' });
       return;
     }
 
-    const correo = email.trim().toLowerCase();
+    // Buscamos al cliente en Stripe por correo o por teléfono.
+    let customers;
+    if (correo) {
+      customers = await stripe.customers.list({ email: correo, limit: 100 });
+      customers = customers.data;
+    } else {
+      const resultado = await stripe.customers.search({
+        query: `phone:'${telefono}'`,
+        limit: 100,
+      });
+      customers = resultado.data;
+    }
 
-    // Puede haber más de un cliente en Stripe con el mismo correo.
-    const customers = await stripe.customers.list({ email: correo, limit: 100 });
-    if (!customers.data.length) {
-      res.status(404).json({ error: 'No encontramos ninguna suscripción con ese correo.' });
+    if (!customers.length) {
+      res.status(404).json({
+        error: correo
+          ? 'No encontramos ninguna suscripción con ese correo.'
+          : 'No encontramos ninguna suscripción con ese número de WhatsApp.',
+      });
       return;
     }
 
     const ahora = Math.floor(Date.now() / 1000);
     const subs = [];
 
-    for (const customer of customers.data) {
+    for (const customer of customers) {
       const lista = await stripe.subscriptions.list({
         customer: customer.id,
         status: 'all',
@@ -97,6 +127,7 @@ module.exports = async (req, res) => {
 
         subs.push({
           id: sub.id,
+          customerId: customer.id,
           etiqueta,
           esAroma,
           tamano: meta.tamano || '',
@@ -113,11 +144,19 @@ module.exports = async (req, res) => {
     }
 
     if (!subs.length) {
-      res.status(404).json({ error: 'No encontramos suscripciones activas con ese correo.' });
+      res.status(404).json({
+        error: correo
+          ? 'No encontramos suscripciones activas con ese correo.'
+          : 'No encontramos suscripciones activas con ese número de WhatsApp.',
+      });
       return;
     }
 
-    res.status(200).json({ email: correo, subscriptions: subs });
+    res.status(200).json({
+      email: correo || null,
+      phone: telefono || null,
+      subscriptions: subs,
+    });
   } catch (err) {
     console.error('[v0] Error listando suscripciones:', err);
     res.status(500).json({ error: 'No se pudieron cargar tus suscripciones. Intenta de nuevo.' });
