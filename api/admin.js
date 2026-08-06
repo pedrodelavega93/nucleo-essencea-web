@@ -94,8 +94,27 @@ async function accionList() {
 }
 
 // ---------- action: create ----------
+// Calcula el próximo vencimiento mensual a partir de la fecha real en
+// que el cliente se suscribió (puede ser en el pasado). Le suma meses
+// hasta llegar a la primera fecha que sea hoy o futura.
+// Devuelve null si esa fecha es HOY (facturación normal, sin truco), o
+// un timestamp Unix si hay que "adelantar" el primer cobro con trial_end.
+function calcularVencimiento(fechaInicioStr) {
+  if (!fechaInicioStr) return null;
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  let anchor = new Date(fechaInicioStr + 'T12:00:00Z');
+  if (isNaN(anchor.getTime())) return null;
+  let anchorStr = anchor.toISOString().slice(0, 10);
+  while (anchorStr < hoyStr) {
+    anchor.setUTCMonth(anchor.getUTCMonth() + 1);
+    anchorStr = anchor.toISOString().slice(0, 10);
+  }
+  if (anchorStr === hoyStr) return null;
+  return Math.floor(anchor.getTime() / 1000);
+}
+
 async function accionCreate(body) {
-  const { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual } = body;
+  const { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio } = body;
 
   const correoValido = correo && typeof correo === 'string' && correo.includes('@');
   const telefonoValido = telefono && typeof telefono === 'string' && telefono.trim();
@@ -155,7 +174,7 @@ async function accionCreate(body) {
     name: planNombre || 'Suscripción NÚCLEO essences (efectivo)',
   });
 
-  const subscription = await stripe.subscriptions.create({
+  const subscriptionConfig = {
     customer: customer.id,
     items: [
       {
@@ -170,7 +189,18 @@ async function accionCreate(body) {
     collection_method: 'send_invoice',
     days_until_due: 3,
     metadata,
-  });
+  };
+
+  // Si nos dieron una fecha real de suscripción (distinta de hoy), usamos
+  // trial_end para que el primer cobro/vencimiento caiga en la fecha
+  // correcta (un mes después de esa fecha original), en vez de contar un
+  // mes completo a partir de HOY.
+  const vencimientoTs = calcularVencimiento(fechaInicio);
+  if (vencimientoTs) {
+    subscriptionConfig.trial_end = vencimientoTs;
+  }
+
+  const subscription = await stripe.subscriptions.create(subscriptionConfig);
 
   return { subscriptionId: subscription.id, customerId: customer.id };
 }
