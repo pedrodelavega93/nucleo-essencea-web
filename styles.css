@@ -1226,11 +1226,17 @@ footer{
   border-radius:999px;
 }
 .plan-spec strong{ color:var(--gold-2); font-weight:500; }
+.plan-hook{
+  font-size:0.76rem;
+  line-height:1.5;
+  color:var(--gold-2);
+  margin:-6px 0 8px;
+}
 .plan-note{
   font-size:0.74rem;
   line-height:1.5;
   color:var(--muted);
-  margin:-8px 0 18px;
+  margin:0 0 18px;
 }
 .plan-note strong{ color:var(--gold-2); font-weight:500; }
 .plan-features{
