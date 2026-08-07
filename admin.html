@@ -109,6 +109,7 @@
     <button class="filter-chip" data-filter="aromas">Suscripción de Aromas</button>
     <button class="filter-chip" data-filter="proximos">Próximas a vencer (7 días)</button>
     <button class="filter-chip" data-filter="vencido">Pago vencido</button>
+    <button class="filter-chip" data-filter="finalizadas">Finalizadas</button>
   </div>
 
   <div class="sub-table-wrap">
@@ -276,12 +277,14 @@
     const efectivo = activas.filter((s) => s.metodoPago === 'efectivo');
     const vencidas = activas.filter((s) => s.estado === 'past_due' || s.estado === 'unpaid');
     const proximos = activas.filter((s) => diasHasta(s.proximaFechaISO) <= 7 && diasHasta(s.proximaFechaISO) >= 0);
+    const finalizadas = allSubs.filter((s) => s.estado === 'canceled');
     const row = document.getElementById('summaryRow');
     row.innerHTML = [
       ['Activas', activas.length],
       ['En efectivo', efectivo.length],
       ['Próximas a vencer (7 días)', proximos.length],
       ['Pago vencido', vencidas.length],
+      ['Finalizadas', finalizadas.length],
     ].map(([l, n]) => `<div class="summary-card"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
   }
 
@@ -292,13 +295,14 @@
 
   function matchesFilter(s) {
     switch (currentFilter) {
-      case 'efectivo': return s.metodoPago === 'efectivo';
-      case 'tarjeta': return s.metodoPago === 'tarjeta';
-      case 'renta': return !s.esAroma;
-      case 'aromas': return s.esAroma;
+      case 'efectivo': return s.metodoPago === 'efectivo' && s.estado !== 'canceled';
+      case 'tarjeta': return s.metodoPago === 'tarjeta' && s.estado !== 'canceled';
+      case 'renta': return !s.esAroma && s.estado !== 'canceled';
+      case 'aromas': return s.esAroma && s.estado !== 'canceled';
       case 'vencido': return s.estado === 'past_due' || s.estado === 'unpaid';
       case 'proximos': return s.estado !== 'canceled' && diasHasta(s.proximaFechaISO) <= 7 && diasHasta(s.proximaFechaISO) >= 0;
-      default: return true;
+      case 'finalizadas': return s.estado === 'canceled';
+      default: return s.estado !== 'canceled';
     }
   }
 
