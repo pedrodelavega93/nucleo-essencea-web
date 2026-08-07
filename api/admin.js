@@ -21,6 +21,12 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const ESTADOS_VIGENTES = ['active', 'trialing', 'past_due', 'unpaid'];
 
+// Cualquier suscripción cancelada ANTES de esta fecha se ignora por
+// completo (nunca vuelve a aparecer en el panel, ni en "Finalizadas").
+// Las canceladas a partir de hoy sí aparecerán ahí. Es una fecha FIJA
+// (no "ahora"), para que no se mueva sola cada vez que corre la función.
+const CORTE_CANCELADAS = Math.floor(new Date('2026-08-07T00:00:00Z').getTime() / 1000);
+
 function fechaLegible(date) {
   try {
     return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -57,7 +63,10 @@ async function accionList() {
     });
 
     for (const sub of page.data) {
-      if (!ESTADOS_VIGENTES.includes(sub.status) && sub.status !== 'canceled') continue;
+      if (!ESTADOS_VIGENTES.includes(sub.status)) {
+        const canceladaRecientemente = sub.status === 'canceled' && sub.canceled_at && sub.canceled_at >= CORTE_CANCELADAS;
+        if (!canceladaRecientemente) continue;
+      }
 
       const meta = sub.metadata || {};
       const { etiqueta, esAroma } = describirTipo(meta);
