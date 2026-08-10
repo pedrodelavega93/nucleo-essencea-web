@@ -7,14 +7,40 @@
 //   'get'  → devuelve los datos guardados (o null si no hay nada)
 //   'save' → guarda el objeto { ventas, gastos, difusores }
 //
-// Requiere una base de datos Vercel KV conectada al proyecto
-// (Vercel Dashboard → Storage → Create Database → KV). Al conectarla,
-// Vercel agrega automáticamente las variables de entorno necesarias.
+// Usa la base de datos Redis (Upstash) conectada al proyecto vía
+// Vercel Storage, hablando directo con su API REST por fetch — así
+// no se necesita instalar ningún paquete npm nuevo (evita problemas
+// de pnpm-lock.yaml desincronizado).
 // ============================================================
 
-const { kv } = require('@vercel/kv');
-
+const KV_URL = process.env.KV_REST_API_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 const KV_KEY = 'nucleo-control-total-data';
+
+async function kvGet() {
+  const resp = await fetch(`${KV_URL}/get/${KV_KEY}`, {
+    headers: { Authorization: `Bearer ${KV_TOKEN}` },
+  });
+  if (!resp.ok) throw new Error('Error leyendo de la base de datos (' + resp.status + ')');
+  const body = await resp.json();
+  if (!body || body.result == null) return null;
+  try {
+    return JSON.parse(body.result);
+  } catch (e) {
+    return null;
+  }
+}
+
+async function kvSet(value) {
+  const resp = await fetch(`${KV_URL}/set/${KV_KEY}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${KV_TOKEN}` },
+    body: JSON.stringify(value),
+  });
+  if (!resp.ok) throw new Error('Error guardando en la base de datos (' + resp.status + ')');
+  const body2 = await resp.json();
+  return body2 && body2.result === 'OK';
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,6 +54,10 @@ module.exports = async (req, res) => {
   }
 
   try {
+    if (!KV_URL || !KV_TOKEN) {
+      return res.status(500).json({ error: 'La base de datos no está conectada a este proyecto (faltan KV_REST_API_URL / KV_REST_API_TOKEN).' });
+    }
+
     const body = req.body || {};
     const { password, action, data } = body;
 
@@ -36,7 +66,7 @@ module.exports = async (req, res) => {
     }
 
     if (action === 'get') {
-      const value = await kv.get(KV_KEY);
+      const value = await kvGet();
       return res.status(200).json({ ok: true, data: value || null });
     }
 
@@ -44,7 +74,8 @@ module.exports = async (req, res) => {
       if (!data || typeof data !== 'object') {
         return res.status(400).json({ error: 'Faltan datos a guardar.' });
       }
-      await kv.set(KV_KEY, data);
+      const ok = await kvSet(data);
+      if (!ok) return res.status(500).json({ error: 'La base de datos no confirmó el guardado.' });
       return res.status(200).json({ ok: true });
     }
 
