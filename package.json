@@ -6,6 +6,7 @@
     "build": "echo \"No build step required for static site\""
   },
   "dependencies": {
+    "@vercel/kv": "^3.0.0",
     "resend": "^6.18.1",
     "stripe": "^17.0.0"
   }
