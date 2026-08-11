@@ -54,6 +54,18 @@ body{margin:0;background:var(--black);color:var(--cream);font-family:'Jost',sans
 .rb-item:hover{border-color:var(--gold);}
 .rb-item .tip{display:none;position:absolute;bottom:60px;left:50%;transform:translateX(-50%);background:var(--black);border:1px solid var(--gold);padding:6px 9px;border-radius:5px;font-size:0.68rem;white-space:nowrap;z-index:5;color:var(--cream);}
 .rb-item:hover .tip{display:block;}
+.rb-item{cursor:pointer;}
+
+/* ---- pedidos agrupados (Ventas / Pedidos) ---- */
+.pedidos-lista{display:flex; flex-direction:column; gap:8px;}
+.pedido-grupo{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px 16px;}
+.pedido-grupo-header{display:flex; align-items:center; gap:12px; cursor:pointer; flex-wrap:wrap;}
+.pedido-grupo-chevron{color:var(--gold); font-size:0.8rem; width:14px; flex:none;}
+.pedido-grupo-titulo{font-family:'Playfair Display',serif; color:var(--gold-2); font-size:1rem; flex:none;}
+.pedido-grupo-cliente{color:var(--muted); flex:1; min-width:120px;}
+.pedido-grupo-meta{color:var(--muted); flex:none;}
+.pedido-grupo-total{font-weight:600; color:var(--gold-2); flex:none; margin-left:auto;}
+.pedido-grupo.abierto{border-color:var(--gold);}
 
 /* ---- filter bar ---- */
 .filterbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
@@ -139,6 +151,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       <div class="sub">Control Total</div>
     </div>
     <div class="navitem active" data-tab="resumen"><span class="ic">◆</span> Resumen</div>
+    <div class="navitem" data-tab="nuevopedido"><span class="ic">◆</span> Nuevo Pedido</div>
     <div class="navitem" data-tab="ventas"><span class="ic">◆</span> Ventas / Pedidos</div>
     <div class="navitem" data-tab="clientes"><span class="ic">◆</span> Clientes</div>
     <div class="navitem" data-tab="gastos"><span class="ic">◆</span> Gastos</div>
@@ -276,7 +289,202 @@ function sugerirPrecio(producto) {
   return null;
 }
 
+/* ============ NUEVO PEDIDO (captura rápida de un pedido completo) ============ */
+const TIPOS_ARTICULO = {
+  perfume: {
+    label: 'Perfume / Decant',
+    categoria: 'Perfume/Decant',
+    tamanos: [
+      { value: '30ml', label: '30 ml', costo: 135, venta: 280 },
+      { value: '60ml', label: '60 ml', costo: 185, venta: 390 },
+      { value: '100ml', label: '100 ml', costo: 300, venta: 600 },
+    ],
+  },
+  spray: {
+    label: 'Spray ambiental',
+    categoria: 'Aceite ambiental',
+    tamanos: [
+      { value: '250ml', label: '250 ml', costo: 400, venta: 600 },
+    ],
+  },
+  aceite: {
+    label: 'Aceite para difusor',
+    categoria: 'Aceite ambiental',
+    tamanos: [
+      { value: '250ml', label: '250 ml', costo: 400, venta: 900 },
+      { value: '500ml', label: '500 ml', costo: 800, venta: 1300 },
+      { value: '1l', label: '1 litro', costo: 1500, venta: 2000 },
+    ],
+  },
+  difusor: {
+    label: 'Difusor (equipo)',
+    categoria: 'Difusor (equipo)',
+    modelos: ['A60', 'A300', 'A1000', 'A3000', 'A5000', 'Car Pro'],
+  },
+};
+
+let pedidoDraft = { pedido: '', cliente: '', items: [] };
+let npFormTipo = 'perfume';
+let npDraftItemCounter = 0;
+
+function npTamanoInfo(tipo, tamanoValue) {
+  const cfg = TIPOS_ARTICULO[tipo];
+  if (!cfg || !cfg.tamanos) return null;
+  return cfg.tamanos.find((t) => t.value === tamanoValue) || cfg.tamanos[0];
+}
+
+function renderNuevoPedido() {
+  const cfg = TIPOS_ARTICULO[npFormTipo];
+  const esDifusor = npFormTipo === 'difusor';
+  const primerTamano = cfg.tamanos ? cfg.tamanos[0] : null;
+
+  const filasItems = pedidoDraft.items.map((it, idx) => `
+    <tr>
+      <td>${esc(it.tipoLabel)}</td>
+      <td>${esc(it.producto)}</td>
+      <td class="center">${it.cantidad}</td>
+      <td class="right">${money(it.costo)}</td>
+      <td class="right">${money(it.venta)}</td>
+      <td><button class="btn sm danger" data-npremove="${idx}">✕</button></td>
+    </tr>`).join('');
+
+  const totalCosto = pedidoDraft.items.reduce((s, it) => s + (Number(it.costo) || 0), 0);
+  const totalVenta = pedidoDraft.items.reduce((s, it) => s + (Number(it.venta) || 0), 0);
+
+  return `
+    <div class="pagehead">
+      <h1 class="serif">Nuevo Pedido</h1>
+      <p>Captura un pedido completo de una vez: cliente, número de pedido y todos sus artículos.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Datos del pedido</h3>
+      <div class="field"><label>Pedido (número o referencia)</label><input type="text" id="npPedido" placeholder="Ej. 33" value="${esc(pedidoDraft.pedido)}"></div>
+      <div class="field"><label>Cliente</label><input type="text" id="npCliente" placeholder="Nombre del cliente" value="${esc(pedidoDraft.cliente)}"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Agregar artículo</h3>
+      <div class="field"><label>Tipo</label>
+        <select id="npTipo">
+          ${Object.entries(TIPOS_ARTICULO).map(([key, t]) => `<option value="${key}" ${key === npFormTipo ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}
+        </select>
+      </div>
+      ${esDifusor ? `
+      <div class="field"><label>Modelo de difusor</label>
+        <select id="npModelo">
+          ${cfg.modelos.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('')}
+        </select>
+      </div>` : `
+      <div class="field"><label>Tamaño</label>
+        <select id="npTamano">
+          ${cfg.tamanos.map((t) => `<option value="${t.value}" data-costo="${t.costo}" data-venta="${t.venta}">${esc(t.label)}</option>`).join('')}
+        </select>
+      </div>`}
+      <div class="field"><label>${esDifusor ? 'Notas del equipo (opcional)' : 'Aroma / nombre del producto (opcional)'}</label><input type="text" id="npAroma" placeholder="${esDifusor ? 'Ej. color negro, con base' : 'Ej. Santal 33'}"></div>
+      <div class="field"><label>Cantidad</label><input type="number" id="npCantidad" min="1" value="1"></div>
+      <div class="field"><label>Costo (MXN)${esDifusor ? ' — captúralo a mano' : ''}</label><input type="number" id="npCosto" value="${esDifusor ? '' : primerTamano.costo}"></div>
+      <div class="field"><label>Venta (MXN)${esDifusor ? ' — captúralo a mano' : ''}</label><input type="number" id="npVenta" value="${esDifusor ? '' : primerTamano.venta}"></div>
+      <div class="checkrow">
+        <label><input type="checkbox" id="npPagado"> Pagado</label>
+        <label><input type="checkbox" id="npEntregado"> Entregado</label>
+        <label><input type="checkbox" id="npRegalo"> Regalo</label>
+      </div>
+      <button class="btn" id="npAgregarItem">+ Agregar a la lista</button>
+    </div>
+
+    <div class="panel">
+      <h3>Artículos del pedido (${pedidoDraft.items.length})</h3>
+      <div class="twrap"><table>
+        <thead><tr><th>Tipo</th><th>Producto</th><th class="center">Cant.</th><th class="right">Costo</th><th class="right">Venta</th><th></th></tr></thead>
+        <tbody>${filasItems || '<tr><td colspan="6" class="empty">Aún no agregas artículos a este pedido.</td></tr>'}</tbody>
+        <tfoot><tr><td colspan="3" class="foot-total">Totales</td><td class="right foot-total">${money(totalCosto)}</td><td class="right foot-total">${money(totalVenta)}</td><td></td></tr></tfoot>
+      </table></div>
+      <div class="filterbar" style="margin-top:16px;">
+        <button class="btn" id="npGuardarPedido" ${pedidoDraft.items.length === 0 ? 'disabled' : ''}>Guardar pedido completo (${pedidoDraft.items.length} artículo${pedidoDraft.items.length === 1 ? '' : 's'})</button>
+        <button class="btn ghost" id="npLimpiarPedido">Limpiar todo</button>
+      </div>
+    </div>
+  `;
+}
+
+function npAgregarItemHandler() {
+  const tipo = document.getElementById('npTipo').value;
+  const cfg = TIPOS_ARTICULO[tipo];
+  const esDifusor = tipo === 'difusor';
+  const aroma = document.getElementById('npAroma').value.trim();
+  const cantidad = Math.max(1, parseInt(document.getElementById('npCantidad').value, 10) || 1);
+  const costo = parseFloat(document.getElementById('npCosto').value);
+  const venta = parseFloat(document.getElementById('npVenta').value);
+
+  if (isNaN(venta)) { showToast('Falta capturar el precio de venta.'); return; }
+
+  let producto, tipoLabel;
+  if (esDifusor) {
+    const modelo = document.getElementById('npModelo').value;
+    producto = `Difusor ${modelo}${aroma ? ' — ' + aroma : ''}`;
+    tipoLabel = 'Difusor (equipo)';
+  } else {
+    const tamanoSel = document.getElementById('npTamano');
+    const tamanoValue = tamanoSel.value;
+    const tInfo = npTamanoInfo(tipo, tamanoValue);
+    producto = `${aroma || cfg.label} — ${tInfo.label}${cantidad > 1 ? ' x' + cantidad : ''}`;
+    tipoLabel = cfg.label;
+  }
+
+  pedidoDraft.items.push({
+    _draftId: 'd' + (npDraftItemCounter++),
+    tipo, tipoLabel, producto, categoria: cfg.categoria,
+    cantidad,
+    costo: isNaN(costo) ? 0 : costo,
+    venta,
+    pagado: document.getElementById('npPagado').checked,
+    entregado: document.getElementById('npEntregado').checked,
+    regalo: document.getElementById('npRegalo').checked,
+  });
+
+  // guardar pedido/cliente actuales del formulario antes de re-renderizar
+  pedidoDraft.pedido = document.getElementById('npPedido').value.trim();
+  pedidoDraft.cliente = document.getElementById('npCliente').value.trim();
+  render();
+}
+
+async function npGuardarPedidoHandler() {
+  const pedido = (document.getElementById('npPedido').value || pedidoDraft.pedido).trim();
+  const cliente = (document.getElementById('npCliente').value || pedidoDraft.cliente).trim();
+  if (!cliente) { showToast('Falta el nombre del cliente.'); return; }
+  if (pedidoDraft.items.length === 0) { showToast('Agrega al menos un artículo.'); return; }
+
+  pedidoDraft.items.forEach((it) => {
+    VENTAS.push({
+      id: nextId('v', VENTAS),
+      pedido: pedido || '—',
+      cliente,
+      producto: it.producto,
+      categoria: it.categoria,
+      costo: it.costo,
+      venta: it.venta,
+      montoConocido: true,
+      pagado: it.pagado,
+      entregado: it.entregado,
+      regalo: it.regalo,
+      stock: false,
+      domicilio: false,
+      notas: '',
+      origen: 'manual',
+    });
+  });
+
+  await persist();
+  showToast(`Pedido ${pedido || ''} guardado con ${pedidoDraft.items.length} artículo(s).`);
+  pedidoDraft = { pedido: '', cliente: '', items: [] };
+  currentTab = 'ventas';
+  document.querySelectorAll('.navitem').forEach((n) => n.classList.toggle('active', n.dataset.tab === 'ventas'));
+  render();
+}
+
 function showToast(msg) {
+
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.display = 'block';
@@ -384,6 +592,7 @@ document.querySelectorAll('.navitem').forEach((el) => {
 function render() {
   const c = document.getElementById('pageContent');
   if (currentTab === 'resumen') c.innerHTML = renderResumen();
+  else if (currentTab === 'nuevopedido') c.innerHTML = renderNuevoPedido();
   else if (currentTab === 'ventas') c.innerHTML = renderVentas();
   else if (currentTab === 'clientes') c.innerHTML = renderClientes();
   else if (currentTab === 'gastos') c.innerHTML = renderGastos();
@@ -435,7 +644,7 @@ function renderResumen() {
   const ribbonHtml = pedidosOrdenados.map((p) => {
     const count = porPedido[p];
     const h = Math.max(6, Math.round((count / maxCount) * 30));
-    return `<div class="rb-item"><span class="tip">Pedido ${esc(p)} — ${count} artículos</span><div class="num">${esc(p)}</div><div class="bar" style="height:${h}px;"></div></div>`;
+    return `<div class="rb-item" data-gopedido="${esc(p)}"><span class="tip">Pedido ${esc(p)} — ${count} artículos</span><div class="num">${esc(p)}</div><div class="bar" style="height:${h}px;"></div></div>`;
   }).join('');
 
   return `
@@ -484,6 +693,7 @@ function renderResumen() {
 
 /* ============ VENTAS / PEDIDOS ============ */
 let ventasFiltro = { texto: '', estado: 'todas', pedido: '' };
+let pedidosExpandidos = new Set();
 
 function renderVentas() {
   const pedidosUnicos = Array.from(new Set(VENTAS.map((v) => v.pedido))).sort((a, b) => {
@@ -507,7 +717,7 @@ function renderVentas() {
   const totalVenta = lista.filter((v) => v.montoConocido).reduce((s, v) => s + (v.venta || 0), 0);
   const totalCosto = lista.filter((v) => v.montoConocido).reduce((s, v) => s + (v.costo || 0), 0);
 
-  const rows = lista.map((v) => {
+  const filaVenta = (v) => {
     const utilidad = (v.montoConocido) ? (v.venta || 0) - (v.costo || 0) : null;
     const estadoBadges = [];
     if (v.stock) estadoBadges.push('<span class="badge muted">Stock</span>');
@@ -519,7 +729,6 @@ function renderVentas() {
     if (v.domicilio) estadoBadges.push('<span class="badge muted">Domicilio</span>');
 
     return `<tr data-id="${v.id}">
-      <td class="mono small">${esc(v.pedido)}</td>
       <td>${esc(v.cliente)}</td>
       <td>${esc(v.producto)}<div class="small">${esc(v.categoria)}</div></td>
       <td class="right">${v.montoConocido ? `<span class="editable" data-edit="costo" data-id="${v.id}">${money(v.costo)}</span>` : `<span class="editable" data-edit="costo" data-id="${v.id}" style="color:var(--warn);">—</span>`}</td>
@@ -528,6 +737,41 @@ function renderVentas() {
       <td>${estadoBadges.join(' ')}</td>
       <td><button class="btn sm ghost" data-editrow="${v.id}">Editar</button> <button class="btn sm danger" data-delrow="${v.id}">✕</button></td>
     </tr>`;
+  };
+
+  // agrupar la lista filtrada por número de pedido, en el mismo orden que pedidosUnicos
+  const porPedido = {};
+  lista.forEach((v) => {
+    const p = v.pedido || '?';
+    if (!porPedido[p]) porPedido[p] = [];
+    porPedido[p].push(v);
+  });
+  const pedidosVisibles = pedidosUnicos.filter((p) => porPedido[p] && porPedido[p].length);
+  // si el filtro de pedido deja un único grupo, lo abrimos automáticamente
+  if (ventasFiltro.pedido && pedidosVisibles.length === 1) pedidosExpandidos.add(pedidosVisibles[0]);
+
+  const gruposHtml = pedidosVisibles.map((p) => {
+    const items = porPedido[p];
+    const clientesUnicos = Array.from(new Set(items.map((v) => v.cliente))).filter((c) => c !== 'Venta general (mostrador)');
+    const clientesLabel = clientesUnicos.length ? clientesUnicos.slice(0, 3).join(', ') + (clientesUnicos.length > 3 ? ` +${clientesUnicos.length - 3}` : '') : 'Venta general (mostrador)';
+    const totalPedidoVenta = items.filter((v) => v.montoConocido).reduce((s, v) => s + (v.venta || 0), 0);
+    const abierto = pedidosExpandidos.has(p);
+
+    return `
+      <div class="pedido-grupo ${abierto ? 'abierto' : ''}">
+        <div class="pedido-grupo-header" data-pedidogroup="${esc(p)}">
+          <span class="pedido-grupo-chevron">${abierto ? '▾' : '▸'}</span>
+          <span class="pedido-grupo-titulo">Pedido ${esc(p)}</span>
+          <span class="pedido-grupo-cliente small">${esc(clientesLabel)}</span>
+          <span class="pedido-grupo-meta small">${items.length} artículo${items.length === 1 ? '' : 's'}</span>
+          <span class="pedido-grupo-total">${money(totalPedidoVenta)}</span>
+        </div>
+        ${abierto ? `
+        <div class="twrap" style="margin-top:10px;"><table>
+          <thead><tr><th>Cliente</th><th>Producto</th><th class="right">Costo</th><th class="right">Venta</th><th class="right">Utilidad</th><th>Estado</th><th></th></tr></thead>
+          <tbody>${items.map(filaVenta).join('')}</tbody>
+        </table></div>` : ''}
+      </div>`;
   }).join('');
 
   return `
@@ -551,11 +795,15 @@ function renderVentas() {
       <button class="btn" id="btnNuevaVenta" style="margin-left:auto;">+ Nueva venta</button>
     </div>
 
-    <div class="twrap"><table>
-      <thead><tr><th>Pedido</th><th>Cliente</th><th>Producto</th><th class="right">Costo</th><th class="right">Venta</th><th class="right">Utilidad</th><th>Estado</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="8" class="empty">No hay ventas que coincidan con este filtro.</td></tr>'}</tbody>
-      <tfoot><tr><td colspan="3" class="foot-total">Totales (con monto capturado)</td><td class="right foot-total">${money(totalCosto)}</td><td class="right foot-total">${money(totalVenta)}</td><td class="right foot-total">${money(totalVenta - totalCosto)}</td><td colspan="2"></td></tr></tfoot>
-    </table></div>
+    <div class="pedidos-lista">
+      ${gruposHtml || '<div class="empty">No hay ventas que coincidan con este filtro.</div>'}
+    </div>
+    <div class="panel" style="margin-top:14px;">
+      <div class="foot-total" style="display:flex; justify-content:space-between;">
+        <span>Totales (con monto capturado)</span>
+        <span>Costo: ${money(totalCosto)} — Venta: ${money(totalVenta)} — Utilidad: ${money(totalVenta - totalCosto)}</span>
+      </div>
+    </div>
   `;
 }
 
@@ -907,11 +1155,73 @@ function renderFlujo() {
 
 /* ============ EVENT HANDLERS (delegados, se re-adjuntan tras cada render) ============ */
 function attachHandlers() {
+  // Resumen: clic en una barra del historial de pedidos abre ese pedido en Ventas
+  document.querySelectorAll('[data-gopedido]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const p = el.dataset.gopedido;
+      ventasFiltro = { texto: '', estado: 'todas', pedido: p };
+      pedidosExpandidos.add(p);
+      currentTab = 'ventas';
+      document.querySelectorAll('.navitem').forEach((n) => n.classList.toggle('active', n.dataset.tab === 'ventas'));
+      render();
+    });
+  });
+
+  // Nuevo Pedido
+  const npTipoSel = document.getElementById('npTipo');
+  if (npTipoSel) {
+    npTipoSel.addEventListener('change', () => {
+      npFormTipo = npTipoSel.value;
+      render();
+    });
+  }
+  const npTamanoSel = document.getElementById('npTamano');
+  if (npTamanoSel) {
+    const npCostoEl = document.getElementById('npCosto');
+    const npVentaEl = document.getElementById('npVenta');
+    const npCantidadEl = document.getElementById('npCantidad');
+    const recalcular = () => {
+      const opt = npTamanoSel.selectedOptions[0];
+      if (!opt) return;
+      const cant = Math.max(1, parseInt(npCantidadEl.value, 10) || 1);
+      npCostoEl.value = Number(opt.dataset.costo) * cant;
+      npVentaEl.value = Number(opt.dataset.venta) * cant;
+    };
+    npTamanoSel.addEventListener('change', recalcular);
+    npCantidadEl.addEventListener('input', recalcular);
+  }
+  const npAgregarBtn = document.getElementById('npAgregarItem');
+  if (npAgregarBtn) npAgregarBtn.addEventListener('click', npAgregarItemHandler);
+  document.querySelectorAll('[data-npremove]').forEach((el) => {
+    el.addEventListener('click', () => {
+      pedidoDraft.pedido = document.getElementById('npPedido').value.trim();
+      pedidoDraft.cliente = document.getElementById('npCliente').value.trim();
+      pedidoDraft.items.splice(parseInt(el.dataset.npremove, 10), 1);
+      render();
+    });
+  });
+  const npGuardarBtn = document.getElementById('npGuardarPedido');
+  if (npGuardarBtn) npGuardarBtn.addEventListener('click', npGuardarPedidoHandler);
+  const npLimpiarBtn = document.getElementById('npLimpiarPedido');
+  if (npLimpiarBtn) npLimpiarBtn.addEventListener('click', () => {
+    if (pedidoDraft.items.length && !confirm('¿Borrar todo el pedido en captura?')) return;
+    pedidoDraft = { pedido: '', cliente: '', items: [] };
+    render();
+  });
+
   // Ventas
   const vb = document.getElementById('ventasBuscar');
   if (vb) vb.addEventListener('input', () => { ventasFiltro.texto = vb.value; render(); });
   const vp = document.getElementById('ventasPedidoSel');
-  if (vp) vp.addEventListener('change', () => { ventasFiltro.pedido = vp.value; render(); });
+  if (vp) vp.addEventListener('change', () => { ventasFiltro.pedido = vp.value; if (vp.value) pedidosExpandidos.add(vp.value); render(); });
+  document.querySelectorAll('[data-pedidogroup]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const p = el.dataset.pedidogroup;
+      if (pedidosExpandidos.has(p)) pedidosExpandidos.delete(p);
+      else pedidosExpandidos.add(p);
+      render();
+    });
+  });
   document.querySelectorAll('[data-estado]').forEach((el) => {
     el.addEventListener('click', () => { ventasFiltro.estado = el.dataset.estado; render(); });
   });
