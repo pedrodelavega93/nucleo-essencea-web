@@ -1205,15 +1205,22 @@ function attachHandlers() {
     const npCostoEl = document.getElementById('npCosto');
     const npVentaEl = document.getElementById('npVenta');
     const npCantidadEl = document.getElementById('npCantidad');
+    const npRegaloEl = document.getElementById('npRegalo');
     const recalcular = () => {
       const opt = npTamanoSel.selectedOptions[0];
       if (!opt) return;
       const cant = Math.max(1, parseInt(npCantidadEl.value, 10) || 1);
       npCostoEl.value = Number(opt.dataset.costo) * cant;
-      npVentaEl.value = Number(opt.dataset.venta) * cant;
+      npVentaEl.value = npRegaloEl.checked ? 0 : Number(opt.dataset.venta) * cant;
     };
     npTamanoSel.addEventListener('change', recalcular);
     npCantidadEl.addEventListener('input', recalcular);
+  }
+  const npRegaloEl2 = document.getElementById('npRegalo');
+  if (npRegaloEl2) {
+    npRegaloEl2.addEventListener('change', () => {
+      if (npRegaloEl2.checked) document.getElementById('npVenta').value = 0;
+    });
   }
   const npAgregarBtn = document.getElementById('npAgregarItem');
   if (npAgregarBtn) npAgregarBtn.addEventListener('click', npAgregarItemHandler);
@@ -1346,9 +1353,10 @@ document.getElementById('mvAplicarArticulo').addEventListener('click', () => {
   document.getElementById('mvProducto').value = producto;
   document.getElementById('mvCategoria').value = cfg.categoria;
   document.getElementById('mvCosto').value = costo;
-  document.getElementById('mvVenta').value = venta;
+  const esRegalo = document.getElementById('mvRegalo').checked;
+  document.getElementById('mvVenta').value = esRegalo ? 0 : venta;
   const msg = document.getElementById('mvSugerirMsg');
-  msg.textContent = esDifusor ? 'Aplicado — captura el costo y venta a mano.' : 'Aplicado a los campos de abajo.';
+  msg.textContent = esDifusor ? 'Aplicado — captura el costo y venta a mano.' : (esRegalo ? 'Aplicado como regalo: venta en $0, costo se mantiene.' : 'Aplicado a los campos de abajo.');
   msg.style.color = 'var(--ok)';
 });
 
@@ -1358,13 +1366,17 @@ document.getElementById('mvSugerir').addEventListener('click', () => {
   const msg = document.getElementById('mvSugerirMsg');
   if (s) {
     document.getElementById('mvCosto').value = s.costo;
-    document.getElementById('mvVenta').value = s.venta;
-    msg.textContent = `Aplicado: ${s.label}${s.cantidad > 1 ? ' × ' + s.cantidad : ''}.`;
+    const esRegalo = document.getElementById('mvRegalo').checked;
+    document.getElementById('mvVenta').value = esRegalo ? 0 : s.venta;
+    msg.textContent = esRegalo ? `Aplicado: ${s.label} — como regalo, venta en $0.` : `Aplicado: ${s.label}${s.cantidad > 1 ? ' × ' + s.cantidad : ''}.`;
     msg.style.color = 'var(--ok)';
   } else {
     msg.textContent = 'No reconocí un tamaño estándar (250 ml, 500 ml, 1 litro, 30/60/100 ml) en el nombre del producto — captúralo a mano.';
     msg.style.color = 'var(--warn)';
   }
+});
+document.getElementById('mvRegalo').addEventListener('change', (e) => {
+  if (e.target.checked) document.getElementById('mvVenta').value = 0;
 });
 document.getElementById('mgGuardar').addEventListener('click', guardarGasto);
 document.getElementById('mdGuardar').addEventListener('click', guardarDifusor);
