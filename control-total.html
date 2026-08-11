@@ -199,7 +199,8 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
     <div class="field"><label>Categoría</label>
       <select id="mvCategoria">
         <option>Perfume/Decant</option>
-        <option>Aceite ambiental</option>
+        <option>Aceite para difusor</option>
+        <option>Spray ambiental</option>
         <option>Difusor (equipo)</option>
         <option>Tester</option>
         <option>Otro</option>
@@ -302,7 +303,7 @@ function sugerirPrecio(producto) {
 
   if (/250\s*ml/.test(low)) {
     return esSpray
-      ? { costo: 400 * cantidad, venta: 600 * cantidad, cantidad, label: 'Spray ambiental 250 ml' }
+      ? { costo: 280 * cantidad, venta: 600 * cantidad, cantidad, label: 'Spray ambiental 250 ml' }
       : { costo: 400 * cantidad, venta: 900 * cantidad, cantidad, label: 'Aceite difusor 250 ml' };
   }
   if (/500\s*ml/.test(low)) return { costo: 800 * cantidad, venta: 1300 * cantidad, cantidad, label: 'Aceite difusor 500 ml' };
@@ -326,14 +327,14 @@ const TIPOS_ARTICULO = {
   },
   spray: {
     label: 'Spray ambiental',
-    categoria: 'Aceite ambiental',
+    categoria: 'Spray ambiental',
     tamanos: [
-      { value: '250ml', label: '250 ml', costo: 400, venta: 600 },
+      { value: '250ml', label: '250 ml', costo: 280, venta: 600 },
     ],
   },
   aceite: {
     label: 'Aceite para difusor',
-    categoria: 'Aceite ambiental',
+    categoria: 'Aceite para difusor',
     tamanos: [
       { value: '250ml', label: '250 ml', costo: 400, venta: 900 },
       { value: '500ml', label: '500 ml', costo: 800, venta: 1300 },
