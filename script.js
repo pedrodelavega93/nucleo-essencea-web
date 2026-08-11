@@ -331,6 +331,20 @@ const FEATURED_AROMAS = [
   'Green Tea & Bergamot',
 ];
 
+/* Aromas que se muestran arriba del todo en el catálogo de aromas
+   ambientales (modo "explorar", no el de comprar aceite), bajo el
+   encabezado "Los más pedidos". */
+const MAS_PEDIDOS_AMBIENTALES = [
+  'Palacio de Hierro',
+  'Santal 33',
+  'Metropolitan',
+  'Wynn Las Vegas',
+  'Hotel Xcaret',
+  'Berries/Muy Mucho',
+  'Innova Sport',
+  'Green Tea & Bergamot',
+];
+
 let currentCatalogData = [];
 let currentCatalogType = 'perfumes';
 let catalogOnSelect = null;
@@ -352,22 +366,38 @@ function selectAromaFromCatalog(type, name) {
   }
 }
 
-function renderCatalogRows(data) {
+function renderCatalogRows(data, opts) {
+  const showMasPedidos = opts && opts.showMasPedidos;
   if (!data.length) {
     catalogResults.innerHTML = '<div class="catalog-empty">Sin resultados — prueba con otro nombre o marca.</div>';
     catalogCount.textContent = '';
     return;
   }
   catalogCount.textContent = data.length + (currentCatalogType === 'perfumes' ? ' perfumes' : ' aromas');
-  const rows = data.map((item) => {
+
+  const rowHtml = (item) => {
     const safeName = item.name.replace(/"/g, '&quot;');
     if (currentCatalogType === 'perfumes') {
       return '<div class="catalog-row" data-name="' + safeName + '"><span class="cr-name">' + item.name + '</span><span class="cr-meta">' + item.brand + ' · ' + item.gender + '</span></div>';
     }
     const meta = item.accords ? item.accords : item.category;
     return '<div class="catalog-row" data-name="' + safeName + '"><span class="cr-name">' + item.name + '</span><span class="cr-meta">' + meta + '</span></div>';
-  });
-  catalogResults.innerHTML = rows.join('');
+  };
+
+  let html = '';
+  let mainData = data;
+  if (showMasPedidos) {
+    const featuredItems = MAS_PEDIDOS_AMBIENTALES.map((n) => data.find((d) => d.name === n)).filter(Boolean);
+    if (featuredItems.length) {
+      html += '<div class="catalog-section-label">Los más pedidos</div>';
+      html += featuredItems.map(rowHtml).join('');
+      html += '<div class="catalog-section-label">Todos los aromas</div>';
+      const featuredNames = featuredItems.map((it) => it.name);
+      mainData = data.filter((d) => !featuredNames.includes(d.name));
+    }
+  }
+  html += mainData.map(rowHtml).join('');
+  catalogResults.innerHTML = html;
   catalogResults.querySelectorAll('.catalog-row').forEach((row) => {
     row.addEventListener('click', () => {
       const name = row.dataset.name;
@@ -448,7 +478,8 @@ function filterCatalog(query) {
     });
   }
 
-  renderCatalogRows(data);
+  const showMasPedidos = !q && currentCatalogType === 'ambientales' && !catalogBuyMode;
+  renderCatalogRows(data, { showMasPedidos });
 }
 
 function openCatalog(type, onSelect, options) {
@@ -488,7 +519,7 @@ function openCatalog(type, onSelect, options) {
   }
 
   catalogInput.value = '';
-  renderCatalogRows(currentCatalogData);
+  renderCatalogRows(currentCatalogData, { showMasPedidos: type === 'ambientales' && !catalogBuyMode });
   catalogModal.classList.add('open');
   document.body.style.overflow = 'hidden';
   setTimeout(() => catalogInput.focus(), 50);
