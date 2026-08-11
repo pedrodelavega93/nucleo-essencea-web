@@ -152,6 +152,14 @@ section{ position:relative; }
     linear-gradient(180deg, #0a0908 0%, #0d0b0a 60%, #0a0908 100%);
   overflow:hidden;
 }
+/* El menú "NÚCLEO BUSINESS" se abre hacia abajo y puede sobresalir del
+   límite del hero — mientras está abierto (clic en móvil) o en hover
+   (escritorio), permitimos que se vea completo en vez de recortarse. */
+.hero:has(.nav-dropdown-menu:hover),
+.hero:has(.pill-dropdown:hover),
+.hero.has-open-dropdown{
+  overflow:visible;
+}
 
 .mist{
   position:absolute;
