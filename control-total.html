@@ -171,6 +171,30 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
     <h3 id="mvTitle">Nueva venta</h3>
     <div class="field"><label>Pedido (número o referencia)</label><input type="text" id="mvPedido" placeholder="Ej. 33"></div>
     <div class="field"><label>Cliente</label><input type="text" id="mvCliente" placeholder="Nombre del cliente"></div>
+
+    <div class="panel" style="margin:0 0 16px; padding:14px;">
+      <div class="small" style="margin-bottom:10px; color:var(--gold-2); text-transform:uppercase; letter-spacing:0.06em;">Definir por tamaño (opcional)</div>
+      <div class="field"><label>Tipo de artículo</label>
+        <select id="mvTipoArticulo">
+          <option value="perfume">Perfume / Decant</option>
+          <option value="spray">Spray ambiental</option>
+          <option value="aceite">Aceite para difusor</option>
+          <option value="difusor">Difusor (equipo)</option>
+        </select>
+      </div>
+      <div class="field" id="mvTamanoWrap"><label>Tamaño</label>
+        <select id="mvTamanoArticulo"></select>
+      </div>
+      <div class="field" id="mvModeloWrap" style="display:none;"><label>Modelo de difusor</label>
+        <select id="mvModeloArticulo">
+          <option>A60</option><option>A300</option><option>A1000</option><option>A3000</option><option>A5000</option><option>Car Pro</option>
+        </select>
+      </div>
+      <div class="field"><label>Cantidad</label><input type="number" id="mvCantidadArticulo" min="1" value="1"></div>
+      <div class="field"><label>Aroma / nombre específico</label><input type="text" id="mvAromaArticulo" placeholder="Ej. Palacio de Hierro"></div>
+      <button type="button" class="btn ghost sm" id="mvAplicarArticulo">Aplicar a este artículo</button>
+    </div>
+
     <div class="field"><label>Producto</label><input type="text" id="mvProducto" placeholder="Ej. Santal 33 (30 ml)"></div>
     <div class="field"><label>Categoría</label>
       <select id="mvCategoria">
@@ -1281,6 +1305,52 @@ function attachHandlers() {
 }
 
 document.getElementById('mvGuardar').addEventListener('click', guardarVenta);
+
+/* ---- Definir por tamaño en el modal de venta (usa el mismo catálogo de Nuevo Pedido) ---- */
+function mvPoblarTamanos() {
+  const tipo = document.getElementById('mvTipoArticulo').value;
+  const esDifusor = tipo === 'difusor';
+  document.getElementById('mvTamanoWrap').style.display = esDifusor ? 'none' : '';
+  document.getElementById('mvModeloWrap').style.display = esDifusor ? '' : 'none';
+  if (!esDifusor) {
+    const cfg = TIPOS_ARTICULO[tipo];
+    const sel = document.getElementById('mvTamanoArticulo');
+    sel.innerHTML = cfg.tamanos.map((t) => `<option value="${t.value}" data-costo="${t.costo}" data-venta="${t.venta}">${esc(t.label)}</option>`).join('');
+  }
+}
+document.getElementById('mvTipoArticulo').addEventListener('change', mvPoblarTamanos);
+mvPoblarTamanos();
+
+document.getElementById('mvAplicarArticulo').addEventListener('click', () => {
+  const tipo = document.getElementById('mvTipoArticulo').value;
+  const cfg = TIPOS_ARTICULO[tipo];
+  const esDifusor = tipo === 'difusor';
+  const aroma = document.getElementById('mvAromaArticulo').value.trim();
+  const cantidad = Math.max(1, parseInt(document.getElementById('mvCantidadArticulo').value, 10) || 1);
+
+  let producto, costo, venta;
+  if (esDifusor) {
+    const modelo = document.getElementById('mvModeloArticulo').value;
+    producto = `Difusor ${modelo}${aroma ? ' — ' + aroma : ''}${cantidad > 1 ? ' x' + cantidad : ''}`;
+    costo = ''; venta = ''; // varía, se captura a mano
+  } else {
+    const tamanoSel = document.getElementById('mvTamanoArticulo');
+    const opt = tamanoSel.selectedOptions[0];
+    const tamanoLabel = opt.textContent;
+    producto = `${aroma || cfg.label} — ${tamanoLabel}${cantidad > 1 ? ' x' + cantidad : ''}`;
+    costo = Number(opt.dataset.costo) * cantidad;
+    venta = Number(opt.dataset.venta) * cantidad;
+  }
+
+  document.getElementById('mvProducto').value = producto;
+  document.getElementById('mvCategoria').value = cfg.categoria;
+  document.getElementById('mvCosto').value = costo;
+  document.getElementById('mvVenta').value = venta;
+  const msg = document.getElementById('mvSugerirMsg');
+  msg.textContent = esDifusor ? 'Aplicado — captura el costo y venta a mano.' : 'Aplicado a los campos de abajo.';
+  msg.style.color = 'var(--ok)';
+});
+
 document.getElementById('mvSugerir').addEventListener('click', () => {
   const producto = document.getElementById('mvProducto').value;
   const s = sugerirPrecio(producto);
