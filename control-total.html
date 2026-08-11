@@ -290,7 +290,7 @@ let editingId = null; // id del registro que se está editando en un modal (null
 
 const money = (n) => (n === null || n === undefined || isNaN(n)) ? '—' : '$' + Number(n).toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' MXN';
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const utilidadDe = (v) => v.montoConocido ? (v.venta || 0) - (v.costo || 0) - (v.domicilio ? (v.costoEnvio || 0) : 0) : null;
+const utilidadDe = (v) => v.montoConocido ? (v.venta || 0) - (v.costo || 0) + (v.domicilio ? (v.costoEnvio || 0) : 0) : null;
 
 /* ---------------- Precios estándar (confirmados por el usuario) ----------------
    Perfume 30/60/100 ml, spray ambiental 250 ml, aceite para difusor 250/500 ml/1L.
