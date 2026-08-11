@@ -217,6 +217,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       <label><input type="checkbox" id="mvStock"> Stock (no es venta a cliente)</label>
       <label><input type="checkbox" id="mvDomicilio"> Envío a domicilio</label>
     </div>
+    <div class="field" id="mvCostoEnvioWrap" style="display:none;"><label>Costo del envío (MXN)</label><input type="number" id="mvCostoEnvio" placeholder="0"></div>
     <div class="field"><label>Notas</label><textarea id="mvNotas"></textarea></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal('modalVenta')">Cancelar</button>
@@ -289,6 +290,7 @@ let editingId = null; // id del registro que se está editando en un modal (null
 
 const money = (n) => (n === null || n === undefined || isNaN(n)) ? '—' : '$' + Number(n).toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' MXN';
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const utilidadDe = (v) => v.montoConocido ? (v.venta || 0) - (v.costo || 0) - (v.domicilio ? (v.costoEnvio || 0) : 0) : null;
 
 /* ---------------- Precios estándar (confirmados por el usuario) ----------------
    Perfume 30/60/100 ml, spray ambiental 250 ml, aceite para difusor 250/500 ml/1L.
@@ -631,7 +633,7 @@ function renderResumen() {
   const ventasConMonto = VENTAS.filter((v) => v.montoConocido && !v.stock);
   const totalVenta = ventasConMonto.reduce((s, v) => s + (v.venta || 0), 0);
   const totalCosto = ventasConMonto.reduce((s, v) => s + (v.costo || 0), 0);
-  const totalUtilidad = ventasConMonto.reduce((s, v) => s + ((v.venta || 0) - (v.costo || 0)), 0);
+  const totalUtilidad = ventasConMonto.reduce((s, v) => s + (utilidadDe(v) || 0), 0);
   const totalGastos = GASTOS.reduce((s, g) => s + (Number(g.monto) || 0), 0);
   const flujoNeto = totalVenta - totalGastos;
   const pendientesPago = VENTAS.filter((v) => !v.pagado && !v.regalo && !v.stock).length;
@@ -743,7 +745,7 @@ function renderVentas() {
   const totalCosto = lista.filter((v) => v.montoConocido).reduce((s, v) => s + (v.costo || 0), 0);
 
   const filaVenta = (v) => {
-    const utilidad = (v.montoConocido) ? (v.venta || 0) - (v.costo || 0) : null;
+    const utilidad = utilidadDe(v);
     const estadoBadges = [];
     if (v.stock) estadoBadges.push('<span class="badge muted">Stock</span>');
     else if (v.regalo) estadoBadges.push('<span class="badge muted">Regalo</span>');
@@ -826,7 +828,7 @@ function renderVentas() {
     <div class="panel" style="margin-top:14px;">
       <div class="foot-total" style="display:flex; justify-content:space-between;">
         <span>Totales (con monto capturado)</span>
-        <span>Costo: ${money(totalCosto)} — Venta: ${money(totalVenta)} — Utilidad: ${money(totalVenta - totalCosto)}</span>
+        <span>Costo: ${money(totalCosto)} — Venta: ${money(totalVenta)} — Utilidad: ${money(lista.filter((v) => v.montoConocido).reduce((s, v) => s + (utilidadDe(v) || 0), 0))}</span>
       </div>
     </div>
   `;
@@ -872,6 +874,8 @@ function openVentaModal(id) {
   document.getElementById('mvRegalo').checked = v ? !!v.regalo : false;
   document.getElementById('mvStock').checked = v ? !!v.stock : false;
   document.getElementById('mvDomicilio').checked = v ? !!v.domicilio : false;
+  document.getElementById('mvCostoEnvio').value = v && v.costoEnvio ? v.costoEnvio : '';
+  document.getElementById('mvCostoEnvioWrap').style.display = (v && v.domicilio) ? '' : 'none';
   document.getElementById('mvNotas').value = v ? (v.notas || '') : '';
   openModalEl('modalVenta');
 }
@@ -898,6 +902,7 @@ async function guardarVenta() {
     regalo: document.getElementById('mvRegalo').checked,
     stock: document.getElementById('mvStock').checked,
     domicilio: document.getElementById('mvDomicilio').checked,
+    costoEnvio: document.getElementById('mvDomicilio').checked ? (parseFloat(document.getElementById('mvCostoEnvio').value) || 0) : 0,
     notas: document.getElementById('mvNotas').value.trim(),
   };
 
@@ -1377,6 +1382,10 @@ document.getElementById('mvSugerir').addEventListener('click', () => {
 });
 document.getElementById('mvRegalo').addEventListener('change', (e) => {
   if (e.target.checked) document.getElementById('mvVenta').value = 0;
+});
+document.getElementById('mvDomicilio').addEventListener('change', (e) => {
+  document.getElementById('mvCostoEnvioWrap').style.display = e.target.checked ? '' : 'none';
+  if (!e.target.checked) document.getElementById('mvCostoEnvio').value = '';
 });
 document.getElementById('mgGuardar').addEventListener('click', guardarGasto);
 document.getElementById('mdGuardar').addEventListener('click', guardarDifusor);
