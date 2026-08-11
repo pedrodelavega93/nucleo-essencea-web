@@ -859,6 +859,15 @@ section{ position:relative; }
   padding:24px 0;
   text-align:center;
 }
+.catalog-section-label{
+  font-size:0.68rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--gold);
+  padding:14px 10px 6px;
+  margin:0 -10px;
+}
+.catalog-section-label:first-child{ padding-top:0; }
 
 /* ---------- catálogo en modo compra de aceite ---------- */
 .catalog-featured{
