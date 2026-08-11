@@ -23,19 +23,28 @@ if (topnav && hero) {
 
 // --- Dropdown "NÚCLEO BUSINESS" en el nav superior ---
 document.querySelectorAll('[data-nav-dropdown]').forEach((dd) => {
-  const toggle = dd.querySelector('.nav-dropdown-toggle');
+  const toggle = dd.querySelector('.nav-dropdown-toggle, .pill-dropdown-toggle');
   if (!toggle) return;
+
+  const syncHeroOverflow = () => {
+    const heroEl = dd.closest('.hero');
+    if (!heroEl) return;
+    const algunoAbierto = !!heroEl.querySelector('[data-nav-dropdown].open');
+    heroEl.classList.toggle('has-open-dropdown', algunoAbierto);
+  };
 
   toggle.addEventListener('click', (e) => {
     e.preventDefault();
     const abierto = dd.classList.toggle('open');
     toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    syncHeroOverflow();
   });
 
   dd.querySelectorAll('.nav-dropdown-menu a').forEach((link) => {
     link.addEventListener('click', () => {
       dd.classList.remove('open');
       toggle.setAttribute('aria-expanded', 'false');
+      syncHeroOverflow();
     });
   });
 
@@ -43,6 +52,7 @@ document.querySelectorAll('[data-nav-dropdown]').forEach((dd) => {
     if (!dd.contains(e.target)) {
       dd.classList.remove('open');
       toggle.setAttribute('aria-expanded', 'false');
+      syncHeroOverflow();
     }
   });
 });
