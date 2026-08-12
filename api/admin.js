@@ -84,7 +84,8 @@ async function accionList() {
         planNombre: meta.plan_nombre || '',
         tamano: meta.tamano || '',
         aroma: meta.aroma_elegido || '',
-        metodoPago: meta.metodo_pago === 'efectivo' ? 'efectivo' : 'tarjeta',
+        metodoPago: meta.metodo_pago === 'efectivo' ? 'efectivo' : meta.metodo_pago === 'transferencia' ? 'transferencia' : 'tarjeta',
+        factura: meta.factura === 'si',
         estado: sub.status,
         collectionMethod: sub.collection_method,
         proximaFechaISO: proximaFecha.toISOString(),
@@ -123,7 +124,8 @@ function calcularVencimiento(fechaInicioStr) {
 }
 
 async function accionCreate(body) {
-  const { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio } = body;
+  const { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura } = body;
+  const metodoPagoNorm = metodoPago === 'transferencia' ? 'transferencia' : 'efectivo';
 
   const correoValido = correo && typeof correo === 'string' && correo.includes('@');
   const telefonoValido = telefono && typeof telefono === 'string' && telefono.trim();
@@ -175,12 +177,13 @@ async function accionCreate(body) {
     plan_nombre: planNombre || '',
     tamano: tamano || '',
     aroma_elegido: aroma || '',
-    metodo_pago: 'efectivo',
+    metodo_pago: metodoPagoNorm,
+    factura: factura ? 'si' : 'no',
     dado_de_alta_por: 'admin',
   };
 
   const producto = await stripe.products.create({
-    name: planNombre || 'Suscripción NÚCLEO essences (efectivo)',
+    name: planNombre || `Suscripción NÚCLEO essences (${metodoPagoNorm})`,
   });
 
   const subscriptionConfig = {
