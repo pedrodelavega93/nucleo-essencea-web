@@ -325,6 +325,8 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
     <div class="field"><label>Cantidad a vender</label><input type="number" id="mvsCantidad" min="1" value="1"></div>
     <div class="field"><label>Costo total (MXN)</label><input type="number" id="mvsCosto"></div>
     <div class="field"><label>Venta / precio cobrado (MXN)</label><input type="number" id="mvsVenta"></div>
+    <button type="button" class="btn ghost sm" id="mvsSugerir" style="margin-bottom:12px;">✨ Sugerir precio según el producto</button>
+    <div class="small" id="mvsSugerirMsg" style="margin:-6px 0 12px;"></div>
     <div class="checkrow">
       <label><input type="checkbox" id="mvsPagado" checked> Pagado</label>
       <label><input type="checkbox" id="mvsEntregado" checked> Entregado</label>
@@ -1677,6 +1679,29 @@ document.getElementById('mvsCantidad').addEventListener('input', (e) => {
   const ventaUnit = e.target.dataset.ventaunit ? Number(e.target.dataset.ventaunit) : null;
   document.getElementById('mvsCosto').value = costoUnit * cant;
   if (ventaUnit !== null) document.getElementById('mvsVenta').value = ventaUnit * cant;
+});
+document.getElementById('mvsSugerir').addEventListener('click', () => {
+  const producto = document.getElementById('mvsProducto').value;
+  const cantidadEl = document.getElementById('mvsCantidad');
+  const cant = Math.max(1, parseInt(cantidadEl.value, 10) || 1);
+  const s = sugerirPrecio(producto);
+  const msg = document.getElementById('mvsSugerirMsg');
+  if (s) {
+    // sugerirPrecio ya multiplica por una cantidad leída del propio texto del
+    // producto; aquí la queremos multiplicada por "Cantidad a vender", así
+    // que recalculamos sobre el precio unitario que detectó.
+    const costoUnit = s.costo / s.cantidad;
+    const ventaUnit = s.venta / s.cantidad;
+    document.getElementById('mvsCosto').value = Math.round(costoUnit * cant * 100) / 100;
+    document.getElementById('mvsVenta').value = Math.round(ventaUnit * cant * 100) / 100;
+    cantidadEl.dataset.costounit = costoUnit;
+    cantidadEl.dataset.ventaunit = ventaUnit;
+    msg.textContent = `Aplicado: ${s.label}. Puedes ajustarlo a mano (ej. si la venta incluye IVA).`;
+    msg.style.color = 'var(--ok)';
+  } else {
+    msg.textContent = 'No reconocí un tamaño estándar en el nombre del producto — captúralo a mano.';
+    msg.style.color = 'var(--warn)';
+  }
 });
 document.querySelectorAll('.modal-bg').forEach((bg) => {
   bg.addEventListener('click', (e) => { if (e.target === bg) closeModal(bg.id); });
