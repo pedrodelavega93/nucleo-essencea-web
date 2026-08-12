@@ -98,6 +98,7 @@ module.exports = async (req, res) => {
         const m = String(d.id || '').match(/(\d+)$/);
         if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
       });
+      const stockId = data.stockId || null;
       const nuevo = {
         id: 'd' + (maxNum + 1),
         tipo: 'renta',
@@ -108,10 +109,17 @@ module.exports = async (req, res) => {
         pagado: !!data.pagado,
         activo: true,
         notas: data.notas || '',
-        stockId: null,
+        stockId,
         subscriptionId: data.subscriptionId || null,
       };
       actual.difusores.push(nuevo);
+
+      // si se indicó un equipo de Stock, lo descontamos en este mismo paso
+      // (evita el doble descuento / duplicado de tener que vincularlo aparte)
+      if (stockId && Array.isArray(actual.stock)) {
+        const s = actual.stock.find((x) => x.id === stockId);
+        if (s) s.cantidad = Math.max(0, (Number(s.cantidad) || 0) - 1);
+      }
 
       const ok = await kvSet(actual);
       if (!ok) return res.status(500).json({ error: 'La base de datos no confirmó el guardado.' });
