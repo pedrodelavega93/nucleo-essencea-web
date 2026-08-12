@@ -156,6 +156,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
     <div class="navitem" data-tab="clientes"><span class="ic">◆</span> Clientes</div>
     <div class="navitem" data-tab="gastos"><span class="ic">◆</span> Gastos</div>
     <div class="navitem" data-tab="difusores"><span class="ic">◆</span> Difusores &amp; Rentas</div>
+    <div class="navitem" data-tab="stock"><span class="ic">◆</span> Stock</div>
     <div class="navitem" data-tab="flujo"><span class="ic">◆</span> Flujo de Caja</div>
   </nav>
 
@@ -264,6 +265,29 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
   </div>
 </div>
 
+<!-- ============ MODAL: producto en stock ============ -->
+<div class="modal-bg" id="modalStock">
+  <div class="modal">
+    <h3 id="mstTitle">Nuevo producto en stock</h3>
+    <div class="field"><label>Producto</label><input type="text" id="mstProducto" placeholder="Ej. Difusor A1000 / Santal 33 250 ml"></div>
+    <div class="field"><label>Categoría</label>
+      <select id="mstCategoria">
+        <option>Perfume/Decant</option>
+        <option>Aceite para difusor</option>
+        <option>Spray ambiental</option>
+        <option>Difusor (equipo)</option>
+        <option>Otro</option>
+      </select>
+    </div>
+    <div class="field"><label>Cantidad disponible</label><input type="number" id="mstCantidad" min="0" value="1"></div>
+    <div class="field"><label>Notas</label><textarea id="mstNotas" placeholder="Ej. modelo, color, ubicación..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('modalStock')">Cancelar</button>
+      <button class="btn" id="mstGuardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="empty" id="toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--gold);border-radius:999px;padding:10px 20px;z-index:300;color:var(--cream);font-size:0.82rem;"></div>
 
 <script>
@@ -285,6 +309,7 @@ const STORAGE_KEYS = { data: 'nucleo-data' };
 let VENTAS = [];
 let GASTOS = [];
 let DIFUSORES = [];
+let STOCK = [];
 let currentTab = 'resumen';
 let editingId = null; // id del registro que se está editando en un modal (null = nuevo)
 
@@ -567,11 +592,13 @@ async function loadAll() {
   VENTAS = (parsed && parsed.ventas) ? parsed.ventas : null;
   GASTOS = (parsed && parsed.gastos) ? parsed.gastos : null;
   DIFUSORES = (parsed && parsed.difusores) ? parsed.difusores : null;
+  STOCK = (parsed && parsed.stock) ? parsed.stock : null;
 
   let needsSeed = false;
   if (VENTAS === null) { VENTAS = SEED_VENTAS.slice(); needsSeed = true; }
   if (GASTOS === null) { GASTOS = SEED_GASTOS.slice(); needsSeed = true; }
   if (DIFUSORES === null) { DIFUSORES = []; needsSeed = true; }
+  if (STOCK === null) { STOCK = []; needsSeed = true; }
 
   if (needsSeed) await persist();
 }
@@ -580,7 +607,7 @@ async function loadAll() {
    Reintentamos automáticamente con espera creciente antes de avisar
    al usuario que algo realmente falló. */
 async function persist(retries = 4) {
-  const payload = { ventas: VENTAS, gastos: GASTOS, difusores: DIFUSORES };
+  const payload = { ventas: VENTAS, gastos: GASTOS, difusores: DIFUSORES, stock: STOCK };
   let lastError = null;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -624,6 +651,7 @@ function render() {
   else if (currentTab === 'clientes') c.innerHTML = renderClientes();
   else if (currentTab === 'gastos') c.innerHTML = renderGastos();
   else if (currentTab === 'difusores') c.innerHTML = renderDifusores();
+  else if (currentTab === 'stock') c.innerHTML = renderStock();
   else if (currentTab === 'flujo') c.innerHTML = renderFlujo();
   attachHandlers();
 }
@@ -1133,6 +1161,80 @@ async function guardarDifusor() {
   render();
 }
 
+/* ============ STOCK ============ */
+let stockFiltro = '';
+
+function renderStock() {
+  let lista = STOCK.slice();
+  if (stockFiltro) {
+    const q = stockFiltro.toLowerCase();
+    lista = lista.filter((s) => (s.producto || '').toLowerCase().includes(q) || (s.categoria || '').toLowerCase().includes(q));
+  }
+  const totalUnidades = lista.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+
+  const rows = lista.slice().reverse().map((s) => `
+    <tr data-id="${s.id}">
+      <td>${esc(s.producto)}</td>
+      <td class="small">${esc(s.categoria)}</td>
+      <td class="right">${s.cantidad}</td>
+      <td class="small">${esc(s.notas || '—')}</td>
+      <td><button class="btn sm ghost" data-editstock="${s.id}">Editar</button> <button class="btn sm danger" data-delstock="${s.id}">✕</button></td>
+    </tr>`).join('');
+
+  return `
+    <div class="pagehead">
+      <h1 class="serif">Stock</h1>
+      <p>Inventario disponible de inmediato: difusores y productos ya listos para entregar sin esperar pedido.</p>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="l">Productos distintos</div><div class="n">${lista.length}</div></div>
+      <div class="kpi"><div class="l">Unidades totales</div><div class="n ok">${totalUnidades}</div></div>
+    </div>
+    <div class="filterbar">
+      <input type="text" id="stockBuscar" placeholder="Buscar producto o categoría..." value="${esc(stockFiltro)}">
+      <button class="btn" id="btnNuevoStock" style="margin-left:auto;">+ Nuevo producto en stock</button>
+    </div>
+    <div class="twrap"><table>
+      <thead><tr><th>Producto</th><th>Categoría</th><th class="right">Cantidad</th><th>Notas</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="empty">Sin productos en stock registrados aún.</td></tr>'}</tbody>
+    </table></div>
+  `;
+}
+
+function openStockModal(id) {
+  editingId = id || null;
+  const s = id ? STOCK.find((x) => x.id === id) : null;
+  document.getElementById('mstTitle').textContent = id ? 'Editar producto en stock' : 'Nuevo producto en stock';
+  document.getElementById('mstProducto').value = s ? s.producto : '';
+  document.getElementById('mstCategoria').value = s ? s.categoria : 'Perfume/Decant';
+  document.getElementById('mstCantidad').value = s ? s.cantidad : 1;
+  document.getElementById('mstNotas').value = s ? (s.notas || '') : '';
+  openModalEl('modalStock');
+}
+
+async function guardarStock() {
+  const producto = document.getElementById('mstProducto').value.trim();
+  const cantidad = parseInt(document.getElementById('mstCantidad').value, 10);
+  if (!producto || isNaN(cantidad)) { showToast('Falta el producto o la cantidad.'); return; }
+  const data = {
+    producto,
+    categoria: document.getElementById('mstCategoria').value,
+    cantidad,
+    notas: document.getElementById('mstNotas').value.trim(),
+  };
+  if (editingId) {
+    const idx = STOCK.findIndex((x) => x.id === editingId);
+    if (idx >= 0) STOCK[idx] = Object.assign({}, STOCK[idx], data);
+  } else {
+    data.id = nextId('st', STOCK);
+    STOCK.push(data);
+  }
+  await persist();
+  closeModal('modalStock');
+  showToast('Stock guardado.');
+  render();
+}
+
 /* ============ FLUJO DE CAJA ============ */
 function renderFlujo() {
   const ingresos = VENTAS.filter((v) => v.montoConocido && v.pagado && !v.stock && !v.regalo)
@@ -1315,6 +1417,23 @@ function attachHandlers() {
       render();
     });
   });
+
+  // Stock
+  const stb = document.getElementById('stockBuscar');
+  if (stb) stb.addEventListener('input', () => { stockFiltro = stb.value; render(); });
+  const bnst = document.getElementById('btnNuevoStock');
+  if (bnst) bnst.addEventListener('click', () => openStockModal(null));
+  document.querySelectorAll('[data-editstock]').forEach((el) => {
+    el.addEventListener('click', () => openStockModal(el.dataset.editstock));
+  });
+  document.querySelectorAll('[data-delstock]').forEach((el) => {
+    el.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar este producto del stock?')) return;
+      STOCK = STOCK.filter((x) => x.id !== el.dataset.delstock);
+      await persist();
+      render();
+    });
+  });
 }
 
 document.getElementById('mvGuardar').addEventListener('click', guardarVenta);
@@ -1389,6 +1508,7 @@ document.getElementById('mvDomicilio').addEventListener('change', (e) => {
 });
 document.getElementById('mgGuardar').addEventListener('click', guardarGasto);
 document.getElementById('mdGuardar').addEventListener('click', guardarDifusor);
+document.getElementById('mstGuardar').addEventListener('click', guardarStock);
 document.querySelectorAll('.modal-bg').forEach((bg) => {
   bg.addEventListener('click', (e) => { if (e.target === bg) closeModal(bg.id); });
 });
