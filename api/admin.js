@@ -86,6 +86,7 @@ async function accionList() {
         aroma: meta.aroma_elegido || '',
         metodoPago: meta.metodo_pago === 'efectivo' ? 'efectivo' : meta.metodo_pago === 'transferencia' ? 'transferencia' : 'tarjeta',
         factura: meta.factura === 'si',
+        vinculadoCT: meta.vinculado_ct === 'si',
         estado: sub.status,
         collectionMethod: sub.collection_method,
         proximaFechaISO: proximaFecha.toISOString(),
@@ -242,7 +243,7 @@ async function accionCancel(body) {
 
 // ---------- action: update ----------
 async function accionUpdate(body) {
-  const { subscriptionId, aroma, planNombre, tamano, montoMensual } = body;
+  const { subscriptionId, aroma, planNombre, tamano, montoMensual, marcarVinculado } = body;
   if (!subscriptionId) throw { status: 400, error: 'Falta la suscripción a modificar.' };
 
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
@@ -251,6 +252,7 @@ async function accionUpdate(body) {
   if (aroma !== undefined) metaNueva.aroma_elegido = String(aroma).slice(0, 200);
   if (planNombre !== undefined) metaNueva.plan_nombre = String(planNombre).slice(0, 200);
   if (tamano !== undefined) metaNueva.tamano = String(tamano).slice(0, 100);
+  if (marcarVinculado) metaNueva.vinculado_ct = 'si';
 
   const updatePayload = { metadata: metaNueva };
 
