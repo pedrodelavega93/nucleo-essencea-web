@@ -123,6 +123,12 @@ function calcularVencimiento(fechaInicioStr) {
   return Math.floor(anchor.getTime() / 1000);
 }
 
+const IVA_TASA = 0.16;
+function calcularMontoConIva(montoNeto, requiereFactura) {
+  const neto = Number(montoNeto);
+  return requiereFactura ? Math.round(neto * (1 + IVA_TASA) * 100) / 100 : neto;
+}
+
 async function accionCreate(body) {
   const { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura } = body;
   const metodoPagoNorm = metodoPago === 'transferencia' ? 'transferencia' : 'efectivo';
@@ -172,6 +178,8 @@ async function accionCreate(body) {
     customer = await stripe.customers.create(datosCustomer);
   }
 
+  const montoFinal = calcularMontoConIva(montoMensual, factura);
+
   const metadata = {
     tipo_pedido: tipoPedido,
     plan_nombre: planNombre || '',
@@ -179,6 +187,7 @@ async function accionCreate(body) {
     aroma_elegido: aroma || '',
     metodo_pago: metodoPagoNorm,
     factura: factura ? 'si' : 'no',
+    monto_neto: String(Number(montoMensual)),
     dado_de_alta_por: 'admin',
   };
 
@@ -192,7 +201,7 @@ async function accionCreate(body) {
       {
         price_data: {
           currency: 'mxn',
-          unit_amount: Math.round(Number(montoMensual) * 100),
+          unit_amount: Math.round(montoFinal * 100),
           recurring: { interval: 'month' },
           product: producto.id,
         },
@@ -250,12 +259,16 @@ async function accionUpdate(body) {
     const producto = await stripe.products.create({
       name: planNombre || metaActual.plan_nombre || 'Suscripción NÚCLEO essences',
     });
+    const requiereFactura = metaActual.factura === 'si';
+    const montoFinal = calcularMontoConIva(montoMensual, requiereFactura);
+    metaNueva.monto_neto = String(Number(montoMensual));
+    updatePayload.metadata = metaNueva;
     updatePayload.items = [
       {
         id: item.id,
         price_data: {
           currency: item.price.currency,
-          unit_amount: Math.round(Number(montoMensual) * 100),
+          unit_amount: Math.round(montoFinal * 100),
           recurring: { interval: 'month' },
           product: producto.id,
         },
