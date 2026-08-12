@@ -183,8 +183,9 @@
       <input type="text" id="nAroma" placeholder="Ej. Black Opium">
     </div>
     <div class="field">
-      <label>Monto mensual (MXN)</label>
+      <label>Monto mensual neto — sin IVA (MXN)</label>
       <input type="number" id="nMonto" placeholder="Ej. 1800">
+      <div class="small" id="nMontoConIva" style="margin-top:6px; color:var(--gold-2);"></div>
     </div>
     <div class="field">
       <label>Fecha en que se suscribió (opcional — si no la das, se usa hoy)</label>
@@ -438,10 +439,26 @@
 
   // ---- modal: nueva suscripción ----
   const modalNueva = document.getElementById('modalNueva');
+  function actualizarPreviewIva() {
+    const neto = parseFloat(document.getElementById('nMonto').value);
+    const requiereFactura = document.getElementById('nFactura').checked;
+    const preview = document.getElementById('nMontoConIva');
+    if (isNaN(neto)) { preview.textContent = ''; return; }
+    if (requiereFactura) {
+      const total = Math.round(neto * 1.16 * 100) / 100;
+      preview.textContent = `Con 16% de IVA se cobrará: ${money(total)}`;
+    } else {
+      preview.textContent = `Se cobrará: ${money(neto)} (sin IVA)`;
+    }
+  }
+  document.getElementById('nMonto').addEventListener('input', actualizarPreviewIva);
+  document.getElementById('nFactura').addEventListener('change', actualizarPreviewIva);
+
   document.getElementById('btnNueva').addEventListener('click', () => {
     ['nNombre','nCorreo','nTelefono','nPlan','nTamano','nAroma','nMonto','nFechaInicio'].forEach((id) => document.getElementById(id).value = '');
     document.getElementById('nMetodoPago').value = 'efectivo';
     document.getElementById('nFactura').checked = false;
+    document.getElementById('nMontoConIva').textContent = '';
     document.getElementById('nMsg').textContent = '';
     modalNueva.classList.add('open');
   });
