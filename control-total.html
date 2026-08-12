@@ -269,6 +269,29 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
 <div class="modal-bg" id="modalStock">
   <div class="modal">
     <h3 id="mstTitle">Nuevo producto en stock</h3>
+
+    <div class="panel" style="margin:0 0 16px; padding:14px;">
+      <div class="small" style="margin-bottom:10px; color:var(--gold-2); text-transform:uppercase; letter-spacing:0.06em;">Definir por tamaño (opcional)</div>
+      <div class="field"><label>Tipo de artículo</label>
+        <select id="mstTipoArticulo">
+          <option value="perfume">Perfume / Decant</option>
+          <option value="spray">Spray ambiental</option>
+          <option value="aceite">Aceite para difusor</option>
+          <option value="difusor">Difusor (equipo)</option>
+        </select>
+      </div>
+      <div class="field" id="mstTamanoWrap"><label>Tamaño</label>
+        <select id="mstTamanoArticulo"></select>
+      </div>
+      <div class="field" id="mstModeloWrap" style="display:none;"><label>Modelo de difusor</label>
+        <select id="mstModeloArticulo">
+          <option>A60</option><option>A300</option><option>A1000</option><option>A3000</option><option>A5000</option><option>Car Pro</option>
+        </select>
+      </div>
+      <div class="field"><label>Aroma / nombre específico</label><input type="text" id="mstAromaArticulo" placeholder="Ej. Palacio de Hierro"></div>
+      <button type="button" class="btn ghost sm" id="mstAplicarArticulo">Aplicar a este producto</button>
+    </div>
+
     <div class="field"><label>Producto</label><input type="text" id="mstProducto" placeholder="Ej. Difusor A1000 / Santal 33 250 ml"></div>
     <div class="field"><label>Categoría</label>
       <select id="mstCategoria">
@@ -282,6 +305,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
     <div class="field"><label>Cantidad disponible</label><input type="number" id="mstCantidad" min="0" value="1"></div>
     <div class="field"><label>Costo unitario (MXN)</label><input type="number" id="mstCostoUnitario" placeholder="0"></div>
     <div class="field"><label>Precio de venta sugerido (MXN)</label><input type="number" id="mstVentaUnitaria" placeholder="0"></div>
+    <div class="small" id="mstAplicarMsg" style="margin:-6px 0 12px;"></div>
     <div class="field"><label>Notas</label><textarea id="mstNotas" placeholder="Ej. modelo, color, ubicación..."></textarea></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal('modalStock')">Cancelar</button>
@@ -337,7 +361,7 @@ let STOCK = [];
 let currentTab = 'resumen';
 let editingId = null; // id del registro que se está editando en un modal (null = nuevo)
 
-const money = (n) => (n === null || n === undefined || isNaN(n)) ? '—' : '$' + Number(n).toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' MXN';
+const money = (n) => (n === null || n === undefined || isNaN(n)) ? '—' : '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' MXN';
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const utilidadDe = (v) => v.montoConocido ? (v.venta || 0) - (v.costo || 0) + (v.domicilio ? (v.costoEnvio || 0) : 0) : null;
 
@@ -1602,6 +1626,49 @@ document.getElementById('mvDomicilio').addEventListener('change', (e) => {
 });
 document.getElementById('mgGuardar').addEventListener('click', guardarGasto);
 document.getElementById('mdGuardar').addEventListener('click', guardarDifusor);
+/* ---- Definir por tamaño en el modal de Stock (mismo catálogo de Nuevo Pedido) ---- */
+function mstPoblarTamanos() {
+  const tipo = document.getElementById('mstTipoArticulo').value;
+  const esDifusor = tipo === 'difusor';
+  document.getElementById('mstTamanoWrap').style.display = esDifusor ? 'none' : '';
+  document.getElementById('mstModeloWrap').style.display = esDifusor ? '' : 'none';
+  if (!esDifusor) {
+    const cfg = TIPOS_ARTICULO[tipo];
+    const sel = document.getElementById('mstTamanoArticulo');
+    sel.innerHTML = cfg.tamanos.map((t) => `<option value="${t.value}" data-costo="${t.costo}" data-venta="${t.venta}">${esc(t.label)}</option>`).join('');
+  }
+}
+document.getElementById('mstTipoArticulo').addEventListener('change', mstPoblarTamanos);
+mstPoblarTamanos();
+
+document.getElementById('mstAplicarArticulo').addEventListener('click', () => {
+  const tipo = document.getElementById('mstTipoArticulo').value;
+  const cfg = TIPOS_ARTICULO[tipo];
+  const esDifusor = tipo === 'difusor';
+  const aroma = document.getElementById('mstAromaArticulo').value.trim();
+
+  let producto, costo, venta;
+  if (esDifusor) {
+    const modelo = document.getElementById('mstModeloArticulo').value;
+    producto = `Difusor ${modelo}${aroma ? ' — ' + aroma : ''}`;
+    costo = ''; venta = ''; // varía, se captura a mano
+  } else {
+    const tamanoSel = document.getElementById('mstTamanoArticulo');
+    const opt = tamanoSel.selectedOptions[0];
+    producto = `${aroma || cfg.label} — ${opt.textContent}`;
+    costo = Number(opt.dataset.costo);
+    venta = Number(opt.dataset.venta);
+  }
+
+  document.getElementById('mstProducto').value = producto;
+  document.getElementById('mstCategoria').value = cfg.categoria;
+  document.getElementById('mstCostoUnitario').value = costo;
+  document.getElementById('mstVentaUnitaria').value = venta;
+  const msg = document.getElementById('mstAplicarMsg');
+  msg.textContent = esDifusor ? 'Aplicado — captura el costo y venta a mano (varían por equipo).' : 'Aplicado a los campos de abajo.';
+  msg.style.color = 'var(--ok)';
+});
+
 document.getElementById('mstGuardar').addEventListener('click', guardarStock);
 document.getElementById('mvsGuardar').addEventListener('click', guardarVentaDesdeStock);
 document.getElementById('mvsCantidad').addEventListener('input', (e) => {
