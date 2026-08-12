@@ -367,6 +367,9 @@
             <div class="row-actions">
               <button class="mini-btn" data-action="editar" data-id="${s.id}">Editar</button>
               ${puedeMarcarPago ? `<button class="mini-btn" data-action="pago" data-id="${s.id}">Marcar pago</button>` : ''}
+              ${!s.esAroma ? (s.vinculadoCT
+                ? `<span class="mini-btn" style="opacity:0.6; cursor:default;">Vinculada ✓</span>`
+                : `<button class="mini-btn" data-action="vincular" data-id="${s.id}">Vincular a Control Total</button>`) : ''}
               ${s.estado !== 'canceled' ? `<button class="mini-btn danger" data-action="cancelar" data-id="${s.id}">Dar de baja</button>` : ''}
             </div>
           </td>
@@ -433,6 +436,36 @@
       } finally {
         btn.disabled = false;
         btn.textContent = 'Marcar pago';
+      }
+    } else if (btn.dataset.action === 'vincular') {
+      btn.disabled = true;
+      btn.textContent = 'Vinculando…';
+      try {
+        const resp = await fetch('/api/control-total', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password,
+            action: 'linkDifusor',
+            data: {
+              cliente: sub.nombre || sub.correo || 'Sin nombre',
+              modelo: sub.planNombre || sub.etiqueta || 'Renta de Difusores',
+              monto: sub.montoMensual,
+              fecha: sub.proximaFechaISO ? sub.proximaFechaISO.slice(0, 10) : '',
+              pagado: sub.estado === 'active',
+              notas: `Vinculado desde el Panel — ${sub.correo || ''}`.trim(),
+              subscriptionId: sub.id,
+            },
+          }),
+        });
+        const result = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(result.error || 'Error de conexión con Control Total.');
+        await api('update', { subscriptionId: id, marcarVinculado: true });
+        await loadSubs();
+      } catch (err) {
+        alert('No se pudo vincular: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Vincular a Control Total';
       }
     }
   });
