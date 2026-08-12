@@ -280,10 +280,34 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       </select>
     </div>
     <div class="field"><label>Cantidad disponible</label><input type="number" id="mstCantidad" min="0" value="1"></div>
+    <div class="field"><label>Costo unitario (MXN)</label><input type="number" id="mstCostoUnitario" placeholder="0"></div>
+    <div class="field"><label>Precio de venta sugerido (MXN)</label><input type="number" id="mstVentaUnitaria" placeholder="0"></div>
     <div class="field"><label>Notas</label><textarea id="mstNotas" placeholder="Ej. modelo, color, ubicación..."></textarea></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal('modalStock')">Cancelar</button>
       <button class="btn" id="mstGuardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: vender desde stock ============ -->
+<div class="modal-bg" id="modalVenderStock">
+  <div class="modal">
+    <h3>Vender desde stock</h3>
+    <div class="field"><label>Producto</label><input type="text" id="mvsProducto" readonly style="opacity:0.75;"></div>
+    <div class="field"><label>Disponible</label><input type="text" id="mvsDisponible" readonly style="opacity:0.75;"></div>
+    <div class="field"><label>Pedido (número o referencia, opcional)</label><input type="text" id="mvsPedido" placeholder="Ej. 33"></div>
+    <div class="field"><label>Cliente</label><input type="text" id="mvsCliente" placeholder="Nombre del cliente"></div>
+    <div class="field"><label>Cantidad a vender</label><input type="number" id="mvsCantidad" min="1" value="1"></div>
+    <div class="field"><label>Costo total (MXN)</label><input type="number" id="mvsCosto"></div>
+    <div class="field"><label>Venta / precio cobrado (MXN)</label><input type="number" id="mvsVenta"></div>
+    <div class="checkrow">
+      <label><input type="checkbox" id="mvsPagado" checked> Pagado</label>
+      <label><input type="checkbox" id="mvsEntregado" checked> Entregado</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('modalVenderStock')">Cancelar</button>
+      <button class="btn" id="mvsGuardar">Vender</button>
     </div>
   </div>
 </div>
@@ -1177,8 +1201,10 @@ function renderStock() {
       <td>${esc(s.producto)}</td>
       <td class="small">${esc(s.categoria)}</td>
       <td class="right">${s.cantidad}</td>
+      <td class="right small">${s.costoUnitario ? money(s.costoUnitario) : '—'}</td>
+      <td class="right small">${s.ventaUnitaria ? money(s.ventaUnitaria) : '—'}</td>
       <td class="small">${esc(s.notas || '—')}</td>
-      <td><button class="btn sm ghost" data-editstock="${s.id}">Editar</button> <button class="btn sm danger" data-delstock="${s.id}">✕</button></td>
+      <td><button class="btn sm" data-vendstock="${s.id}">Vender</button> <button class="btn sm ghost" data-editstock="${s.id}">Editar</button> <button class="btn sm danger" data-delstock="${s.id}">✕</button></td>
     </tr>`).join('');
 
   return `
@@ -1195,8 +1221,8 @@ function renderStock() {
       <button class="btn" id="btnNuevoStock" style="margin-left:auto;">+ Nuevo producto en stock</button>
     </div>
     <div class="twrap"><table>
-      <thead><tr><th>Producto</th><th>Categoría</th><th class="right">Cantidad</th><th>Notas</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5" class="empty">Sin productos en stock registrados aún.</td></tr>'}</tbody>
+      <thead><tr><th>Producto</th><th>Categoría</th><th class="right">Cantidad</th><th class="right">Costo unit.</th><th class="right">Venta unit.</th><th>Notas</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" class="empty">Sin productos en stock registrados aún.</td></tr>'}</tbody>
     </table></div>
   `;
 }
@@ -1208,6 +1234,8 @@ function openStockModal(id) {
   document.getElementById('mstProducto').value = s ? s.producto : '';
   document.getElementById('mstCategoria').value = s ? s.categoria : 'Perfume/Decant';
   document.getElementById('mstCantidad').value = s ? s.cantidad : 1;
+  document.getElementById('mstCostoUnitario').value = s && s.costoUnitario ? s.costoUnitario : '';
+  document.getElementById('mstVentaUnitaria').value = s && s.ventaUnitaria ? s.ventaUnitaria : '';
   document.getElementById('mstNotas').value = s ? (s.notas || '') : '';
   openModalEl('modalStock');
 }
@@ -1216,10 +1244,14 @@ async function guardarStock() {
   const producto = document.getElementById('mstProducto').value.trim();
   const cantidad = parseInt(document.getElementById('mstCantidad').value, 10);
   if (!producto || isNaN(cantidad)) { showToast('Falta el producto o la cantidad.'); return; }
+  const costoUnitarioRaw = document.getElementById('mstCostoUnitario').value;
+  const ventaUnitariaRaw = document.getElementById('mstVentaUnitaria').value;
   const data = {
     producto,
     categoria: document.getElementById('mstCategoria').value,
     cantidad,
+    costoUnitario: costoUnitarioRaw === '' ? null : parseFloat(costoUnitarioRaw),
+    ventaUnitaria: ventaUnitariaRaw === '' ? null : parseFloat(ventaUnitariaRaw),
     notas: document.getElementById('mstNotas').value.trim(),
   };
   if (editingId) {
@@ -1232,6 +1264,65 @@ async function guardarStock() {
   await persist();
   closeModal('modalStock');
   showToast('Stock guardado.');
+  render();
+}
+
+/* ---- Vender desde stock: crea la venta y descuenta la cantidad ---- */
+function openVenderStockModal(id) {
+  const s = STOCK.find((x) => x.id === id);
+  if (!s) return;
+  editingId = id; // reutilizamos editingId para saber de qué producto de stock viene
+  document.getElementById('mvsProducto').value = s.producto;
+  document.getElementById('mvsDisponible').value = s.cantidad + ' disponible(s)';
+  document.getElementById('mvsPedido').value = '';
+  document.getElementById('mvsCliente').value = '';
+  const cantidadEl = document.getElementById('mvsCantidad');
+  cantidadEl.value = 1;
+  cantidadEl.max = s.cantidad;
+  cantidadEl.dataset.costounit = s.costoUnitario || 0;
+  cantidadEl.dataset.ventaunit = s.ventaUnitaria || '';
+  document.getElementById('mvsCosto').value = s.costoUnitario || '';
+  document.getElementById('mvsVenta').value = s.ventaUnitaria || '';
+  document.getElementById('mvsPagado').checked = true;
+  document.getElementById('mvsEntregado').checked = true;
+  openModalEl('modalVenderStock');
+}
+
+async function guardarVentaDesdeStock() {
+  const s = STOCK.find((x) => x.id === editingId);
+  if (!s) { showToast('No se encontró el producto de stock.'); return; }
+  const cliente = document.getElementById('mvsCliente').value.trim();
+  const cantidad = parseInt(document.getElementById('mvsCantidad').value, 10);
+  const costo = parseFloat(document.getElementById('mvsCosto').value);
+  const venta = parseFloat(document.getElementById('mvsVenta').value);
+  if (!cliente) { showToast('Falta el nombre del cliente.'); return; }
+  if (isNaN(cantidad) || cantidad < 1) { showToast('Cantidad inválida.'); return; }
+  if (cantidad > s.cantidad) { showToast('No hay suficiente stock — solo quedan ' + s.cantidad + '.'); return; }
+  if (isNaN(venta)) { showToast('Falta el precio de venta.'); return; }
+
+  VENTAS.push({
+    id: nextId('v', VENTAS),
+    pedido: document.getElementById('mvsPedido').value.trim() || '—',
+    cliente,
+    producto: s.producto + (cantidad > 1 ? ' x' + cantidad : ''),
+    categoria: s.categoria,
+    costo: isNaN(costo) ? 0 : costo,
+    venta,
+    montoConocido: true,
+    pagado: document.getElementById('mvsPagado').checked,
+    entregado: document.getElementById('mvsEntregado').checked,
+    regalo: false,
+    stock: false,
+    domicilio: false,
+    notas: '',
+    origen: 'stock',
+  });
+
+  s.cantidad -= cantidad; // nunca baja de 0 porque ya validamos arriba
+
+  await persist();
+  closeModal('modalVenderStock');
+  showToast('Venta registrada y stock actualizado.');
   render();
 }
 
@@ -1426,6 +1517,9 @@ function attachHandlers() {
   document.querySelectorAll('[data-editstock]').forEach((el) => {
     el.addEventListener('click', () => openStockModal(el.dataset.editstock));
   });
+  document.querySelectorAll('[data-vendstock]').forEach((el) => {
+    el.addEventListener('click', () => openVenderStockModal(el.dataset.vendstock));
+  });
   document.querySelectorAll('[data-delstock]').forEach((el) => {
     el.addEventListener('click', async () => {
       if (!confirm('¿Eliminar este producto del stock?')) return;
@@ -1509,6 +1603,14 @@ document.getElementById('mvDomicilio').addEventListener('change', (e) => {
 document.getElementById('mgGuardar').addEventListener('click', guardarGasto);
 document.getElementById('mdGuardar').addEventListener('click', guardarDifusor);
 document.getElementById('mstGuardar').addEventListener('click', guardarStock);
+document.getElementById('mvsGuardar').addEventListener('click', guardarVentaDesdeStock);
+document.getElementById('mvsCantidad').addEventListener('input', (e) => {
+  const cant = Math.max(1, parseInt(e.target.value, 10) || 1);
+  const costoUnit = Number(e.target.dataset.costounit) || 0;
+  const ventaUnit = e.target.dataset.ventaunit ? Number(e.target.dataset.ventaunit) : null;
+  document.getElementById('mvsCosto').value = costoUnit * cant;
+  if (ventaUnit !== null) document.getElementById('mvsVenta').value = ventaUnit * cant;
+});
 document.querySelectorAll('.modal-bg').forEach((bg) => {
   bg.addEventListener('click', (e) => { if (e.target === bg) closeModal(bg.id); });
 });
