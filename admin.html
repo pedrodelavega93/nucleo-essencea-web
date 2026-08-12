@@ -50,6 +50,8 @@
   .cell-sub{ font-size:0.76rem; color:var(--muted); margin-top:2px; }
   .badge{ display:inline-block; font-size:0.66rem; letter-spacing:0.05em; text-transform:uppercase; padding:3px 9px; border-radius:999px; border:1px solid var(--line); }
   .badge.efectivo{ color:#8fce9b; border-color:#2f5a37; background:rgba(143,206,155,0.08); }
+  .badge.transferencia{ color:#8ec6e0; border-color:#28495a; background:rgba(143,198,224,0.08); }
+  .badge.factura{ color:var(--gold-2); border-color:var(--gold); background:rgba(184,144,94,0.08); }
   .badge.tarjeta{ color:var(--gold-2); border-color:var(--line); }
   .badge.status-active{ color:#8fce9b; border-color:#2f5a37; }
   .badge.status-past_due, .badge.status-unpaid{ color:#e0b48a; border-color:#5a4128; }
@@ -94,7 +96,7 @@
   <div class="admin-top">
     <div class="wordmark">NÚCLEO<em>essences</em></div>
     <div class="admin-actions">
-      <button class="admin-btn" id="btnNueva">+ Nueva suscripción en efectivo</button>
+      <button class="admin-btn" id="btnNueva">+ Nueva suscripción manual</button>
       <button class="admin-btn ghost" id="btnRefrescar">Actualizar</button>
     </div>
   </div>
@@ -104,7 +106,9 @@
   <div class="filter-tabs" id="filterTabs">
     <button class="filter-chip selected" data-filter="todas">Todas</button>
     <button class="filter-chip" data-filter="efectivo">Efectivo</button>
+    <button class="filter-chip" data-filter="transferencia">Transferencia</button>
     <button class="filter-chip" data-filter="tarjeta">Tarjeta</button>
+    <button class="filter-chip" data-filter="factura">Requiere factura</button>
     <button class="filter-chip" data-filter="renta">Renta de Difusores</button>
     <button class="filter-chip" data-filter="aromas">Suscripción de Aromas</button>
     <button class="filter-chip" data-filter="proximos">Próximas a vencer (7 días)</button>
@@ -135,7 +139,7 @@
 <!-- ============ MODAL: NUEVA SUSCRIPCIÓN EN EFECTIVO ============ -->
 <div class="modal-bg" id="modalNueva">
   <div class="modal-box">
-    <h3>Nueva suscripción en efectivo</h3>
+    <h3>Nueva suscripción manual (efectivo o transferencia)</h3>
     <div class="field">
       <label>Nombre del cliente</label>
       <input type="text" id="nNombre" placeholder="Nombre completo">
@@ -147,6 +151,17 @@
     <div class="field">
       <label>WhatsApp (opcional, solo como contacto adicional)</label>
       <input type="text" id="nTelefono" placeholder="81 1234 5678">
+    </div>
+    <div class="field">
+      <label>Método de pago</label>
+      <select id="nMetodoPago">
+        <option value="efectivo">Efectivo</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+    </div>
+    <div class="field" style="display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="nFactura" style="width:auto;">
+      <label for="nFactura" style="margin:0;">Requiere factura</label>
     </div>
     <div class="field">
       <label>Tipo de suscripción</label>
@@ -275,6 +290,8 @@
   function renderSummary() {
     const activas = allSubs.filter((s) => s.estado !== 'canceled');
     const efectivo = activas.filter((s) => s.metodoPago === 'efectivo');
+    const transferencia = activas.filter((s) => s.metodoPago === 'transferencia');
+    const requierenFactura = activas.filter((s) => s.factura);
     const vencidas = activas.filter((s) => s.estado === 'past_due' || s.estado === 'unpaid');
     const proximos = activas.filter((s) => diasHasta(s.proximaFechaISO) <= 7 && diasHasta(s.proximaFechaISO) >= 0);
     const finalizadas = allSubs.filter((s) => s.estado === 'canceled');
@@ -282,6 +299,8 @@
     row.innerHTML = [
       ['Activas', activas.length],
       ['En efectivo', efectivo.length],
+      ['En transferencia', transferencia.length],
+      ['Requieren factura', requierenFactura.length],
       ['Próximas a vencer (7 días)', proximos.length],
       ['Pago vencido', vencidas.length],
       ['Finalizadas', finalizadas.length],
@@ -296,7 +315,9 @@
   function matchesFilter(s) {
     switch (currentFilter) {
       case 'efectivo': return s.metodoPago === 'efectivo' && s.estado !== 'canceled';
+      case 'transferencia': return s.metodoPago === 'transferencia' && s.estado !== 'canceled';
       case 'tarjeta': return s.metodoPago === 'tarjeta' && s.estado !== 'canceled';
+      case 'factura': return s.factura && s.estado !== 'canceled';
       case 'renta': return !s.esAroma && s.estado !== 'canceled';
       case 'aromas': return s.esAroma && s.estado !== 'canceled';
       case 'vencido': return s.estado === 'past_due' || s.estado === 'unpaid';
@@ -318,7 +339,7 @@
     }
 
     body.innerHTML = visibles.map((s) => {
-      const puedeMarcarPago = s.metodoPago === 'efectivo' && s.estado !== 'canceled';
+      const puedeMarcarPago = (s.metodoPago === 'efectivo' || s.metodoPago === 'transferencia') && s.estado !== 'canceled';
       const dias = diasHasta(s.proximaFechaISO);
       const porVencer = s.estado !== 'canceled' && dias <= 7 && dias >= 0;
       const rowStyle = porVencer ? ' style="border-left:3px solid #d6a15c; background:rgba(214,161,92,0.06);"' : '';
@@ -340,7 +361,7 @@
           <td>${money(s.montoMensual)}</td>
           <td>${s.proximaFechaLabel}${diasTag}</td>
           <td><span class="badge status-${s.estado}">${s.estado}</span></td>
-          <td><span class="badge ${s.metodoPago}">${s.metodoPago}</span></td>
+          <td><span class="badge ${s.metodoPago}">${s.metodoPago}</span>${s.factura ? ' <span class="badge factura">factura</span>' : ''}</td>
           <td>
             <div class="row-actions">
               <button class="mini-btn" data-action="editar" data-id="${s.id}">Editar</button>
@@ -419,6 +440,8 @@
   const modalNueva = document.getElementById('modalNueva');
   document.getElementById('btnNueva').addEventListener('click', () => {
     ['nNombre','nCorreo','nTelefono','nPlan','nTamano','nAroma','nMonto','nFechaInicio'].forEach((id) => document.getElementById(id).value = '');
+    document.getElementById('nMetodoPago').value = 'efectivo';
+    document.getElementById('nFactura').checked = false;
     document.getElementById('nMsg').textContent = '';
     modalNueva.classList.add('open');
   });
@@ -433,6 +456,8 @@
     const aroma = document.getElementById('nAroma').value.trim();
     const montoMensual = document.getElementById('nMonto').value;
     const fechaInicio = document.getElementById('nFechaInicio').value;
+    const metodoPago = document.getElementById('nMetodoPago').value;
+    const factura = document.getElementById('nFactura').checked;
     const msg = document.getElementById('nMsg');
 
     msg.className = 'modal-msg';
@@ -441,7 +466,7 @@
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     try {
-      await api('create', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio });
+      await api('create', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura });
       msg.className = 'modal-msg ok';
       msg.textContent = '¡Suscripción creada!';
       await loadSubs();
