@@ -338,6 +338,27 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
   </div>
 </div>
 
+<!-- ============ MODAL: rentar desde stock ============ -->
+<div class="modal-bg" id="modalRentarStock">
+  <div class="modal">
+    <h3>Rentar desde stock</h3>
+    <div class="field"><label>Equipo</label><input type="text" id="mrsModelo" readonly style="opacity:0.75;"></div>
+    <div class="field"><label>Disponible</label><input type="text" id="mrsDisponible" readonly style="opacity:0.75;"></div>
+    <div class="field"><label>Cliente</label><input type="text" id="mrsCliente" placeholder="Nombre del cliente"></div>
+    <div class="field"><label>Monto mensual (MXN)</label><input type="number" id="mrsMonto"></div>
+    <div class="field"><label>Fecha</label><input type="date" id="mrsFecha"></div>
+    <div class="checkrow">
+      <label><input type="checkbox" id="mrsPagado"> Pagado</label>
+    </div>
+    <div class="field"><label>Notas</label><textarea id="mrsNotas"></textarea></div>
+    <div class="small" style="margin:-6px 0 12px; color:var(--muted);">Este equipo se descuenta de "disponible" en Stock. Cuando el cliente cancele, marca esta renta como inactiva en "Difusores &amp; Rentas" y el equipo regresa solo al stock.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('modalRentarStock')">Cancelar</button>
+      <button class="btn" id="mrsGuardar">Rentar</button>
+    </div>
+  </div>
+</div>
+
 <div class="empty" id="toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--gold);border-radius:999px;padding:10px 20px;z-index:300;color:var(--cream);font-size:0.82rem;"></div>
 
 <script>
@@ -1200,7 +1221,19 @@ async function guardarDifusor() {
   };
   if (editingId) {
     const idx = DIFUSORES.findIndex((x) => x.id === editingId);
-    if (idx >= 0) DIFUSORES[idx] = Object.assign({}, DIFUSORES[idx], data);
+    if (idx >= 0) {
+      const previo = DIFUSORES[idx];
+      // Si esta renta está vinculada a un producto de Stock y el estado
+      // "Activo" cambió, regresamos o volvemos a sacar el equipo del stock.
+      if (previo.stockId && previo.activo !== data.activo) {
+        const s = STOCK.find((x) => x.id === previo.stockId);
+        if (s) {
+          if (previo.activo && !data.activo) s.cantidad += 1; // se canceló → regresa al stock
+          else if (!previo.activo && data.activo) s.cantidad = Math.max(0, s.cantidad - 1); // se reactivó → vuelve a salir
+        }
+      }
+      DIFUSORES[idx] = Object.assign({}, previo, data);
+    }
   } else {
     data.id = nextId('d', DIFUSORES);
     DIFUSORES.push(data);
@@ -1230,7 +1263,7 @@ function renderStock() {
       <td class="right small">${s.costoUnitario ? money(s.costoUnitario) : '—'}</td>
       <td class="right small">${s.ventaUnitaria ? money(s.ventaUnitaria) : '—'}</td>
       <td class="small">${esc(s.notas || '—')}</td>
-      <td><button class="btn sm" data-vendstock="${s.id}">Vender</button> <button class="btn sm ghost" data-editstock="${s.id}">Editar</button> <button class="btn sm danger" data-delstock="${s.id}">✕</button></td>
+      <td><button class="btn sm" data-vendstock="${s.id}">Vender</button> <button class="btn sm ghost" data-rentstock="${s.id}">Rentar</button> <button class="btn sm ghost" data-editstock="${s.id}">Editar</button> <button class="btn sm danger" data-delstock="${s.id}">✕</button></td>
     </tr>`).join('');
 
   return `
@@ -1349,6 +1382,51 @@ async function guardarVentaDesdeStock() {
   await persist();
   closeModal('modalVenderStock');
   showToast('Venta registrada y stock actualizado.');
+  render();
+}
+
+/* ---- Rentar desde stock: crea la renta en Difusores & Rentas y descuenta 1 del stock ---- */
+function openRentarStockModal(id) {
+  const s = STOCK.find((x) => x.id === id);
+  if (!s) return;
+  editingId = id;
+  document.getElementById('mrsModelo').value = s.producto;
+  document.getElementById('mrsDisponible').value = s.cantidad + ' disponible(s)';
+  document.getElementById('mrsCliente').value = '';
+  document.getElementById('mrsMonto').value = '';
+  document.getElementById('mrsFecha').value = '';
+  document.getElementById('mrsPagado').checked = false;
+  document.getElementById('mrsNotas').value = '';
+  openModalEl('modalRentarStock');
+}
+
+async function guardarRentaDesdeStock() {
+  const s = STOCK.find((x) => x.id === editingId);
+  if (!s) { showToast('No se encontró el producto de stock.'); return; }
+  const cliente = document.getElementById('mrsCliente').value.trim();
+  const monto = parseFloat(document.getElementById('mrsMonto').value);
+  if (!cliente) { showToast('Falta el nombre del cliente.'); return; }
+  if (isNaN(monto)) { showToast('Falta el monto mensual.'); return; }
+  if (s.cantidad < 1) { showToast('No hay unidades disponibles de este equipo.'); return; }
+
+  DIFUSORES.push({
+    id: nextId('d', DIFUSORES),
+    tipo: 'renta',
+    cliente,
+    modelo: s.producto,
+    monto,
+    fecha: document.getElementById('mrsFecha').value,
+    pagado: document.getElementById('mrsPagado').checked,
+    activo: true,
+    notas: document.getElementById('mrsNotas').value.trim(),
+    stockId: s.id, // vincula esta renta con el producto de Stock del que salió
+  });
+
+  s.cantidad -= 1;
+
+  await persist();
+  closeModal('modalRentarStock');
+  showToast('Renta registrada y stock actualizado.');
   render();
 }
 
@@ -1529,6 +1607,11 @@ function attachHandlers() {
   document.querySelectorAll('[data-deldif]').forEach((el) => {
     el.addEventListener('click', async () => {
       if (!confirm('¿Eliminar este registro?')) return;
+      const registro = DIFUSORES.find((x) => x.id === el.dataset.deldif);
+      if (registro && registro.stockId && registro.activo) {
+        const s = STOCK.find((x) => x.id === registro.stockId);
+        if (s) s.cantidad += 1; // devolvemos el equipo al stock al borrar una renta activa
+      }
       DIFUSORES = DIFUSORES.filter((x) => x.id !== el.dataset.deldif);
       await persist();
       render();
@@ -1545,6 +1628,9 @@ function attachHandlers() {
   });
   document.querySelectorAll('[data-vendstock]').forEach((el) => {
     el.addEventListener('click', () => openVenderStockModal(el.dataset.vendstock));
+  });
+  document.querySelectorAll('[data-rentstock]').forEach((el) => {
+    el.addEventListener('click', () => openRentarStockModal(el.dataset.rentstock));
   });
   document.querySelectorAll('[data-delstock]').forEach((el) => {
     el.addEventListener('click', async () => {
@@ -1673,6 +1759,7 @@ document.getElementById('mstAplicarArticulo').addEventListener('click', () => {
 
 document.getElementById('mstGuardar').addEventListener('click', guardarStock);
 document.getElementById('mvsGuardar').addEventListener('click', guardarVentaDesdeStock);
+document.getElementById('mrsGuardar').addEventListener('click', guardarRentaDesdeStock);
 document.getElementById('mvsCantidad').addEventListener('input', (e) => {
   const cant = Math.max(1, parseInt(e.target.value, 10) || 1);
   const costoUnit = Number(e.target.dataset.costounit) || 0;
