@@ -257,6 +257,10 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       <label><input type="checkbox" id="mdPagado"> Pagado</label>
       <label><input type="checkbox" id="mdActivo" checked> Activo (si es renta)</label>
     </div>
+    <div class="field"><label>Vincular a producto de Stock (opcional)</label>
+      <select id="mdStockLink"><option value="">— Ninguno —</option></select>
+    </div>
+    <div class="small" style="margin:-6px 0 12px; color:var(--muted);">Si este equipo salió de tu inventario de Stock, vincúlalo aquí — se descuenta de "disponible" ahora, y regresa solo cuando marques esta renta como inactiva.</div>
     <div class="field"><label>Notas</label><textarea id="mdNotas"></textarea></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal('modalDifusor')">Cancelar</button>
@@ -1203,7 +1207,22 @@ function openDifusorModal(id) {
   document.getElementById('mdPagado').checked = d ? !!d.pagado : false;
   document.getElementById('mdActivo').checked = d ? !!d.activo : true;
   document.getElementById('mdNotas').value = d ? (d.notas || '') : '';
+
+  // Poblar el selector de vínculo con Stock: siempre incluye el producto ya
+  // vinculado (aunque su disponible esté en 0) más los que tengan existencia.
+  const linkSel = document.getElementById('mdStockLink');
+  const yaVinculado = d ? d.stockId : null;
+  const opciones = STOCK.filter((s) => s.cantidad > 0 || s.id === yaVinculado);
+  linkSel.innerHTML = '<option value="">— Ninguno —</option>' +
+    opciones.map((s) => `<option value="${s.id}" ${s.id === yaVinculado ? 'selected' : ''}>${esc(s.producto)} (${s.cantidad} disp.)</option>`).join('');
+
   openModalEl('modalDifusor');
+}
+
+function ajustarCantidadStock(stockId, delta) {
+  if (!stockId) return;
+  const s = STOCK.find((x) => x.id === stockId);
+  if (s) s.cantidad = Math.max(0, s.cantidad + delta);
 }
 
 async function guardarDifusor() {
@@ -1218,24 +1237,32 @@ async function guardarDifusor() {
     pagado: document.getElementById('mdPagado').checked,
     activo: document.getElementById('mdActivo').checked,
     notas: document.getElementById('mdNotas').value.trim(),
+    stockId: document.getElementById('mdStockLink').value || null,
   };
   if (editingId) {
     const idx = DIFUSORES.findIndex((x) => x.id === editingId);
     if (idx >= 0) {
       const previo = DIFUSORES[idx];
-      // Si esta renta está vinculada a un producto de Stock y el estado
-      // "Activo" cambió, regresamos o volvemos a sacar el equipo del stock.
-      if (previo.stockId && previo.activo !== data.activo) {
-        const s = STOCK.find((x) => x.id === previo.stockId);
-        if (s) {
-          if (previo.activo && !data.activo) s.cantidad += 1; // se canceló → regresa al stock
-          else if (!previo.activo && data.activo) s.cantidad = Math.max(0, s.cantidad - 1); // se reactivó → vuelve a salir
+      const oldStockId = previo.stockId || null;
+      const newStockId = data.stockId;
+
+      if (oldStockId === newStockId) {
+        // mismo vínculo (o ninguno): solo ajustar si cambió "Activo"
+        if (oldStockId && previo.activo !== data.activo) {
+          if (previo.activo && !data.activo) ajustarCantidadStock(oldStockId, +1); // se canceló → regresa
+          else if (!previo.activo && data.activo) ajustarCantidadStock(oldStockId, -1); // se reactivó → vuelve a salir
         }
+      } else {
+        // el vínculo cambió (se agregó, se quitó, o se cambió de producto):
+        // regresamos al anterior si estaba activo, y descontamos del nuevo si queda activo
+        if (oldStockId && previo.activo) ajustarCantidadStock(oldStockId, +1);
+        if (newStockId && data.activo) ajustarCantidadStock(newStockId, -1);
       }
       DIFUSORES[idx] = Object.assign({}, previo, data);
     }
   } else {
     data.id = nextId('d', DIFUSORES);
+    if (data.stockId && data.activo) ajustarCantidadStock(data.stockId, -1);
     DIFUSORES.push(data);
   }
   await persist();
