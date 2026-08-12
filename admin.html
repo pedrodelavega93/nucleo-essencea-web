@@ -191,6 +191,11 @@
       <label>Fecha en que se suscribió (opcional — si no la das, se usa hoy)</label>
       <input type="date" id="nFechaInicio">
     </div>
+    <div class="field" id="nStockField" style="display:none;">
+      <label>Equipo que se está entregando (opcional)</label>
+      <select id="nStockLink"><option value="">— No descontar de Stock —</option></select>
+      <div class="small" style="margin-top:6px; color:var(--muted);">Si eliges un equipo, se descuenta de "disponible" en Control Total al dar de alta — no hace falta vincularlo después.</div>
+    </div>
     <div class="modal-actions">
       <button class="admin-btn ghost" data-close="modalNueva">Cancelar</button>
       <button class="admin-btn" id="nGuardar">Dar de alta</button>
@@ -227,6 +232,27 @@
   </div>
 </div>
 
+<!-- ============ MODAL: VINCULAR A CONTROL TOTAL ============ -->
+<div class="modal-bg" id="modalVincular">
+  <div class="modal-box">
+    <h3>Vincular a Control Total</h3>
+    <div class="field">
+      <label>Cliente</label>
+      <input type="text" id="vCliente" readonly style="opacity:0.75;">
+    </div>
+    <div class="field">
+      <label>Equipo que tiene el cliente</label>
+      <select id="vStockLink"><option value="">— No descontar de Stock —</option></select>
+      <div class="small" style="margin-top:6px; color:var(--muted);">Si eliges un equipo, se descuenta de "disponible" en Control Total al confirmar.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="admin-btn ghost" data-close="modalVincular">Cancelar</button>
+      <button class="admin-btn" id="vGuardar">Vincular</button>
+    </div>
+    <div class="modal-msg" id="vMsg"></div>
+  </div>
+</div>
+
 <script>
 (function () {
   const STORAGE_KEY = 'nucleo_admin_pw';
@@ -250,6 +276,34 @@
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data.error || 'Error de conexión.');
     return data;
+  }
+
+  async function apiCT(action, body) {
+    const resp = await fetch('/api/control-total', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ password, action }, body || {})),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || 'Error de conexión con Control Total.');
+    return data;
+  }
+
+  async function poblarStockSelect(selectEl, seleccionActual) {
+    selectEl.innerHTML = '<option value="">— No descontar de Stock —</option>';
+    try {
+      const r = await apiCT('get');
+      const stock = (r.data && r.data.stock) || [];
+      stock.filter((s) => s.cantidad > 0 || s.id === seleccionActual).forEach((s) => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.producto} (${s.cantidad} disp.)`;
+        if (s.id === seleccionActual) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+    } catch (err) {
+      console.error('No se pudo cargar Stock:', err);
+    }
   }
 
   async function tryEnter() {
@@ -438,35 +492,7 @@
         btn.textContent = 'Marcar pago';
       }
     } else if (btn.dataset.action === 'vincular') {
-      btn.disabled = true;
-      btn.textContent = 'Vinculando…';
-      try {
-        const resp = await fetch('/api/control-total', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            password,
-            action: 'linkDifusor',
-            data: {
-              cliente: sub.nombre || sub.correo || 'Sin nombre',
-              modelo: sub.planNombre || sub.etiqueta || 'Renta de Difusores',
-              monto: sub.montoMensual,
-              fecha: sub.proximaFechaISO ? sub.proximaFechaISO.slice(0, 10) : '',
-              pagado: sub.estado === 'active',
-              notas: `Vinculado desde el Panel — ${sub.correo || ''}`.trim(),
-              subscriptionId: sub.id,
-            },
-          }),
-        });
-        const result = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(result.error || 'Error de conexión con Control Total.');
-        await api('update', { subscriptionId: id, marcarVinculado: true });
-        await loadSubs();
-      } catch (err) {
-        alert('No se pudo vincular: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = 'Vincular a Control Total';
-      }
+      abrirModalVincular(sub);
     }
   });
 
@@ -493,8 +519,17 @@
     document.getElementById('nFactura').checked = false;
     document.getElementById('nMontoConIva').textContent = '';
     document.getElementById('nMsg').textContent = '';
+    document.getElementById('nTipo').value = 'suscripcion_renta';
+    actualizarCampoStockNueva();
     modalNueva.classList.add('open');
   });
+
+  function actualizarCampoStockNueva() {
+    const esRenta = document.getElementById('nTipo').value === 'suscripcion_renta';
+    document.getElementById('nStockField').style.display = esRenta ? '' : 'none';
+    if (esRenta) poblarStockSelect(document.getElementById('nStockLink'), '');
+  }
+  document.getElementById('nTipo').addEventListener('change', actualizarCampoStockNueva);
 
   document.getElementById('nGuardar').addEventListener('click', async () => {
     const nombre = document.getElementById('nNombre').value.trim();
@@ -516,11 +551,38 @@
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     try {
-      await api('create', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura });
-      msg.className = 'modal-msg ok';
-      msg.textContent = '¡Suscripción creada!';
+      const creada = await api('create', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura });
+
+      // Si es renta y eligieron un equipo de Stock, lo vinculamos y descontamos
+      // de una vez — así no hace falta el paso aparte de "Vincular" después,
+      // y evitamos que el mismo equipo se descuente dos veces.
+      const stockId = tipoPedido === 'suscripcion_renta' ? document.getElementById('nStockLink').value : '';
+      if (stockId) {
+        try {
+          await apiCT('linkDifusor', {
+            cliente: nombre || correo || 'Sin nombre',
+            modelo: planNombre || 'Renta de Difusores',
+            monto: montoMensual,
+            fecha: fechaInicio || new Date().toISOString().slice(0, 10),
+            pagado: false,
+            notas: `Dado de alta desde el Panel — ${correo || ''}`.trim(),
+            subscriptionId: creada.subscriptionId,
+            stockId,
+          });
+          await api('update', { subscriptionId: creada.subscriptionId, marcarVinculado: true });
+        } catch (errCT) {
+          console.error('No se pudo vincular/descontar Stock:', errCT);
+          msg.className = 'modal-msg err';
+          msg.textContent = 'La suscripción se creó, pero no se pudo descontar el Stock: ' + errCT.message + ' — vincúlala manualmente desde la tabla.';
+        }
+      }
+
+      if (!msg.textContent) {
+        msg.className = 'modal-msg ok';
+        msg.textContent = '¡Suscripción creada!';
+      }
       await loadSubs();
-      setTimeout(() => modalNueva.classList.remove('open'), 700);
+      setTimeout(() => modalNueva.classList.remove('open'), 900);
     } catch (err) {
       msg.className = 'modal-msg err';
       msg.textContent = err.message;
@@ -568,6 +630,52 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Guardar cambios';
+    }
+  });
+
+  // ---- modal: vincular a Control Total (con selección de equipo de Stock) ----
+  const modalVincular = document.getElementById('modalVincular');
+  let vinculandoSub = null;
+  function abrirModalVincular(sub) {
+    vinculandoSub = sub;
+    document.getElementById('vCliente').value = sub.nombre || sub.correo || 'Sin nombre';
+    document.getElementById('vMsg').textContent = '';
+    poblarStockSelect(document.getElementById('vStockLink'), '');
+    modalVincular.classList.add('open');
+  }
+
+  document.getElementById('vGuardar').addEventListener('click', async () => {
+    if (!vinculandoSub) return;
+    const sub = vinculandoSub;
+    const stockId = document.getElementById('vStockLink').value;
+    const msg = document.getElementById('vMsg');
+    const btn = document.getElementById('vGuardar');
+    msg.className = 'modal-msg';
+    msg.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Vinculando…';
+    try {
+      await apiCT('linkDifusor', {
+        cliente: sub.nombre || sub.correo || 'Sin nombre',
+        modelo: sub.planNombre || sub.etiqueta || 'Renta de Difusores',
+        monto: sub.montoMensual,
+        fecha: sub.proximaFechaISO ? sub.proximaFechaISO.slice(0, 10) : '',
+        pagado: sub.estado === 'active',
+        notas: `Vinculado desde el Panel — ${sub.correo || ''}`.trim(),
+        subscriptionId: sub.id,
+        stockId: stockId || null,
+      });
+      await api('update', { subscriptionId: sub.id, marcarVinculado: true });
+      msg.className = 'modal-msg ok';
+      msg.textContent = '¡Vinculado!';
+      await loadSubs();
+      setTimeout(() => modalVincular.classList.remove('open'), 700);
+    } catch (err) {
+      msg.className = 'modal-msg err';
+      msg.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Vincular';
     }
   });
 
