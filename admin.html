@@ -278,15 +278,24 @@
     return data;
   }
 
-  async function apiCT(action, body) {
-    const resp = await fetch('/api/control-total', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({ password, action }, body || {})),
-    });
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(data.error || 'Error de conexión con Control Total.');
-    return data;
+  async function apiCT(action, body, intentos = 3) {
+    let ultimoError;
+    for (let i = 1; i <= intentos; i++) {
+      try {
+        const resp = await fetch('/api/control-total', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.assign({ password, action }, body || {})),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.error || 'Error de conexión con Control Total.');
+        return data;
+      } catch (err) {
+        ultimoError = err;
+        if (i < intentos) await new Promise((r) => setTimeout(r, 400 * i));
+      }
+    }
+    throw ultimoError;
   }
 
   async function poblarStockSelect(selectEl, seleccionActual) {
@@ -560,14 +569,16 @@
       if (stockId) {
         try {
           await apiCT('linkDifusor', {
-            cliente: nombre || correo || 'Sin nombre',
-            modelo: planNombre || 'Renta de Difusores',
-            monto: montoMensual,
-            fecha: fechaInicio || new Date().toISOString().slice(0, 10),
-            pagado: false,
-            notas: `Dado de alta desde el Panel — ${correo || ''}`.trim(),
-            subscriptionId: creada.subscriptionId,
-            stockId,
+            data: {
+              cliente: nombre || correo || 'Sin nombre',
+              modelo: planNombre || 'Renta de Difusores',
+              monto: montoMensual,
+              fecha: fechaInicio || new Date().toISOString().slice(0, 10),
+              pagado: false,
+              notas: `Dado de alta desde el Panel — ${correo || ''}`.trim(),
+              subscriptionId: creada.subscriptionId,
+              stockId,
+            },
           });
           await api('update', { subscriptionId: creada.subscriptionId, marcarVinculado: true });
         } catch (errCT) {
@@ -656,14 +667,16 @@
     btn.textContent = 'Vinculando…';
     try {
       await apiCT('linkDifusor', {
-        cliente: sub.nombre || sub.correo || 'Sin nombre',
-        modelo: sub.planNombre || sub.etiqueta || 'Renta de Difusores',
-        monto: sub.montoMensual,
-        fecha: sub.proximaFechaISO ? sub.proximaFechaISO.slice(0, 10) : '',
-        pagado: sub.estado === 'active',
-        notas: `Vinculado desde el Panel — ${sub.correo || ''}`.trim(),
-        subscriptionId: sub.id,
-        stockId: stockId || null,
+        data: {
+          cliente: sub.nombre || sub.correo || 'Sin nombre',
+          modelo: sub.planNombre || sub.etiqueta || 'Renta de Difusores',
+          monto: sub.montoMensual,
+          fecha: sub.proximaFechaISO ? sub.proximaFechaISO.slice(0, 10) : '',
+          pagado: sub.estado === 'active',
+          notas: `Vinculado desde el Panel — ${sub.correo || ''}`.trim(),
+          subscriptionId: sub.id,
+          stockId: stockId || null,
+        },
       });
       await api('update', { subscriptionId: sub.id, marcarVinculado: true });
       msg.className = 'modal-msg ok';
