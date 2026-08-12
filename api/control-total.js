@@ -79,6 +79,45 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true });
     }
 
+    if (action === 'linkDifusor') {
+      // Usado por el Panel (admin.html) para mandar de un clic una suscripción
+      // de renta a la pestaña "Difusores & Rentas" de Control Total.
+      if (!data || typeof data !== 'object' || !data.cliente || !data.modelo) {
+        return res.status(400).json({ error: 'Faltan datos del difusor a vincular.' });
+      }
+      const actual = (await kvGet()) || { ventas: [], gastos: [], difusores: [], stock: [] };
+      if (!Array.isArray(actual.difusores)) actual.difusores = [];
+
+      // evita duplicar si ya se vinculó antes esta misma suscripción
+      if (data.subscriptionId && actual.difusores.some((d) => d.subscriptionId === data.subscriptionId)) {
+        return res.status(200).json({ ok: true, yaExistia: true });
+      }
+
+      let maxNum = 0;
+      actual.difusores.forEach((d) => {
+        const m = String(d.id || '').match(/(\d+)$/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+      });
+      const nuevo = {
+        id: 'd' + (maxNum + 1),
+        tipo: 'renta',
+        cliente: data.cliente,
+        modelo: data.modelo,
+        monto: Number(data.monto) || 0,
+        fecha: data.fecha || '',
+        pagado: !!data.pagado,
+        activo: true,
+        notas: data.notas || '',
+        stockId: null,
+        subscriptionId: data.subscriptionId || null,
+      };
+      actual.difusores.push(nuevo);
+
+      const ok = await kvSet(actual);
+      if (!ok) return res.status(500).json({ error: 'La base de datos no confirmó el guardado.' });
+      return res.status(200).json({ ok: true, id: nuevo.id });
+    }
+
     return res.status(400).json({ error: 'Acción no reconocida.' });
   } catch (err) {
     console.error('[control-total] Error:', err);
