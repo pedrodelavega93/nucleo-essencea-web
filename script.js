@@ -676,7 +676,54 @@ if (catalogGroupFilter) {
 }
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && catalogModal.classList.contains('open')) closeCatalog();
+  if (e.key === 'Escape' && difusoresModal && difusoresModal.classList.contains('open')) closeDifusoresModal();
 });
+
+/* ============ MODAL RÁPIDO DE DIFUSORES ============ */
+const difusoresModal = document.getElementById('difusoresModal');
+const difusoresModalClose = document.getElementById('difusoresModalClose');
+const conservaDifusorBtn = document.getElementById('conservaDifusorBtn');
+const difusoresVerEspecs = document.getElementById('difusoresVerEspecs');
+
+function openDifusoresModal() {
+  difusoresModal.classList.add('open');
+  document.body.classList.add('catalog-open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDifusoresModal() {
+  difusoresModal.classList.remove('open');
+  document.body.classList.remove('catalog-open');
+  document.body.style.overflow = '';
+}
+if (conservaDifusorBtn) conservaDifusorBtn.addEventListener('click', openDifusoresModal);
+if (difusoresModalClose) difusoresModalClose.addEventListener('click', closeDifusoresModal);
+if (difusoresModal) {
+  difusoresModal.addEventListener('click', (e) => {
+    if (e.target === difusoresModal) closeDifusoresModal();
+  });
+}
+if (difusoresVerEspecs) {
+  difusoresVerEspecs.addEventListener('click', () => closeDifusoresModal());
+}
+
+function getDifusoresScrollTarget() {
+  const inner = difusoresModal.querySelector('.catalog-modal-inner');
+  if (inner && inner.scrollHeight > inner.clientHeight + 4) return inner;
+  return difusoresModal.querySelector('.difusor-quick-list');
+}
+const difusoresScrollTop = document.getElementById('difusoresScrollTop');
+const difusoresScrollBottom = document.getElementById('difusoresScrollBottom');
+if (difusoresScrollTop) {
+  difusoresScrollTop.addEventListener('click', () => {
+    getDifusoresScrollTarget().scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
+if (difusoresScrollBottom) {
+  difusoresScrollBottom.addEventListener('click', () => {
+    const el = getDifusoresScrollTarget();
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  });
+}
 
 
 /* ============ GESTIONAR SUSCRIPCIÓN (lista + cambio de aroma) ============ */
