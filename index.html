@@ -712,6 +712,29 @@
       <div class="event-includes-item">Configuración de intensidad y horarios</div>
     </div>
 
+    <!-- ¿Cómo funciona? -->
+    <div class="section-head reveal" style="margin-bottom:32px;">
+      <div class="eyebrow">¿Cómo funciona?</div>
+    </div>
+    <div class="event-howworks reveal">
+      <div class="event-howworks-item">
+        <div class="event-howworks-num">01</div>
+        <h4>Conocemos tu evento</h4>
+        <p>Analizamos espacio, dimensiones, distribución y duración.</p>
+      </div>
+      <div class="event-howworks-item">
+        <div class="event-howworks-num">02</div>
+        <h4>Diseñamos la experiencia</h4>
+        <p>Seleccionamos el sistema y perfil aromático adecuado.</p>
+      </div>
+      <div class="event-howworks-item">
+        <div class="event-howworks-num">03</div>
+        <h4>Nosotros nos encargamos</h4>
+        <p>Instalamos, programamos y retiramos los equipos después del evento.</p>
+      </div>
+    </div>
+    <p class="event-howworks-closing reveal">Tú disfruta. Nosotros nos encargamos del aroma.</p>
+
     <!-- ============ WIZARD ============ -->
     <div class="event-wizard reveal" id="eventWizard">
 
@@ -751,13 +774,14 @@
       <!-- Paso 3 -->
       <div class="wizard-step" data-step="3">
         <div class="wizard-step-eyebrow">03 — Distribución</div>
-        <h3>¿Cuántas áreas quieres aromatizar?</h3>
-        <p class="wizard-step-context">Un evento de 300 m² completamente abierto puede requerir una configuración diferente a uno de 300 m² dividido en varias áreas.</p>
+        <h3>¿Cómo está distribuido tu evento?</h3>
+        <p class="wizard-step-context">No te preocupes por los detalles técnicos — nosotros analizamos la mejor cobertura para tu espacio.</p>
         <div class="event-chip-group" id="eventAreasChips">
-          <button type="button" class="event-chip" data-value="1 área">1 área</button>
-          <button type="button" class="event-chip" data-value="2–3 áreas">2–3 áreas</button>
-          <button type="button" class="event-chip" data-value="4–5 áreas">4–5 áreas</button>
-          <button type="button" class="event-chip" data-value="6 o más áreas">6 o más áreas</button>
+          <button type="button" class="event-chip" data-value="Un solo espacio">Un solo espacio</button>
+          <button type="button" class="event-chip" data-value="Dos espacios">Dos espacios</button>
+          <button type="button" class="event-chip" data-value="Tres o más espacios">Tres o más espacios</button>
+          <button type="button" class="event-chip" data-value="Varias áreas / diferentes ambientes">Varias áreas / diferentes ambientes</button>
+          <button type="button" class="event-chip" data-value="No estoy seguro">No estoy seguro</button>
         </div>
         <div class="wizard-note" id="areasNote"></div>
       </div>
@@ -766,8 +790,9 @@
       <div class="wizard-step" data-step="4">
         <div class="wizard-step-eyebrow">04 — La experiencia</div>
         <h3>¿Cuánto tiempo quieres que el aroma acompañe a tus invitados?</h3>
-        <p class="wizard-step-context">Nuestros eventos comienzan a partir de 4 horas para garantizar una presencia aromática constante.</p>
+        <p class="wizard-step-context">Selecciona el tiempo durante el cual deseas que el aroma acompañe a tus invitados.</p>
         <div class="event-chip-group" id="eventDurationChips" style="margin-bottom:14px;">
+          <button type="button" class="event-chip" data-value="2 horas">2 horas</button>
           <button type="button" class="event-chip" data-value="4 horas">4 horas</button>
           <button type="button" class="event-chip" data-value="6 horas">6 horas</button>
           <button type="button" class="event-chip" data-value="8 horas">8 horas</button>
@@ -881,6 +906,7 @@
         <div class="plan-name">Núcleo Evento</div>
         <h3 class="serif">Essential</h3>
         <div class="plan-price">Desde $2,000<span>MXN</span></div>
+        <p class="plan-audience">Para celebraciones íntimas y espacios pequeños.</p>
         <p class="plan-hook">Hasta 150 m² · Hasta 4 horas incluidas.</p>
         <ul class="plan-features">
           <li>1 equipo de aromatización profesional</li>
@@ -897,6 +923,7 @@
         <div class="plan-name">Núcleo Evento</div>
         <h3 class="serif">Signature</h3>
         <div class="plan-price">Desde $3,000<span>MXN</span></div>
+        <p class="plan-audience">Para eventos sociales y corporativos de tamaño medio.</p>
         <p class="plan-hook">150–350 m² · Hasta 6 horas incluidas.</p>
         <ul class="plan-features">
           <li>1–2 equipos según distribución</li>
@@ -913,6 +940,7 @@
         <div class="plan-name">Núcleo Evento</div>
         <h3 class="serif">Premium</h3>
         <div class="plan-price">Desde $4,500<span>MXN</span></div>
+        <p class="plan-audience">Para grandes celebraciones donde el aroma debe estar presente en diferentes zonas.</p>
         <p class="plan-hook">350–700 m² · Hasta 8 horas incluidas.</p>
         <ul class="plan-features">
           <li>Sistema dimensionado al espacio</li>
@@ -929,6 +957,7 @@
         <div class="plan-name">Núcleo Evento</div>
         <h3 class="serif">Experience</h3>
         <div class="plan-price" style="font-size:1.1rem;">Cotización personalizada</div>
+        <p class="plan-audience">Para eventos de gran formato y experiencias completamente personalizadas.</p>
         <p class="plan-hook">+700 m² · Grandes bodas, corporativos y espacios de gran formato.</p>
         <ul class="plan-features">
           <li>Sistema de aromatización a la medida</li>
@@ -945,16 +974,32 @@
     <div class="event-crosssell reveal">
       <div class="eyebrow" style="justify-content:center;">Núcleo Wedding Scent</div>
       <h3 class="serif">El aroma de uno de los días más importantes de tu vida</h3>
-      <p>Tu boda tiene una historia, una estética y una personalidad propia — nosotros podemos
-        convertirla también en una experiencia aromática. Y cuando termine la celebración, puedes
-        llevar ese mismo aroma contigo en perfume, spray ambiental, aceite para difusor o un
-        difusor para casa.</p>
+      <p>Tu boda puede tener un aroma propio.</p>
+      <button type="button" class="buy-btn" id="weddingScentCta" style="display:inline-block; margin-top:6px; cursor:pointer;">Crea el aroma de tu boda →</button>
     </div>
 
     <div class="event-crosssell reveal" style="margin-top:24px;">
       <h3 class="serif">¿Quieres conservar el aroma de tu evento?</h3>
-      <p>El mismo aroma que acompañó tu celebración puede acompañarte después en casa —
-        aceites, sprays, perfumes y difusores disponibles en nuestro catálogo.</p>
+      <p>El mismo aroma que acompañó tu celebración puede acompañarte después en casa.</p>
+      <div class="conserva-grid">
+        <div class="conserva-card">
+          <h4>Perfume</h4>
+          <p>Lleva contigo la esencia de tu celebración.</p>
+        </div>
+        <div class="conserva-card">
+          <h4>Home Spray</h4>
+          <p>Revive el aroma en tus espacios.</p>
+        </div>
+        <div class="conserva-card">
+          <h4>Aceite</h4>
+          <p>Continúa aromatizando tu hogar.</p>
+        </div>
+        <div class="conserva-card">
+          <h4>Difusor</h4>
+          <p>Haz permanente la experiencia.</p>
+        </div>
+      </div>
+      <button type="button" class="buy-btn outline" data-catalog="ambientales" style="display:inline-block; margin-top:22px; cursor:pointer;">Descubre los aromas →</button>
     </div>
 
   </div>
