@@ -2674,4 +2674,14 @@ button.buy-mini{
   .catalog-buy{
     padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));
   }
+  /* El catálogo a pantalla completa comparte esquina con el menú/carrito
+     fijos (que tienen z-index más alto) — mientras está abierto, se ocultan
+     para que la "✕" de cerrar quede libre y no bloqueada detrás de ellos. */
+  body.catalog-open .fixed-actions{ display:none; }
+  .catalog-modal .modal-close{
+    position:sticky;
+    top:0;
+    z-index:5;
+    margin-left:auto;
+  }
 }
