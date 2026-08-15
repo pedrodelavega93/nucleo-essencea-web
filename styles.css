@@ -2755,6 +2755,8 @@ body.catalog-open .catalog-scroll-nav{ display:none; }
   margin-top:2px;
 }
 .dq-info .color-picker{ margin-top:10px; }
+.dq-info .gift-note{ margin-top:8px; }
+.dq-info .catalog-link.small{ margin-top:4px; margin-bottom:0; }
 .dq-buy{
   display:flex;
   flex-direction:column;
