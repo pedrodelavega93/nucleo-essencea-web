@@ -23,7 +23,7 @@
 
 <!-- ============ NAV FLOTANTE ============ -->
 <header class="topnav">
-  <div class="wordmark">NÚCLEO<em>essences</em></div>
+  <a href="#" class="wordmark" aria-label="Ir al inicio">NÚCLEO<em>essences</em></a>
   <nav>
     <a href="#difusores">Difusores</a>
     <div class="nav-dropdown" data-nav-dropdown>
@@ -39,6 +39,7 @@
     <a href="#home-sprays">Home Sprays</a>
     <a href="#perfumes">Perfumes</a>
     <a href="#aceites">Aceites</a>
+    <a href="#eventos">Eventos</a>
   </nav>
 </header>
 
@@ -67,6 +68,7 @@
       <a class="pill" href="#home-sprays">Home Sprays</a>
       <a class="pill" href="#perfumes">Perfumes</a>
       <a class="pill" href="#aceites">Aceites para difusor</a>
+      <a class="pill" href="#eventos">Eventos</a>
     </div>
   </div>
   <div class="scroll-cue" aria-hidden="true"></div>
@@ -680,6 +682,284 @@
   </div>
 </section>
 
+<!-- ============ EVENTOS ============ -->
+<section class="catalog-section alt" id="eventos">
+
+  <div class="event-hero">
+    <div class="event-hero-inner reveal">
+      <div class="eyebrow">Aromatización para momentos especiales</div>
+      <h2 class="serif">Eventos</h2>
+      <p>Haz que tu evento también tenga un aroma.</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="section-head reveal">
+      <p style="max-width:640px;">Diseñamos una experiencia aromática de acuerdo con el espacio, la
+        duración y la personalidad de tu evento. Tú disfruta el evento — nosotros nos encargamos del
+        aroma, el equipo, la instalación, el montaje y el desmontaje.</p>
+    </div>
+
+    <div class="event-includes reveal">
+      <div class="event-includes-item">Difusor(es) de aromatización profesional</div>
+      <div class="event-includes-item">Aceite aromático</div>
+      <div class="event-includes-item">Programación del sistema</div>
+      <div class="event-includes-item">Instalación y montaje</div>
+      <div class="event-includes-item">Desmontaje al finalizar</div>
+      <div class="event-includes-item">Logística dentro de zona de cobertura</div>
+      <div class="event-includes-item">Asesoría para elegir el aroma</div>
+      <div class="event-includes-item">Configuración de intensidad y horarios</div>
+    </div>
+
+    <!-- ============ WIZARD ============ -->
+    <div class="event-wizard reveal" id="eventWizard">
+
+      <div class="wizard-progress-label" id="wizardProgressLabel">Paso 1 / 7</div>
+      <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizardProgressFill"></div></div>
+
+      <!-- Paso 1 -->
+      <div class="wizard-step active" data-step="1">
+        <div class="wizard-step-eyebrow">01 — Tu evento</div>
+        <h3>¿Qué estás celebrando?</h3>
+        <p class="wizard-step-context">Cuéntanos qué tipo de evento estás organizando para adaptar la propuesta a su estilo.</p>
+        <div class="event-chip-group" id="eventTypeChips">
+          <button type="button" class="event-chip" data-value="Boda">Boda</button>
+          <button type="button" class="event-chip" data-value="XV años">XV años</button>
+          <button type="button" class="event-chip" data-value="Cumpleaños">Cumpleaños</button>
+          <button type="button" class="event-chip" data-value="Aniversario">Aniversario</button>
+          <button type="button" class="event-chip" data-value="Graduación">Graduación</button>
+          <button type="button" class="event-chip" data-value="Evento corporativo">Evento corporativo</button>
+          <button type="button" class="event-chip" data-value="Inauguración">Inauguración</button>
+          <button type="button" class="event-chip" data-value="Conferencia / Congreso">Conferencia / Congreso</button>
+          <button type="button" class="event-chip" data-value="Evento privado">Evento privado</button>
+          <button type="button" class="event-chip" data-value="Otro">Otro</button>
+        </div>
+      </div>
+
+      <!-- Paso 2 -->
+      <div class="wizard-step" data-step="2">
+        <div class="wizard-step-eyebrow">02 — Tu espacio</div>
+        <h3>Cuéntanos un poco sobre el lugar</h3>
+        <p class="wizard-step-context">¿Cuántos m² tiene aproximadamente el espacio a aromatizar? Esto nos ayuda a dimensionar el equipo adecuado.</p>
+        <label class="event-input-label" for="eventM2">Superficie aproximada</label>
+        <input type="number" min="1" id="eventM2" class="event-input" placeholder="Ej. 350" style="margin-bottom:16px;">
+        <label class="event-input-label" for="eventCity">Ciudad / ubicación</label>
+        <input type="text" id="eventCity" class="event-input" placeholder="Ej. Monterrey, N.L.">
+      </div>
+
+      <!-- Paso 3 -->
+      <div class="wizard-step" data-step="3">
+        <div class="wizard-step-eyebrow">03 — Distribución</div>
+        <h3>¿Cuántas áreas quieres aromatizar?</h3>
+        <p class="wizard-step-context">Un evento de 300 m² completamente abierto puede requerir una configuración diferente a uno de 300 m² dividido en varias áreas.</p>
+        <div class="event-chip-group" id="eventAreasChips">
+          <button type="button" class="event-chip" data-value="1 área">1 área</button>
+          <button type="button" class="event-chip" data-value="2–3 áreas">2–3 áreas</button>
+          <button type="button" class="event-chip" data-value="4–5 áreas">4–5 áreas</button>
+          <button type="button" class="event-chip" data-value="6 o más áreas">6 o más áreas</button>
+        </div>
+        <div class="wizard-note" id="areasNote"></div>
+      </div>
+
+      <!-- Paso 4 -->
+      <div class="wizard-step" data-step="4">
+        <div class="wizard-step-eyebrow">04 — La experiencia</div>
+        <h3>¿Cuánto tiempo quieres que el aroma acompañe a tus invitados?</h3>
+        <p class="wizard-step-context">Nuestros eventos comienzan a partir de 4 horas para garantizar una presencia aromática constante.</p>
+        <div class="event-chip-group" id="eventDurationChips" style="margin-bottom:14px;">
+          <button type="button" class="event-chip" data-value="4 horas">4 horas</button>
+          <button type="button" class="event-chip" data-value="6 horas">6 horas</button>
+          <button type="button" class="event-chip" data-value="8 horas">8 horas</button>
+          <button type="button" class="event-chip" data-value="10 horas">10 horas</button>
+          <button type="button" class="event-chip" data-value="Personalizado">Personalizado</button>
+        </div>
+        <input type="text" id="eventDurationCustom" class="event-input" placeholder="Especifica la duración deseada" style="display:none; margin-bottom:18px;">
+        <p class="event-step-sub">¿Desde qué momento quieres que esté presente el aroma?</p>
+        <div class="event-chip-group" id="eventStartChips">
+          <button type="button" class="event-chip" data-value="Desde la recepción">Desde la recepción</button>
+          <button type="button" class="event-chip" data-value="Desde el inicio">Desde el inicio</button>
+          <button type="button" class="event-chip" data-value="Durante el cóctel">Durante el cóctel</button>
+          <button type="button" class="event-chip" data-value="Durante la cena">Durante la cena</button>
+          <button type="button" class="event-chip" data-value="Toda la celebración">Toda la celebración</button>
+        </div>
+      </div>
+
+      <!-- Paso 5 -->
+      <div class="wizard-step" data-step="5">
+        <div class="wizard-step-eyebrow">05 — El lugar</div>
+        <h3>¿Qué tipo de espacio es?</h3>
+        <p class="wizard-step-context">Esto nos ayuda a ajustar la recomendación de equipos y cobertura.</p>
+        <div class="event-chip-group" id="eventSpaceChips">
+          <button type="button" class="event-chip" data-value="Salón cerrado">Salón cerrado</button>
+          <button type="button" class="event-chip" data-value="Terraza">Terraza</button>
+          <button type="button" class="event-chip" data-value="Jardín">Jardín</button>
+          <button type="button" class="event-chip" data-value="Hotel">Hotel</button>
+          <button type="button" class="event-chip" data-value="Centro de convenciones">Centro de convenciones</button>
+          <button type="button" class="event-chip" data-value="Restaurante">Restaurante</button>
+          <button type="button" class="event-chip" data-value="Espacio comercial">Espacio comercial</button>
+          <button type="button" class="event-chip" data-value="Interior + exterior">Interior + exterior</button>
+          <button type="button" class="event-chip" data-value="Otro">Otro</button>
+        </div>
+        <div class="wizard-note" id="spaceNote">Este tipo de espacio puede requerir una configuración especial para conseguir una experiencia aromática adecuada — lo revisaremos contigo antes de confirmar.</div>
+      </div>
+
+      <!-- Paso 6 -->
+      <div class="wizard-step" data-step="6">
+        <div class="wizard-step-eyebrow">06 — La atmósfera</div>
+        <h3>¿Qué sensación quieres transmitir?</h3>
+        <p class="wizard-step-context">Cada evento tiene una personalidad. Elige la que más se acerque a la tuya.</p>
+        <div class="vibe-grid" id="eventVibeCards">
+          <div class="vibe-card" data-value="Elegante"><h4>Elegante</h4><p>Sofisticado, limpio y refinado.</p></div>
+          <div class="vibe-card" data-value="Cálido"><h4>Cálido</h4><p>Ámbar, envolvente y acogedor.</p></div>
+          <div class="vibe-card" data-value="Fresco"><h4>Fresco</h4><p>Limpio, ligero y moderno.</p></div>
+          <div class="vibe-card" data-value="Floral"><h4>Floral</h4><p>Delicado, romántico y sofisticado.</p></div>
+          <div class="vibe-card" data-value="Intenso"><h4>Intenso</h4><p>Profundo, con mayor presencia.</p></div>
+          <div class="vibe-card" data-value="Exclusivo"><h4>Exclusivo</h4><p>Carácter, para experiencias premium.</p></div>
+        </div>
+        <p class="event-step-sub" style="margin-top:14px;">¿No sabes qué aroma elegir? Nuestro equipo puede recomendarte el ideal de acuerdo con tu evento, espacio y estilo.</p>
+      </div>
+
+      <!-- Paso 7 -->
+      <div class="wizard-step" data-step="7">
+        <div class="wizard-step-eyebrow">07 — Último paso</div>
+        <h3>Fecha y datos de contacto</h3>
+        <p class="wizard-step-context">Con esto preparamos tu propuesta personalizada.</p>
+        <div class="event-field-row" style="margin-bottom:16px;">
+          <div>
+            <label class="event-input-label" for="eventDate">Fecha del evento</label>
+            <input type="date" id="eventDate" class="event-input">
+          </div>
+          <div>
+            <label class="event-input-label" for="eventVenue">Lugar / recinto</label>
+            <input type="text" id="eventVenue" class="event-input" placeholder="Nombre del recinto">
+          </div>
+        </div>
+        <div class="event-field-row" style="margin-bottom:16px;">
+          <div>
+            <label class="event-input-label" for="eventName">Tu nombre</label>
+            <input type="text" id="eventName" class="event-input" placeholder="Nombre completo">
+          </div>
+          <div>
+            <label class="event-input-label" for="eventPhone">Tu WhatsApp</label>
+            <input type="tel" id="eventPhone" class="event-input" placeholder="10 dígitos">
+          </div>
+        </div>
+      </div>
+
+      <!-- Resultado -->
+      <div class="wizard-step wizard-result" data-step="8">
+        <div class="wizard-result-eyebrow">Tu experiencia NÚCLEO</div>
+        <h3 id="wizardResultPkgName">Evento Premium</h3>
+        <div class="wizard-result-price" id="wizardResultPrice">Desde $4,500 MXN</div>
+        <div class="wizard-summary" id="wizardSummary"></div>
+        <p class="wizard-result-desc" id="wizardResultDesc">Esta es una estimación inicial basada en la información proporcionada. La propuesta final considera la distribución real del espacio, cantidad de equipos y requerimientos específicos de tu evento.</p>
+        <div class="event-cta-row" style="justify-content:center;">
+          <button type="button" class="buy-btn" id="eventQuoteBtn" style="cursor:pointer;">Solicitar cotización</button>
+          <a class="buy-btn outline" href="https://wa.me/528116551406?text=Hola!%20Quisiera%20hablar%20con%20un%20asesor%20sobre%20aromatizaci%C3%B3n%20para%20mi%20evento." target="_blank" rel="noopener">Hablar con un asesor</a>
+        </div>
+      </div>
+
+      <div class="wizard-nav" id="wizardNav">
+        <button type="button" class="wizard-btn wizard-back" id="wizardBackBtn">Atrás</button>
+        <button type="button" class="wizard-btn" id="wizardNextBtn">Siguiente</button>
+      </div>
+
+    </div>
+
+    <!-- Paquetes -->
+    <div class="section-head reveal">
+      <div class="eyebrow">Paquetes de evento</div>
+      <h2 class="serif">Elige el nivel de experiencia para tu evento</h2>
+      <p>Los precios mostrados son una inversión inicial y pueden variar de acuerdo con las
+        dimensiones, distribución, duración, ubicación y requerimientos específicos de cada evento.</p>
+    </div>
+
+    <div class="plans-grid reveal">
+
+      <article class="plan-card">
+        <div class="plan-name">Núcleo Evento</div>
+        <h3 class="serif">Essential</h3>
+        <div class="plan-price">Desde $2,000<span>MXN</span></div>
+        <p class="plan-hook">Hasta 150 m² · Hasta 4 horas incluidas.</p>
+        <ul class="plan-features">
+          <li>1 equipo de aromatización profesional</li>
+          <li>Aceite aromático incluido</li>
+          <li>Programación del sistema</li>
+          <li>Instalación, montaje y desmontaje</li>
+          <li>Asesoría para selección del aroma</li>
+          <li>Hora adicional: $200 MXN</li>
+        </ul>
+        <a class="buy-btn plan-cta" href="https://wa.me/528116551406?text=Hola!%20Me%20interesa%20el%20paquete%20N%C3%9ACLEO%20EVENTO%20ESSENTIAL%2C%20%C2%BFme%20pueden%20dar%20m%C3%A1s%20informaci%C3%B3n%3F" target="_blank" rel="noopener">Quiero este paquete</a>
+      </article>
+
+      <article class="plan-card">
+        <div class="plan-name">Núcleo Evento</div>
+        <h3 class="serif">Signature</h3>
+        <div class="plan-price">Desde $3,000<span>MXN</span></div>
+        <p class="plan-hook">150–350 m² · Hasta 6 horas incluidas.</p>
+        <ul class="plan-features">
+          <li>1–2 equipos según distribución</li>
+          <li>Aceite aromático incluido</li>
+          <li>Programación del sistema</li>
+          <li>Instalación, montaje y desmontaje</li>
+          <li>Asesoría aromática</li>
+          <li>Hora adicional: $250 MXN</li>
+        </ul>
+        <a class="buy-btn plan-cta" href="https://wa.me/528116551406?text=Hola!%20Me%20interesa%20el%20paquete%20N%C3%9ACLEO%20EVENTO%20SIGNATURE%2C%20%C2%BFme%20pueden%20dar%20m%C3%A1s%20informaci%C3%B3n%3F" target="_blank" rel="noopener">Quiero este paquete</a>
+      </article>
+
+      <article class="plan-card">
+        <div class="plan-name">Núcleo Evento</div>
+        <h3 class="serif">Premium</h3>
+        <div class="plan-price">Desde $4,500<span>MXN</span></div>
+        <p class="plan-hook">350–700 m² · Hasta 8 horas incluidas.</p>
+        <ul class="plan-features">
+          <li>Sistema dimensionado al espacio</li>
+          <li>Aceite aromático incluido</li>
+          <li>Cobertura de diferentes zonas</li>
+          <li>Instalación, montaje y desmontaje</li>
+          <li>Asesoría personalizada</li>
+          <li>Hora adicional: $300 MXN</li>
+        </ul>
+        <a class="buy-btn plan-cta" href="https://wa.me/528116551406?text=Hola!%20Me%20interesa%20el%20paquete%20N%C3%9ACLEO%20EVENTO%20PREMIUM%2C%20%C2%BFme%20pueden%20dar%20m%C3%A1s%20informaci%C3%B3n%3F" target="_blank" rel="noopener">Quiero este paquete</a>
+      </article>
+
+      <article class="plan-card">
+        <div class="plan-name">Núcleo Evento</div>
+        <h3 class="serif">Experience</h3>
+        <div class="plan-price" style="font-size:1.1rem;">Cotización personalizada</div>
+        <p class="plan-hook">+700 m² · Grandes bodas, corporativos y espacios de gran formato.</p>
+        <ul class="plan-features">
+          <li>Sistema de aromatización a la medida</li>
+          <li>Cobertura de múltiples zonas</li>
+          <li>Asesoría dedicada antes y durante el evento</li>
+          <li>Instalación, supervisión en sitio y desmontaje</li>
+        </ul>
+        <a class="buy-btn plan-cta" href="https://wa.me/528116551406?text=Hola!%20Me%20interesa%20el%20paquete%20N%C3%9ACLEO%20EVENTO%20EXPERIENCE%2C%20%C2%BFme%20pueden%20dar%20m%C3%A1s%20informaci%C3%B3n%3F" target="_blank" rel="noopener">Solicitar cotización personalizada</a>
+      </article>
+
+    </div>
+
+    <!-- Wedding -->
+    <div class="event-crosssell reveal">
+      <div class="eyebrow" style="justify-content:center;">Núcleo Wedding Scent</div>
+      <h3 class="serif">El aroma de uno de los días más importantes de tu vida</h3>
+      <p>Tu boda tiene una historia, una estética y una personalidad propia — nosotros podemos
+        convertirla también en una experiencia aromática. Y cuando termine la celebración, puedes
+        llevar ese mismo aroma contigo en perfume, spray ambiental, aceite para difusor o un
+        difusor para casa.</p>
+    </div>
+
+    <div class="event-crosssell reveal" style="margin-top:24px;">
+      <h3 class="serif">¿Quieres conservar el aroma de tu evento?</h3>
+      <p>El mismo aroma que acompañó tu celebración puede acompañarte después en casa —
+        aceites, sprays, perfumes y difusores disponibles en nuestro catálogo.</p>
+    </div>
+
+  </div>
+</section>
+
 <!-- ============ PREGUNTAS FRECUENTES ============ -->
 <section class="catalog-section alt faq-section" id="faq">
   <div class="wrap">
@@ -740,6 +1020,7 @@
           <a href="#home-sprays">Home Sprays</a>
           <a href="#perfumes">Perfumes</a>
           <a href="#aceites">Aceites para difusor</a>
+          <a href="#eventos">Eventos</a>
         </div>
         <div class="footer-col">
           <h4>Contacto</h4>
@@ -836,15 +1117,35 @@
   </div>
 </div>
 
-<!-- ============ BOTÓN VER CARRITO (fijo, arriba a la derecha) ============ -->
-<button class="cart-fab" id="cartFab" aria-label="Ver carrito">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-  </svg>
-  <span class="cart-fab-label">Ver carrito</span>
-  <span class="cart-count" id="cartCount" aria-hidden="true">0</span>
-</button>
+<!-- ============ ACCIONES FIJAS (menú + carrito, arriba a la derecha) ============ -->
+<div class="fixed-actions">
+  <button class="nav-menu-fab" id="navMenuFab" aria-label="Abrir menú" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="4" y1="7" x2="20" y2="7"/>
+      <line x1="4" y1="12" x2="20" y2="12"/>
+      <line x1="4" y1="17" x2="20" y2="17"/>
+    </svg>
+  </button>
+  <button class="cart-fab" id="cartFab" aria-label="Ver carrito">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+    </svg>
+    <span class="cart-fab-label">Ver carrito</span>
+    <span class="cart-count" id="cartCount" aria-hidden="true">0</span>
+  </button>
+</div>
+
+<!-- ============ MENÚ MÓVIL DESPLEGABLE ============ -->
+<div class="nav-menu-panel" id="navMenuPanel">
+  <a href="#difusores">Difusores</a>
+  <a href="#suscripcion">Renta de Difusores</a>
+  <a href="#suscripcion-aromas">Suscripción de Aromas</a>
+  <a href="#home-sprays">Home Sprays</a>
+  <a href="#perfumes">Perfumes</a>
+  <a href="#aceites">Aceites</a>
+  <a href="#eventos">Eventos</a>
+</div>
 
 <!-- ============ PANEL / DRAWER DEL CARRITO ============ -->
 <div class="cart-drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-label="Tu carrito">
