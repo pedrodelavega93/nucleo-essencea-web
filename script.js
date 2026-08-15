@@ -319,9 +319,62 @@ let currentGroupFilter = 'todos';
 const catalogFeatured = document.getElementById('catalogFeatured');
 const catalogFeaturedChips = document.getElementById('catalogFeaturedChips');
 const catalogBuy = document.getElementById('catalogBuy');
+const catalogBuyLabel = document.getElementById('catalogBuyLabel');
 const catalogBuyAroma = document.getElementById('catalogBuyAroma');
 const catalogBuySizes = document.getElementById('catalogBuySizes');
 const catalogBuyAdd = document.getElementById('catalogBuyAdd');
+
+/* Contextos de compra directa desde el catálogo: cada uno define su tipo
+   de catálogo (aromas ambientales o perfumes), sus tamaños y precios, y si
+   debe mostrar el atajo de "más pedidos". Los precios están centralizados
+   aquí — cambiarlos aquí actualiza el catálogo y el carrito. */
+const BUY_CONTEXTS = {
+  aceite: {
+    title: 'Elige tu aceite ambiental',
+    sub: 'Escoge un aroma (o búscalo), elige la presentación y añádelo al carrito.',
+    label: 'Aroma elegido:',
+    catalogType: 'ambientales',
+    showFeatured: true,
+    sizes: [
+      { productKey: 'aceite250', label: '250 ml', price: 900 },
+      { productKey: 'aceite500', label: '500 ml', price: 1300 },
+      { productKey: 'aceite1l', label: '1 litro', price: 2000 },
+    ],
+  },
+  homespray: {
+    title: 'Elige tu home spray',
+    sub: 'Escoge un aroma (o búscalo) y añádelo al carrito.',
+    label: 'Aroma elegido:',
+    catalogType: 'ambientales',
+    showFeatured: true,
+    sizes: [
+      { productKey: 'aerosol250', label: '250 ml', price: 600 },
+    ],
+  },
+  perfume: {
+    title: 'Elige tu perfume',
+    sub: 'Busca por nombre o marca, elige la presentación y añádelo al carrito.',
+    label: 'Perfume elegido:',
+    catalogType: 'perfumes',
+    showFeatured: false,
+    sizes: [
+      { productKey: 'perfume30', label: '30 ml', price: 280 },
+      { productKey: 'perfume60', label: '60 ml', price: 390 },
+      { productKey: 'perfume100', label: '100 ml', price: 600 },
+    ],
+  },
+};
+let currentBuyContext = '';
+
+function renderBuySizes() {
+  const ctx = BUY_CONTEXTS[currentBuyContext];
+  if (!ctx || !catalogBuySizes) return;
+  catalogBuySizes.innerHTML = ctx.sizes.map((s) =>
+    '<button type="button" class="catalog-size" data-product="' + s.productKey + '" data-size-label="' + s.label + '">' +
+      s.label + '<span>$' + s.price.toLocaleString('es-MX') + ' MXN</span>' +
+    '</button>'
+  ).join('');
+}
 
 const FEATURED_AROMAS = [
   'Palacio de Hierro',
@@ -425,7 +478,12 @@ function setBuyAroma(name) {
     c.classList.toggle('selected', c.dataset.aroma === name);
   });
   updateBuyAddState();
-  catalogBuy.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Sube automáticamente hasta el panel de tamaños/precio, para que el
+  // cliente no tenga que bajar manualmente en catálogos largos (aromas o
+  // perfumes) para encontrar el botón de añadir al carrito.
+  requestAnimationFrame(() => {
+    catalogBuy.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 }
 
 function updateBuyAddState() {
@@ -443,13 +501,13 @@ function renderFeaturedChips() {
 }
 
 if (catalogBuySizes) {
-  catalogBuySizes.querySelectorAll('.catalog-size').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      catalogBuySizes.querySelectorAll('.catalog-size').forEach((b) => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      buyProductKey = btn.dataset.product;
-      updateBuyAddState();
-    });
+  catalogBuySizes.addEventListener('click', (e) => {
+    const btn = e.target.closest('.catalog-size');
+    if (!btn) return;
+    catalogBuySizes.querySelectorAll('.catalog-size').forEach((b) => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    buyProductKey = btn.dataset.product;
+    updateBuyAddState();
   });
 }
 
@@ -490,13 +548,19 @@ function filterCatalog(query) {
 function openCatalog(type, onSelect, options) {
   const opts = options || {};
   catalogOnSelect = typeof onSelect === 'function' ? onSelect : null;
-  catalogBuyMode = opts.buy === true && type === 'ambientales';
-  currentCatalogType = type;
-  currentCatalogData = type === 'perfumes' ? (window.PERFUMES_DATA || []) : (window.AMBIENTALES_DATA || []);
+  catalogBuyMode = opts.buy === true;
+  currentBuyContext = catalogBuyMode
+    ? (opts.buyContext || (type === 'perfumes' ? 'perfume' : 'aceite'))
+    : '';
+  const buyCtx = catalogBuyMode ? BUY_CONTEXTS[currentBuyContext] : null;
+  const effectiveType = buyCtx ? buyCtx.catalogType : type;
+
+  currentCatalogType = effectiveType;
+  currentCatalogData = effectiveType === 'perfumes' ? (window.PERFUMES_DATA || []) : (window.AMBIENTALES_DATA || []);
 
   currentGenderFilter = 'todos';
   if (catalogGenderFilter) {
-    catalogGenderFilter.style.display = type === 'perfumes' ? 'flex' : 'none';
+    catalogGenderFilter.style.display = effectiveType === 'perfumes' ? 'flex' : 'none';
     catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
       chip.classList.toggle('selected', chip.dataset.gender === 'todos');
     });
@@ -504,7 +568,7 @@ function openCatalog(type, onSelect, options) {
 
   currentGroupFilter = 'todos';
   if (catalogGroupFilter) {
-    catalogGroupFilter.style.display = type === 'ambientales' ? 'flex' : 'none';
+    catalogGroupFilter.style.display = effectiveType === 'ambientales' ? 'flex' : 'none';
     catalogGroupFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
       chip.classList.toggle('selected', chip.dataset.group === 'todos');
     });
@@ -513,14 +577,19 @@ function openCatalog(type, onSelect, options) {
   buyAroma = '';
   buyProductKey = '';
 
-  if (catalogBuyMode) {
-    catalogTitle.textContent = 'Elige tu aceite ambiental';
-    catalogSub.textContent = 'Escoge un aroma (o búscalo), elige la presentación y añádelo al carrito.';
-    renderFeaturedChips();
-    catalogFeatured.style.display = 'block';
+  if (catalogBuyMode && buyCtx) {
+    catalogTitle.textContent = buyCtx.title;
+    catalogSub.textContent = buyCtx.sub;
+    catalogBuyLabel.textContent = buyCtx.label;
+    if (buyCtx.showFeatured) {
+      renderFeaturedChips();
+      catalogFeatured.style.display = 'block';
+    } else {
+      catalogFeatured.style.display = 'none';
+    }
+    renderBuySizes();
     catalogBuy.style.display = 'none';
     catalogBuyAroma.textContent = '—';
-    catalogBuySizes.querySelectorAll('.catalog-size').forEach((b) => b.classList.remove('selected'));
     updateBuyAddState();
   } else {
     catalogTitle.textContent = type === 'perfumes' ? 'Catálogo de perfumes' : 'Catálogo de aromas ambientales';
@@ -532,7 +601,7 @@ function openCatalog(type, onSelect, options) {
   }
 
   catalogInput.value = '';
-  renderCatalogRows(currentCatalogData, { showMasPedidos: type === 'ambientales' && !catalogBuyMode });
+  renderCatalogRows(currentCatalogData, { showMasPedidos: effectiveType === 'ambientales' && !catalogBuyMode });
   catalogModal.classList.add('open');
   document.body.classList.add('catalog-open');
   document.body.style.overflow = 'hidden';
@@ -551,7 +620,10 @@ function closeCatalog() {
 
 document.querySelectorAll('[data-catalog]').forEach((btn) => {
   btn.addEventListener('click', () =>
-    openCatalog(btn.dataset.catalog, null, { buy: btn.dataset.catalogMode === 'buy' })
+    openCatalog(btn.dataset.catalog, null, {
+      buy: btn.dataset.catalogMode === 'buy',
+      buyContext: btn.dataset.buyContext || '',
+    })
   );
 });
 catalogClose.addEventListener('click', closeCatalog);
