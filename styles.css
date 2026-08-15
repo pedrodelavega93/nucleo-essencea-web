@@ -2757,6 +2757,9 @@ body.catalog-open .catalog-scroll-nav{ display:none; }
 .dq-info .color-picker{ margin-top:10px; }
 .dq-info .gift-note{ margin-top:8px; }
 .dq-info .catalog-link.small{ margin-top:4px; margin-bottom:0; }
+.dq-info .no-aroma-note{ margin-top:8px; }
+.dq-info .mini-picker{ margin-top:8px; margin-bottom:6px; }
+.dq-info .mini-picker-hint{ margin:0; }
 .dq-buy{
   display:flex;
   flex-direction:column;
