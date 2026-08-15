@@ -534,12 +534,14 @@ function openCatalog(type, onSelect, options) {
   catalogInput.value = '';
   renderCatalogRows(currentCatalogData, { showMasPedidos: type === 'ambientales' && !catalogBuyMode });
   catalogModal.classList.add('open');
+  document.body.classList.add('catalog-open');
   document.body.style.overflow = 'hidden';
   setTimeout(() => catalogInput.focus(), 50);
 }
 
 function closeCatalog() {
   catalogModal.classList.remove('open');
+  document.body.classList.remove('catalog-open');
   document.body.style.overflow = '';
   catalogOnSelect = null;
   catalogBuyMode = false;
