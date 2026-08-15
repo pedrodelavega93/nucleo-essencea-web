@@ -627,6 +627,29 @@ document.querySelectorAll('[data-catalog]').forEach((btn) => {
   );
 });
 catalogClose.addEventListener('click', closeCatalog);
+
+/* Flechas flotantes para saltar rápido al inicio/final de catálogos largos
+   (aromas ambientales y perfumes pueden tener cientos de resultados). El
+   contenedor que realmente scrollea cambia según el tamaño de pantalla:
+   en móvil es el modal completo, en desktop es solo la lista de resultados. */
+function getCatalogScrollTarget() {
+  const inner = document.querySelector('.catalog-modal-inner');
+  if (inner && inner.scrollHeight > inner.clientHeight + 4) return inner;
+  return catalogResults;
+}
+const catalogScrollTop = document.getElementById('catalogScrollTop');
+const catalogScrollBottom = document.getElementById('catalogScrollBottom');
+if (catalogScrollTop) {
+  catalogScrollTop.addEventListener('click', () => {
+    getCatalogScrollTarget().scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
+if (catalogScrollBottom) {
+  catalogScrollBottom.addEventListener('click', () => {
+    const el = getCatalogScrollTarget();
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  });
+}
 catalogModal.addEventListener('click', (e) => {
   if (e.target === catalogModal) closeCatalog();
 });
