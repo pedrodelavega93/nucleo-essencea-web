@@ -2671,6 +2671,12 @@ button.buy-mini{
     overflow-y:visible;
     flex:none;
   }
+  .difusor-quick-list{
+    overflow-y:visible;
+    flex:none;
+    padding-right:56px;
+  }
+  .catalog-results{ padding-right:56px; }
   .catalog-buy{
     padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));
   }
@@ -2697,7 +2703,8 @@ button.buy-mini{
   transform:translateY(-50%);
   z-index:260;
 }
-body.catalog-open .catalog-scroll-nav{ display:flex; }
+body.catalog-open .catalog-scroll-nav{ display:none; }
+.catalog-modal.open .catalog-scroll-nav{ display:flex; }
 .catalog-scroll-nav button{
   display:flex;
   align-items:center;
@@ -2718,4 +2725,62 @@ body.catalog-open .catalog-scroll-nav{ display:flex; }
 @media (max-width:640px){
   .catalog-scroll-nav{ right:12px; }
   .catalog-scroll-nav button{ width:36px; height:36px; }
+}
+
+/* ============ MODAL RÁPIDO DE DIFUSORES ============ */
+.difusor-quick-list{
+  padding:6px 60px 4px 24px;
+  overflow-y:auto;
+  flex:1;
+}
+.difusor-quick-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  padding:16px 0;
+  border-bottom:1px solid var(--line);
+}
+.difusor-quick-row:last-child{ border-bottom:none; }
+.dq-info{ display:flex; flex-direction:column; flex:1; min-width:0; }
+.dq-info strong{
+  font-family:'Lora', serif;
+  font-size:1rem;
+  color:var(--cream);
+  font-weight:600;
+}
+.dq-info span{
+  font-size:0.78rem;
+  color:var(--muted);
+  margin-top:2px;
+}
+.dq-info .color-picker{ margin-top:10px; }
+.dq-buy{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  flex:none;
+}
+.dq-price{
+  font-family:'Lora', serif;
+  font-size:0.95rem;
+  color:var(--gold-2);
+  white-space:nowrap;
+}
+.dq-price em{
+  font-style:normal;
+  font-family:'Jost', sans-serif;
+  font-size:0.62rem;
+  color:var(--muted);
+  margin-left:2px;
+}
+#difusoresVerEspecs{
+  display:block;
+  margin:8px 24px 22px;
+  flex:none;
+}
+@media (max-width:640px){
+  .difusor-quick-row{ flex-direction:column; align-items:stretch; }
+  .dq-buy{ flex-direction:row; align-items:center; justify-content:space-between; margin-top:10px; }
 }
