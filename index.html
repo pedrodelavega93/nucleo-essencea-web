@@ -149,7 +149,7 @@
             <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
           </div>
           <p class="no-aroma-note">No incluye aroma</p>
-          <button type="button" class="catalog-link small" data-catalog="ambientales" data-catalog-mode="buy">¿Quieres aceite para tu difusor? Elige tu presentación →</button>
+          <button type="button" class="catalog-link small" data-catalog="ambientales" data-catalog-mode="buy" data-buy-context="aceite">¿Quieres aceite para tu difusor? Elige tu presentación →</button>
           <div class="price">$1,199<span>MXN</span></div>
           <div class="qty-control" data-qty>
             <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
@@ -982,15 +982,15 @@
       <h3 class="serif">¿Quieres conservar el aroma de tu evento?</h3>
       <p>El mismo aroma que acompañó tu celebración puede acompañarte después en casa.</p>
       <div class="conserva-grid">
-        <a href="#perfumes" class="conserva-card">
+        <button type="button" class="conserva-card" data-catalog="perfumes" data-catalog-mode="buy" data-buy-context="perfume">
           <h4>Perfume</h4>
           <p>Lleva contigo la esencia de tu celebración.</p>
-        </a>
-        <a href="#home-sprays" class="conserva-card">
+        </button>
+        <button type="button" class="conserva-card" data-catalog="ambientales" data-catalog-mode="buy" data-buy-context="homespray">
           <h4>Home Spray</h4>
           <p>Revive el aroma en tus espacios.</p>
-        </a>
-        <button type="button" class="conserva-card" data-catalog="ambientales" data-catalog-mode="buy">
+        </button>
+        <button type="button" class="conserva-card" data-catalog="ambientales" data-catalog-mode="buy" data-buy-context="aceite">
           <h4>Aceite</h4>
           <p>Continúa aromatizando tu hogar.</p>
         </button>
@@ -999,7 +999,7 @@
           <p>Haz permanente la experiencia.</p>
         </a>
       </div>
-      <p class="event-step-sub" style="margin-top:22px; max-width:460px; margin-left:auto; margin-right:auto;">Toca cualquier categoría para ver sus opciones — el aceite y el spray usan el mismo catálogo de aromas.</p>
+      <p class="event-step-sub" style="margin-top:22px; max-width:460px; margin-left:auto; margin-right:auto;">Toca cualquier categoría para elegir tu aroma y añadirlo directo al carrito.</p>
     </div>
 
   </div>
@@ -1279,14 +1279,10 @@
     <!-- Panel de compra de aceite: solo se muestra en modo compra de aceite -->
     <div id="catalogBuy" class="catalog-buy" style="display:none;">
       <div class="catalog-buy-aroma">
-        Aroma elegido: <strong id="catalogBuyAroma">—</strong>
+        <span id="catalogBuyLabel">Aroma elegido:</span> <strong id="catalogBuyAroma">—</strong>
       </div>
       <div class="catalog-buy-label">Elige tu presentación:</div>
-      <div id="catalogBuySizes" class="catalog-buy-sizes">
-        <button type="button" class="catalog-size" data-product="aceite250" data-size-label="250 ml" data-price="900">250 ml<span>$900 MXN</span></button>
-        <button type="button" class="catalog-size" data-product="aceite500" data-size-label="500 ml" data-price="1300">500 ml<span>$1,300 MXN</span></button>
-        <button type="button" class="catalog-size" data-product="aceite1l" data-size-label="1 litro" data-price="2000">1 litro<span>$2,000 MXN</span></button>
-      </div>
+      <div id="catalogBuySizes" class="catalog-buy-sizes"></div>
       <button type="button" id="catalogBuyAdd" class="catalog-buy-add" disabled>Añadir al carrito</button>
     </div>
   </div>
