@@ -1306,11 +1306,14 @@ document.addEventListener('keydown', (e) => {
   const areasNote = document.getElementById('areasNote');
   document.getElementById('eventAreasChips').addEventListener('changed', () => {
     const v = areasSel.get();
-    if (v === '4–5 áreas') {
+    if (v === 'Tres o más espacios') {
       areasNote.textContent = 'Tu evento requiere una evaluación personalizada para garantizar una cobertura aromática uniforme.';
       areasNote.classList.add('show');
-    } else if (v === '6 o más áreas') {
-      areasNote.textContent = 'Por la cantidad de áreas, tu evento pasa directo a cotización personalizada — evaluaremos contigo la distribución de equipos.';
+    } else if (v === 'Varias áreas / diferentes ambientes') {
+      areasNote.textContent = 'Por la distribución de tu evento, lo llevaremos directo a cotización personalizada — evaluaremos contigo la cantidad de equipos necesaria.';
+      areasNote.classList.add('show');
+    } else if (v === 'No estoy seguro') {
+      areasNote.textContent = 'No te preocupes — nuestro equipo revisará contigo la distribución del espacio antes de confirmar tu propuesta.';
       areasNote.classList.add('show');
     } else {
       areasNote.classList.remove('show');
@@ -1337,7 +1340,7 @@ document.addEventListener('keydown', (e) => {
   });
 
   function recommendPackage(m2, areas) {
-    if (areas === '6 o más áreas') return 'experience';
+    if (areas === 'Varias áreas / diferentes ambientes') return 'experience';
     if (!m2 || m2 <= 0) return null;
     if (m2 <= EVENT_PRICING.essential.maxM2) return 'essential';
     if (m2 <= EVENT_PRICING.signature.maxM2) return 'signature';
@@ -1421,6 +1424,16 @@ document.addEventListener('keydown', (e) => {
     const text = encodeURIComponent(lines.join('\n'));
     window.open(`https://wa.me/528116551406?text=${text}`, '_blank', 'noopener');
   });
+
+  const weddingCta = document.getElementById('weddingScentCta');
+  if (weddingCta) {
+    weddingCta.addEventListener('click', () => {
+      const bodaChip = document.querySelector('#eventTypeChips .event-chip[data-value="Boda"]');
+      if (bodaChip && !bodaChip.classList.contains('selected')) bodaChip.click();
+      showStep(1);
+      wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 
   showStep(1);
 })();
