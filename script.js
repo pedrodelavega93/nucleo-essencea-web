@@ -163,15 +163,29 @@ document.addEventListener('keydown', (e) => {
 const selectedAromas = { perfumes: '', ambientales: '', carpro: '', 'aromas-sub': '' };
 
 // --- Selector de aroma de regalo (CAR PRO) ---
-const carproPicker = document.getElementById('carproAromaPicker');
-const carproHint = document.getElementById('carproAromaHint');
-if (carproPicker && carproHint) {
-  carproPicker.querySelectorAll('.mini-chip').forEach((chip) => {
-    chip.addEventListener('click', () => {
-      carproPicker.querySelectorAll('.mini-chip').forEach((c) => c.classList.remove('selected'));
-      chip.classList.add('selected');
-      selectedAromas.carpro = chip.dataset.aroma;
-      carproHint.textContent = 'Aroma seleccionado: ' + chip.dataset.aroma + ' ✓ (ya quedará prellenado en tu pago)';
+// Puede haber más de una instancia de este picker en la página (la del
+// apartado principal de difusores y la del modal rápido "Elige tu difusor"),
+// así que se sincronizan entre sí: elegir un aroma en cualquiera de las dos
+// actualiza el estado y el texto en ambas.
+const carproPickers = document.querySelectorAll('[data-mini-picker="carpro"]');
+const carproHints = document.querySelectorAll('[data-mini-picker-hint="carpro"]');
+if (carproPickers.length && carproHints.length) {
+  const syncCarproPicker = (aroma) => {
+    carproPickers.forEach((picker) => {
+      picker.querySelectorAll('.mini-chip').forEach((c) => {
+        c.classList.toggle('selected', c.dataset.aroma === aroma);
+      });
+    });
+    carproHints.forEach((hint) => {
+      hint.textContent = 'Aroma seleccionado: ' + aroma + ' ✓ (ya quedará prellenado en tu pago)';
+    });
+  };
+  carproPickers.forEach((picker) => {
+    picker.querySelectorAll('.mini-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        selectedAromas.carpro = chip.dataset.aroma;
+        syncCarproPicker(chip.dataset.aroma);
+      });
     });
   });
 }
