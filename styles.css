@@ -2624,6 +2624,17 @@ button.buy-mini{
   border-radius:6px;
   padding:16px 14px;
   background:rgba(184,144,94,0.03);
+  display:block;
+  width:100%;
+  text-align:left;
+  text-decoration:none;
+  cursor:pointer;
+  font-family:inherit;
+  transition:border-color 0.22s ease, background 0.22s ease;
+}
+.conserva-card:hover{
+  border-color:var(--gold);
+  background:rgba(184,144,94,0.09);
 }
 .conserva-card h4{
   font-family:'Jost', sans-serif;
