@@ -2650,3 +2650,28 @@ button.buy-mini{
   line-height:1.4;
   margin:0;
 }
+
+/* ============ CATÁLOGO — FIX MÓVIL: todo el modal hace scroll junto ============
+   En pantallas chicas, con muchos filtros (grupos, "más pedidos") + panel de
+   compra, el contenido puede superar el alto disponible. Antes el header y el
+   panel de compra quedaban fijos y solo la lista de en medio hacía scroll, así
+   que el botón "Añadir al carrito" podía quedar cortado fuera de la pantalla.
+   Aquí el modal completo se vuelve una sola área scrolleable en móvil. */
+@media (max-width:640px){
+  .catalog-modal{ padding:0; align-items:stretch; }
+  .catalog-modal-inner{
+    max-width:100%;
+    max-height:100%;
+    height:100%;
+    border-radius:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .catalog-results{
+    overflow-y:visible;
+    flex:none;
+  }
+  .catalog-buy{
+    padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+}
