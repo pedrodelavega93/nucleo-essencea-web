@@ -313,6 +313,8 @@ const catalogTitle = document.getElementById('catalogModalTitle');
 const catalogSub = document.getElementById('catalogModalSub');
 const catalogGenderFilter = document.getElementById('catalogGenderFilter');
 let currentGenderFilter = 'todos';
+const catalogGroupFilter = document.getElementById('catalogGroupFilter');
+let currentGroupFilter = 'todos';
 
 const catalogFeatured = document.getElementById('catalogFeatured');
 const catalogFeaturedChips = document.getElementById('catalogFeaturedChips');
@@ -468,6 +470,9 @@ function filterCatalog(query) {
   if (currentCatalogType === 'perfumes' && currentGenderFilter !== 'todos') {
     data = data.filter((item) => item.gender === currentGenderFilter);
   }
+  if (currentCatalogType === 'ambientales' && currentGroupFilter !== 'todos') {
+    data = data.filter((item) => Array.isArray(item.grupos) && item.grupos.includes(currentGroupFilter));
+  }
 
   if (q) {
     data = data.filter((item) => {
@@ -478,7 +483,7 @@ function filterCatalog(query) {
     });
   }
 
-  const showMasPedidos = !q && currentCatalogType === 'ambientales' && !catalogBuyMode;
+  const showMasPedidos = !q && currentGroupFilter === 'todos' && currentCatalogType === 'ambientales' && !catalogBuyMode;
   renderCatalogRows(data, { showMasPedidos });
 }
 
@@ -494,6 +499,14 @@ function openCatalog(type, onSelect, options) {
     catalogGenderFilter.style.display = type === 'perfumes' ? 'flex' : 'none';
     catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
       chip.classList.toggle('selected', chip.dataset.gender === 'todos');
+    });
+  }
+
+  currentGroupFilter = 'todos';
+  if (catalogGroupFilter) {
+    catalogGroupFilter.style.display = type === 'ambientales' ? 'flex' : 'none';
+    catalogGroupFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
+      chip.classList.toggle('selected', chip.dataset.group === 'todos');
     });
   }
 
@@ -549,6 +562,16 @@ if (catalogGenderFilter) {
     chip.addEventListener('click', () => {
       currentGenderFilter = chip.dataset.gender;
       catalogGenderFilter.querySelectorAll('.catalog-gender-chip').forEach((c) => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      filterCatalog(catalogInput.value);
+    });
+  });
+}
+if (catalogGroupFilter) {
+  catalogGroupFilter.querySelectorAll('.catalog-gender-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      currentGroupFilter = chip.dataset.group;
+      catalogGroupFilter.querySelectorAll('.catalog-gender-chip').forEach((c) => c.classList.remove('selected'));
       chip.classList.add('selected');
       filterCatalog(catalogInput.value);
     });
