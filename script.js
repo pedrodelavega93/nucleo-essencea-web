@@ -1227,3 +1227,237 @@ document.addEventListener('keydown', (e) => {
 
   renderCart();
 })();
+
+
+/* ============ EVENTOS — COTIZADOR PASO A PASO ============ */
+(function () {
+  const wizard = document.getElementById('eventWizard');
+  if (!wizard) return;
+
+  /* Precios centralizados — editar solo aquí para actualizar todo el cotizador */
+  const EVENT_PRICING = {
+    essential: { label: 'Essential', price: 2000, hourExtra: 200, hoursIncluded: 4, maxM2: 150 },
+    signature: { label: 'Signature', price: 3000, hourExtra: 250, hoursIncluded: 6, maxM2: 350 },
+    premium: { label: 'Premium', price: 4500, hourExtra: 300, hoursIncluded: 8, maxM2: 700 },
+    experience: { label: 'Experience', price: null, hourExtra: null, hoursIncluded: null, maxM2: Infinity },
+  };
+  const money = (n) => '$' + n.toLocaleString('es-MX');
+
+  const TOTAL_STEPS = 7;
+  let currentStep = 1;
+
+  const progressLabel = document.getElementById('wizardProgressLabel');
+  const progressFill = document.getElementById('wizardProgressFill');
+  const steps = Array.from(wizard.querySelectorAll('.wizard-step'));
+  const backBtn = document.getElementById('wizardBackBtn');
+  const nextBtn = document.getElementById('wizardNextBtn');
+  const nav = document.getElementById('wizardNav');
+
+  function showStep(n) {
+    steps.forEach((s) => s.classList.toggle('active', Number(s.dataset.step) === n));
+    currentStep = n;
+    if (n <= TOTAL_STEPS) {
+      progressLabel.textContent = `Paso ${n} / ${TOTAL_STEPS}`;
+      progressFill.style.width = `${(n / TOTAL_STEPS) * 100}%`;
+    } else {
+      progressLabel.textContent = 'Tu propuesta';
+      progressFill.style.width = '100%';
+    }
+    backBtn.style.visibility = n === 1 ? 'hidden' : 'visible';
+    nav.style.display = n > TOTAL_STEPS ? 'none' : 'flex';
+    nextBtn.textContent = n === TOTAL_STEPS ? 'Ver mi propuesta' : 'Siguiente';
+    if (n > TOTAL_STEPS) computeResult();
+  }
+
+  backBtn.addEventListener('click', () => { if (currentStep > 1) showStep(currentStep - 1); });
+  nextBtn.addEventListener('click', () => { showStep(currentStep + 1); });
+
+  function setupSingleSelect(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return { get: () => '' };
+    let value = '';
+    el.querySelectorAll('.event-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const already = chip.classList.contains('selected');
+        el.querySelectorAll('.event-chip').forEach((c) => c.classList.remove('selected'));
+        if (!already) { chip.classList.add('selected'); value = chip.dataset.value; }
+        else { value = ''; }
+        el.dispatchEvent(new CustomEvent('changed'));
+      });
+    });
+    return { get: () => value };
+  }
+
+  const eventType = setupSingleSelect('eventTypeChips');
+  const areasSel = setupSingleSelect('eventAreasChips');
+  const duration = setupSingleSelect('eventDurationChips');
+  const startMoment = setupSingleSelect('eventStartChips');
+  const spaceType = setupSingleSelect('eventSpaceChips');
+
+  /* Duración personalizada */
+  const durationCustomInput = document.getElementById('eventDurationCustom');
+  const durationChipsEl = document.getElementById('eventDurationChips');
+  durationChipsEl.addEventListener('changed', () => {
+    const selected = durationChipsEl.querySelector('.event-chip.selected');
+    durationCustomInput.style.display = selected && selected.dataset.value === 'Personalizado' ? 'block' : 'none';
+  });
+
+  /* Nota de áreas */
+  const areasNote = document.getElementById('areasNote');
+  document.getElementById('eventAreasChips').addEventListener('changed', () => {
+    const v = areasSel.get();
+    if (v === '4–5 áreas') {
+      areasNote.textContent = 'Tu evento requiere una evaluación personalizada para garantizar una cobertura aromática uniforme.';
+      areasNote.classList.add('show');
+    } else if (v === '6 o más áreas') {
+      areasNote.textContent = 'Por la cantidad de áreas, tu evento pasa directo a cotización personalizada — evaluaremos contigo la distribución de equipos.';
+      areasNote.classList.add('show');
+    } else {
+      areasNote.classList.remove('show');
+    }
+  });
+
+  /* Nota de tipo de espacio */
+  const spaceNote = document.getElementById('spaceNote');
+  const OPEN_SPACES = ['Terraza', 'Jardín', 'Interior + exterior', 'Otro'];
+  document.getElementById('eventSpaceChips').addEventListener('changed', () => {
+    spaceNote.classList.toggle('show', OPEN_SPACES.includes(spaceType.get()));
+  });
+
+  /* Personalidad aromática */
+  let vibeValue = '';
+  const vibeCards = document.querySelectorAll('#eventVibeCards .vibe-card');
+  vibeCards.forEach((card) => {
+    card.addEventListener('click', () => {
+      const already = card.classList.contains('selected');
+      vibeCards.forEach((c) => c.classList.remove('selected'));
+      vibeValue = already ? '' : card.dataset.value;
+      if (!already) card.classList.add('selected');
+    });
+  });
+
+  function recommendPackage(m2, areas) {
+    if (areas === '6 o más áreas') return 'experience';
+    if (!m2 || m2 <= 0) return null;
+    if (m2 <= EVENT_PRICING.essential.maxM2) return 'essential';
+    if (m2 <= EVENT_PRICING.signature.maxM2) return 'signature';
+    if (m2 <= EVENT_PRICING.premium.maxM2) return 'premium';
+    return 'experience';
+  }
+
+  function computeResult() {
+    const m2 = parseFloat(document.getElementById('eventM2').value) || 0;
+    const areas = areasSel.get();
+    const key = recommendPackage(m2, areas);
+    const pkg = key ? EVENT_PRICING[key] : null;
+
+    const nameEl = document.getElementById('wizardResultPkgName');
+    const priceEl = document.getElementById('wizardResultPrice');
+    const descEl = document.getElementById('wizardResultDesc');
+
+    if (!key) {
+      nameEl.textContent = 'Necesitamos un poco más de información';
+      priceEl.textContent = 'Cotización personalizada';
+      descEl.textContent = 'Con los m² de tu espacio podemos darte una referencia de inversión más precisa. De cualquier forma, con gusto preparamos tu propuesta por WhatsApp.';
+    } else if (key === 'experience') {
+      nameEl.textContent = 'Evento Experience';
+      priceEl.textContent = 'Cotización personalizada';
+      descEl.textContent = 'Por las dimensiones y/o distribución de tu evento, diseñamos una propuesta completamente a la medida — equipo, cobertura y logística incluidos.';
+    } else {
+      nameEl.textContent = `Evento ${pkg.label}`;
+      priceEl.textContent = `Desde ${money(pkg.price)} MXN`;
+      descEl.textContent = `Esta estimación considera el servicio de aromatización, equipo, aceite aromático, instalación, montaje y desmontaje dentro de nuestra zona de cobertura. Incluye hasta ${pkg.hoursIncluded} horas de servicio; hora adicional ${money(pkg.hourExtra)} MXN. La propuesta final puede variar de acuerdo con la distribución del espacio y requerimientos específicos.`;
+    }
+
+    const durationValue = duration.get() === 'Personalizado'
+      ? (durationCustomInput.value.trim() || 'Personalizado (sin especificar)')
+      : duration.get();
+    const city = document.getElementById('eventCity').value.trim();
+
+    const summaryLines = [
+      eventType.get() ? `Tipo de evento: ${eventType.get()}` : null,
+      m2 ? `Espacio: ${m2} m²${city ? ' · ' + city : ''}` : (city || null),
+      areas ? `Áreas: ${areas}` : null,
+      spaceType.get() ? `Tipo de espacio: ${spaceType.get()}` : null,
+      durationValue ? `Duración: ${durationValue}` : null,
+      startMoment.get() ? `Inicio del aroma: ${startMoment.get()}` : null,
+      vibeValue ? `Personalidad aromática: ${vibeValue}` : null,
+    ].filter(Boolean);
+    document.getElementById('wizardSummary').innerHTML = summaryLines.map((l) => `<div>${l}</div>`).join('');
+  }
+
+  const quoteBtn = document.getElementById('eventQuoteBtn');
+  quoteBtn.addEventListener('click', () => {
+    const m2 = document.getElementById('eventM2').value.trim();
+    const city = document.getElementById('eventCity').value.trim();
+    const venue = document.getElementById('eventVenue').value.trim();
+    const date = document.getElementById('eventDate').value;
+    const name = document.getElementById('eventName').value.trim();
+    const phone = document.getElementById('eventPhone').value.trim();
+    const durationValue = duration.get() === 'Personalizado'
+      ? (durationCustomInput.value.trim() || 'Personalizado (sin especificar)')
+      : duration.get();
+    const pkgName = document.getElementById('wizardResultPkgName').textContent.trim();
+    const pkgPrice = document.getElementById('wizardResultPrice').textContent.trim();
+
+    const lines = [
+      'Hola! Quiero cotizar el servicio de aromatización para mi evento con NÚCLEO essences.',
+      eventType.get() ? `Evento: ${eventType.get()}` : null,
+      date ? `Fecha: ${date}` : null,
+      city ? `Ubicación: ${city}` : null,
+      venue ? `Recinto: ${venue}` : null,
+      m2 ? `Espacio: ${m2} m²` : null,
+      areasSel.get() ? `Áreas: ${areasSel.get()}` : null,
+      spaceType.get() ? `Tipo de espacio: ${spaceType.get()}` : null,
+      durationValue ? `Duración: ${durationValue}` : null,
+      startMoment.get() ? `Inicio del aroma: ${startMoment.get()}` : null,
+      vibeValue ? `Perfil aromático: ${vibeValue}` : null,
+      `Paquete recomendado: ${pkgName}`,
+      `Estimación: ${pkgPrice}`,
+      name ? `Nombre: ${name}` : null,
+      phone ? `WhatsApp: ${phone}` : null,
+    ].filter(Boolean);
+
+    const text = encodeURIComponent(lines.join('\n'));
+    window.open(`https://wa.me/528116551406?text=${text}`, '_blank', 'noopener');
+  });
+
+  showStep(1);
+})();
+
+/* ============ MENÚ MÓVIL (hamburguesa) ============ */
+(function () {
+  const fab = document.getElementById('navMenuFab');
+  const panel = document.getElementById('navMenuPanel');
+  if (!fab || !panel) return;
+
+  function closeMenu() {
+    panel.classList.remove('open');
+    fab.classList.remove('open');
+    fab.setAttribute('aria-expanded', 'false');
+  }
+  function toggleMenu() {
+    const isOpen = panel.classList.toggle('open');
+    fab.classList.toggle('open', isOpen);
+    fab.setAttribute('aria-expanded', String(isOpen));
+  }
+
+  fab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+
+  panel.querySelectorAll('a').forEach((a) => {
+    a.addEventListener('click', closeMenu);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (panel.classList.contains('open') && !panel.contains(e.target) && e.target !== fab) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+})();
