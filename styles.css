@@ -2685,3 +2685,37 @@ button.buy-mini{
     margin-left:auto;
   }
 }
+
+/* ============ CATÁLOGO — FLECHAS FLOTANTES DE NAVEGACIÓN ============ */
+.catalog-scroll-nav{
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  position:fixed;
+  right:16px;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:260;
+}
+body.catalog-open .catalog-scroll-nav{ display:flex; }
+.catalog-scroll-nav button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+  height:40px;
+  padding:0;
+  background:rgba(10,9,8,0.85);
+  border:1px solid var(--gold);
+  color:var(--cream);
+  border-radius:50%;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+  transition:background 0.22s ease, color 0.22s ease;
+}
+.catalog-scroll-nav button:hover{ background:var(--gold); color:#171310; }
+.catalog-scroll-nav button svg{ width:18px; height:18px; }
+@media (max-width:640px){
+  .catalog-scroll-nav{ right:12px; }
+  .catalog-scroll-nav button{ width:36px; height:36px; }
+}
