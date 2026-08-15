@@ -340,7 +340,7 @@ const MAS_PEDIDOS_AMBIENTALES = [
   'Palacio de Hierro',
   'Santal 33',
   'Metropolitan',
-  'Wynn Las Vegas',
+  'Hotel Wynn Las Vegas',
   'Hotel Xcaret',
   'Berries/Muy Mucho',
   'Innova Sport',
