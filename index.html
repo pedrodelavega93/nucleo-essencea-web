@@ -306,8 +306,8 @@
           <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
           <button type="button" class="color-chip" data-color="Plata" aria-pressed="false">Plata</button>
         </div>
-        <p class="gift-note">Incluye aroma de regalo (10 ml) — elige uno de estas 6 opciones:</p>
-        <div class="mini-picker" id="carproAromaPicker">
+        <p class="gift-note">Incluye aroma de regalo (10 ml) — elige uno de estas 7 opciones:</p>
+        <div class="mini-picker" data-mini-picker="carpro">
           <button type="button" class="mini-chip" data-aroma="Palacio de Hierro">Palacio de Hierro</button>
           <button type="button" class="mini-chip" data-aroma="Santal 33">Santal 33</button>
           <button type="button" class="mini-chip" data-aroma="Hotel Xcaret">Hotel Xcaret</button>
@@ -316,7 +316,7 @@
           <button type="button" class="mini-chip" data-aroma="Innova Sport">Innova Sport</button>
           <button type="button" class="mini-chip" data-aroma="Green Tea & Bergamot">Green Tea &amp; Bergamot</button>
         </div>
-        <p class="mini-picker-hint" id="carproAromaHint">Selecciona tu aroma — quedará prellenado automáticamente en tu pago.</p>
+        <p class="mini-picker-hint" data-mini-picker-hint="carpro">Selecciona tu aroma — quedará prellenado automáticamente en tu pago.</p>
         <div class="price serif" style="font-size:1.7rem; margin-bottom:22px;">$1,399<span style="font-family:'Jost',sans-serif; font-size:0.7rem; color:var(--muted); margin-left:6px;">MXN</span></div>
         <button class="buy-btn" style="border:1px solid var(--gold); background:none; cursor:pointer; width:100%; max-width:260px;" data-video="assets/carpro-video.mp4" data-poster="assets/carpro-poster.jpg" data-label="CAR PRO — funcionamiento">Ver funcionamiento</button>
         <div class="qty-control" data-qty style="margin-top:14px;">
@@ -1325,6 +1325,7 @@
             <button type="button" class="color-chip" data-color="Blanco" aria-pressed="false">Blanco</button>
             <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
           </div>
+          <p class="no-aroma-note">No incluye aroma</p>
         </div>
         <div class="dq-buy">
           <span class="dq-price">$1,199 <em>MXN</em></span>
@@ -1392,10 +1393,21 @@
             <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
             <button type="button" class="color-chip" data-color="Plata" aria-pressed="false">Plata</button>
           </div>
+          <p class="gift-note">Incluye aroma de regalo (10 ml) — elige uno de estas 7 opciones:</p>
+          <div class="mini-picker" data-mini-picker="carpro">
+            <button type="button" class="mini-chip" data-aroma="Palacio de Hierro">Palacio de Hierro</button>
+            <button type="button" class="mini-chip" data-aroma="Santal 33">Santal 33</button>
+            <button type="button" class="mini-chip" data-aroma="Hotel Xcaret">Hotel Xcaret</button>
+            <button type="button" class="mini-chip" data-aroma="Pink Peony">Pink Peony</button>
+            <button type="button" class="mini-chip" data-aroma="Berries/Muy Mucho">Berries/Muy Mucho</button>
+            <button type="button" class="mini-chip" data-aroma="Innova Sport">Innova Sport</button>
+            <button type="button" class="mini-chip" data-aroma="Green Tea & Bergamot">Green Tea &amp; Bergamot</button>
+          </div>
+          <p class="mini-picker-hint" data-mini-picker-hint="carpro">Selecciona tu aroma — quedará prellenado automáticamente en tu pago.</p>
         </div>
         <div class="dq-buy">
           <span class="dq-price">$1,399 <em>MXN</em></span>
-          <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="carpro" data-color-from="carpro">Añadir</button>
+          <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="carpro" data-color-from="carpro" data-aroma-from="carpro">Añadir</button>
         </div>
       </div>
 
