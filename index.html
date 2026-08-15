@@ -994,10 +994,10 @@
           <h4>Aceite</h4>
           <p>Continúa aromatizando tu hogar.</p>
         </button>
-        <a href="#difusores" class="conserva-card">
+        <button type="button" class="conserva-card" id="conservaDifusorBtn">
           <h4>Difusor</h4>
           <p>Haz permanente la experiencia.</p>
-        </a>
+        </button>
       </div>
       <p class="event-step-sub" style="margin-top:22px; max-width:460px; margin-left:auto; margin-right:auto;">Toca cualquier categoría para elegir tu aroma y añadirlo directo al carrito.</p>
     </div>
@@ -1295,6 +1295,108 @@
     </div>
   </div>
 </div>
+
+<!-- ============ MODAL RÁPIDO DE DIFUSORES ============ -->
+<div class="catalog-modal" id="difusoresModal">
+  <div class="catalog-scroll-nav" id="difusoresScrollNav">
+    <button type="button" id="difusoresScrollTop" aria-label="Subir al inicio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>
+    </button>
+    <button type="button" id="difusoresScrollBottom" aria-label="Bajar al final">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+  </div>
+  <div class="catalog-modal-inner" style="max-width:520px;">
+    <div class="catalog-modal-head">
+      <div>
+        <h4 class="serif">Elige tu difusor</h4>
+        <p>Selecciona el modelo ideal para tu espacio y añádelo al carrito.</p>
+      </div>
+      <button class="modal-close" id="difusoresModalClose" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div class="difusor-quick-list">
+
+      <div class="difusor-quick-row">
+        <div class="dq-info">
+          <strong>A60 Bluetooth</strong>
+          <span>Uso en casa · hasta 120 m²</span>
+          <div class="color-picker" data-color-picker="a60">
+            <button type="button" class="color-chip" data-color="Blanco" aria-pressed="false">Blanco</button>
+            <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
+          </div>
+        </div>
+        <div class="dq-buy">
+          <span class="dq-price">$1,199 <em>MXN</em></span>
+          <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="a60" data-color-from="a60">Añadir</button>
+        </div>
+      </div>
+
+      <div class="difusor-quick-row">
+        <div class="dq-info">
+          <strong>A300</strong>
+          <span>Uso profesional · 120–200 m²</span>
+        </div>
+        <div class="dq-buy">
+          <span class="dq-price">$3,999 <em>MXN</em></span>
+          <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="a300">Añadir</button>
+        </div>
+      </div>
+
+      <div class="difusor-quick-row">
+        <div class="dq-info">
+          <strong>A1000</strong>
+          <span>Lobbies &amp; suites · 600–1,600 m²</span>
+        </div>
+        <div class="dq-buy">
+          <span class="dq-price">$8,999 <em>MXN</em></span>
+          <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="a1000">Añadir</button>
+        </div>
+      </div>
+
+      <div class="difusor-quick-row">
+        <div class="dq-info">
+          <strong>A3000</strong>
+          <span>Espacios amplios · 800–2,000 m²</span>
+        </div>
+        <div class="dq-buy">
+          <span class="dq-price">$11,999 <em>MXN</em></span>
+          <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="a3000">Añadir</button>
+        </div>
+      </div>
+
+      <div class="difusor-quick-row">
+        <div class="dq-info">
+          <strong>A5000</strong>
+          <span>Hoteles &amp; spas · 2,000–3,600 m²</span>
+        </div>
+        <div class="dq-buy">
+          <span class="dq-price">$16,999 <em>MXN</em></span>
+          <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="a5000">Añadir</button>
+        </div>
+      </div>
+
+      <div class="difusor-quick-row">
+        <div class="dq-info">
+          <strong>CAR PRO</strong>
+          <span>Para auto · hasta 30 m²</span>
+          <div class="color-picker" data-color-picker="carpro">
+            <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
+            <button type="button" class="color-chip" data-color="Plata" aria-pressed="false">Plata</button>
+          </div>
+        </div>
+        <div class="dq-buy">
+          <span class="dq-price">$1,399 <em>MXN</em></span>
+          <button type="button" class="buy-mini add-to-cart" data-add-to-cart data-product="carpro" data-color-from="carpro">Añadir</button>
+        </div>
+      </div>
+
+    </div>
+
+    <a href="#difusores" class="catalog-link small" id="difusoresVerEspecs">Ver especificaciones completas de cada modelo →</a>
+  </div>
+</div>
+
 <!-- Sección Contratos Renta Mensual -->
 <section style="background:#1F1F1F; padding:48px 20px; text-align:center;">
   <h2 style="color:#fff; font-family:Georgia, 'Times New Roman', serif; font-size:22px; margin:0 0 10px; letter-spacing:0.5px;">
