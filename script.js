@@ -1487,13 +1487,62 @@ if (difusoresScrollBottom) {
 
   /* Personalidad aromática */
   let vibeValue = '';
+  let selectedEventAromas = [];
   const vibeCards = document.querySelectorAll('#eventVibeCards .vibe-card');
+  const vibeAromaPanel = document.getElementById('vibeAromaPanel');
+  const vibeAromaList = document.getElementById('vibeAromaList');
+  const vibeAromaHint = document.getElementById('vibeAromaHint');
+
+  function renderVibeAromaList(sensacion) {
+    if (!vibeAromaList) return;
+    const data = window.SENSACIONES_DATA && window.SENSACIONES_DATA[sensacion];
+    if (!data) {
+      vibeAromaPanel.style.display = 'none';
+      return;
+    }
+    vibeAromaHint.textContent = data.hint
+      ? data.hint + ' Selecciona 2–3 aromas de esta sección — nos ayudará a definir el ideal para tu evento.'
+      : 'Selecciona 2–3 aromas de esta sección — nos ayudará a definir el ideal para tu evento.';
+    vibeAromaList.innerHTML = data.aromas.map((a) => {
+      const safeName = a.name.replace(/"/g, '&quot;');
+      return '<div class="vibe-aroma-row" data-name="' + safeName + '">' +
+        '<span class="var-name">' + a.name + '</span>' +
+        '<span class="var-notes">' + a.notes + '</span>' +
+      '</div>';
+    }).join('');
+    vibeAromaList.querySelectorAll('.vibe-aroma-row').forEach((row) => {
+      row.classList.toggle('selected', selectedEventAromas.includes(row.dataset.name));
+      row.addEventListener('click', () => {
+        const name = row.dataset.name;
+        const idx = selectedEventAromas.indexOf(name);
+        if (idx === -1) {
+          selectedEventAromas.push(name);
+          row.classList.add('selected');
+        } else {
+          selectedEventAromas.splice(idx, 1);
+          row.classList.remove('selected');
+        }
+      });
+    });
+    vibeAromaPanel.style.display = 'block';
+  }
+
   vibeCards.forEach((card) => {
     card.addEventListener('click', () => {
       const already = card.classList.contains('selected');
       vibeCards.forEach((c) => c.classList.remove('selected'));
       vibeValue = already ? '' : card.dataset.value;
       if (!already) card.classList.add('selected');
+
+      selectedEventAromas = [];
+      if (vibeValue) {
+        renderVibeAromaList(vibeValue);
+        requestAnimationFrame(() => {
+          vibeAromaPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      } else if (vibeAromaPanel) {
+        vibeAromaPanel.style.display = 'none';
+      }
     });
   });
 
@@ -1543,6 +1592,7 @@ if (difusoresScrollBottom) {
       durationValue ? `Duración: ${durationValue}` : null,
       startMoment.get() ? `Inicio del aroma: ${startMoment.get()}` : null,
       vibeValue ? `Personalidad aromática: ${vibeValue}` : null,
+      selectedEventAromas.length ? `Aromas de interés: ${selectedEventAromas.join(', ')}` : null,
     ].filter(Boolean);
     document.getElementById('wizardSummary').innerHTML = summaryLines.map((l) => `<div>${l}</div>`).join('');
   }
@@ -1573,6 +1623,7 @@ if (difusoresScrollBottom) {
       durationValue ? `Duración: ${durationValue}` : null,
       startMoment.get() ? `Inicio del aroma: ${startMoment.get()}` : null,
       vibeValue ? `Perfil aromático: ${vibeValue}` : null,
+      selectedEventAromas.length ? `Aromas de interés: ${selectedEventAromas.join(', ')}` : null,
       `Paquete recomendado: ${pkgName}`,
       `Estimación: ${pkgPrice}`,
       name ? `Nombre: ${name}` : null,
