@@ -604,12 +604,13 @@ function openCatalog(type, onSelect, options) {
     catalogTitle.textContent = buyCtx.title;
     catalogSub.textContent = buyCtx.sub;
     catalogBuyLabel.textContent = buyCtx.label;
-    if (buyCtx.showFeatured) {
-      renderFeaturedChips();
-      catalogFeatured.style.display = 'block';
-    } else {
-      catalogFeatured.style.display = 'none';
-    }
+    // En modo compra (Home Spray / Aceite / Perfume desde "conservar tu
+    // aroma") no mostramos "Los más pedidos" desde que se abre — con el
+    // panel de tamaños/precio que aparece después de elegir, el espacio
+    // vertical ya es limitado, y la prioridad es que la lista completa de
+    // aromas se vea desde el primer momento.
+    if (buyCtx.showFeatured) renderFeaturedChips();
+    catalogFeatured.style.display = 'none';
     renderBuySizes();
     catalogBuy.style.display = 'none';
     catalogBuyAroma.textContent = '—';
