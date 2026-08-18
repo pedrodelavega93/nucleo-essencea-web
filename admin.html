@@ -576,11 +576,11 @@
     try {
       const creada = await api('create', { nombre, correo, telefono, domicilio, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura });
 
-      // Si es renta y eligieron un equipo de Stock, lo vinculamos y descontamos
-      // de una vez — así no hace falta el paso aparte de "Vincular" después,
-      // y evitamos que el mismo equipo se descuente dos veces.
+      // Si es renta, la vinculamos a Control Total de una vez (con o sin
+      // equipo de Stock elegido) — así el domicilio y demás datos quedan
+      // sincronizados sin necesitar el paso aparte de "Vincular" después.
       const stockId = tipoPedido === 'suscripcion_renta' ? document.getElementById('nStockLink').value : '';
-      if (stockId) {
+      if (tipoPedido === 'suscripcion_renta') {
         try {
           await apiCT('linkDifusor', {
             data: {
@@ -597,9 +597,9 @@
           });
           await api('update', { subscriptionId: creada.subscriptionId, marcarVinculado: true });
         } catch (errCT) {
-          console.error('No se pudo vincular/descontar Stock:', errCT);
+          console.error('No se pudo vincular a Control Total:', errCT);
           msg.className = 'modal-msg err';
-          msg.textContent = 'La suscripción se creó, pero no se pudo descontar el Stock: ' + errCT.message + ' — vincúlala manualmente desde la tabla.';
+          msg.textContent = 'La suscripción se creó, pero no se pudo vincular a Control Total: ' + errCT.message + ' — vincúlala manualmente desde la tabla.';
         }
       }
 
@@ -620,8 +620,10 @@
 
   // ---- modal: editar suscripción ----
   const modalEditar = document.getElementById('modalEditar');
+  let editingSub = null;
   function openEditar(sub) {
     editingId = sub.id;
+    editingSub = sub;
     document.getElementById('ePlan').value = sub.planNombre || '';
     document.getElementById('eTamano').value = sub.tamano || '';
     document.getElementById('eAroma').value = sub.aroma || '';
@@ -650,6 +652,27 @@
       const payload = { subscriptionId: editingId, planNombre, tamano, aroma, telefono, domicilio };
       if (montoRaw) payload.montoMensual = montoRaw;
       await api('update', payload);
+
+      // Si es una renta de difusor, sincronizamos el domicilio (y cliente/
+      // monto) al registro de Control Total vinculado a esta suscripción.
+      // linkDifusor actualiza el registro existente en vez de duplicarlo.
+      if (editingSub && !editingSub.esAroma) {
+        try {
+          await apiCT('linkDifusor', {
+            data: {
+              cliente: editingSub.nombre || editingSub.correo || 'Sin nombre',
+              modelo: planNombre || editingSub.etiqueta || 'Renta de Difusores',
+              monto: montoRaw || editingSub.montoMensual,
+              domicilio,
+              notas: `Actualizado desde el Panel — ${editingSub.correo || ''}`.trim(),
+              subscriptionId: editingId,
+            },
+          });
+        } catch (errCT) {
+          console.error('No se pudo sincronizar el domicilio a Control Total:', errCT);
+        }
+      }
+
       msg.className = 'modal-msg ok';
       msg.textContent = '¡Actualizado!';
       await loadSubs();
