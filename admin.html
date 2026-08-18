@@ -153,6 +153,10 @@
       <input type="text" id="nTelefono" placeholder="81 1234 5678">
     </div>
     <div class="field">
+      <label>Domicilio de instalación (opcional)</label>
+      <input type="text" id="nDomicilio" placeholder="Calle, número, colonia, ciudad">
+    </div>
+    <div class="field">
       <label>Método de pago</label>
       <select id="nMetodoPago">
         <option value="efectivo">Efectivo</option>
@@ -219,6 +223,14 @@
     <div class="field">
       <label>Aroma</label>
       <input type="text" id="eAroma">
+    </div>
+    <div class="field">
+      <label>WhatsApp</label>
+      <input type="text" id="eTelefono" placeholder="81 1234 5678">
+    </div>
+    <div class="field">
+      <label>Domicilio de instalación</label>
+      <input type="text" id="eDomicilio" placeholder="Calle, número, colonia, ciudad">
     </div>
     <div class="field">
       <label>Monto mensual (MXN) — deja vacío para no cambiarlo</label>
@@ -416,6 +428,7 @@
             <div class="cell-name">${s.nombre || '(sin nombre)'}</div>
             <div class="cell-sub">${s.correo || ''}</div>
             ${s.telefono ? `<div class="cell-sub">${s.telefono}</div>` : ''}
+            ${s.domicilio ? `<div class="cell-sub">📍 ${s.domicilio}</div>` : ''}
           </td>
           <td>
             <div>${s.etiqueta}</div>
@@ -523,7 +536,7 @@
   document.getElementById('nFactura').addEventListener('change', actualizarPreviewIva);
 
   document.getElementById('btnNueva').addEventListener('click', () => {
-    ['nNombre','nCorreo','nTelefono','nPlan','nTamano','nAroma','nMonto','nFechaInicio'].forEach((id) => document.getElementById(id).value = '');
+    ['nNombre','nCorreo','nTelefono','nDomicilio','nPlan','nTamano','nAroma','nMonto','nFechaInicio'].forEach((id) => document.getElementById(id).value = '');
     document.getElementById('nMetodoPago').value = 'efectivo';
     document.getElementById('nFactura').checked = false;
     document.getElementById('nMontoConIva').textContent = '';
@@ -544,6 +557,7 @@
     const nombre = document.getElementById('nNombre').value.trim();
     const correo = document.getElementById('nCorreo').value.trim();
     const telefono = document.getElementById('nTelefono').value.trim();
+    const domicilio = document.getElementById('nDomicilio').value.trim();
     const tipoPedido = document.getElementById('nTipo').value;
     const planNombre = document.getElementById('nPlan').value.trim();
     const tamano = document.getElementById('nTamano').value.trim();
@@ -560,7 +574,7 @@
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     try {
-      const creada = await api('create', { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura });
+      const creada = await api('create', { nombre, correo, telefono, domicilio, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura });
 
       // Si es renta y eligieron un equipo de Stock, lo vinculamos y descontamos
       // de una vez — así no hace falta el paso aparte de "Vincular" después,
@@ -575,6 +589,7 @@
               monto: montoMensual,
               fecha: fechaInicio || new Date().toISOString().slice(0, 10),
               pagado: false,
+              domicilio,
               notas: `Dado de alta desde el Panel — ${correo || ''}`.trim(),
               subscriptionId: creada.subscriptionId,
               stockId,
@@ -610,6 +625,8 @@
     document.getElementById('ePlan').value = sub.planNombre || '';
     document.getElementById('eTamano').value = sub.tamano || '';
     document.getElementById('eAroma').value = sub.aroma || '';
+    document.getElementById('eTelefono').value = sub.telefono || '';
+    document.getElementById('eDomicilio').value = sub.domicilio || '';
     document.getElementById('eMonto').value = '';
     document.getElementById('eMsg').textContent = '';
     modalEditar.classList.add('open');
@@ -619,6 +636,8 @@
     const planNombre = document.getElementById('ePlan').value.trim();
     const tamano = document.getElementById('eTamano').value.trim();
     const aroma = document.getElementById('eAroma').value.trim();
+    const telefono = document.getElementById('eTelefono').value.trim();
+    const domicilio = document.getElementById('eDomicilio').value.trim();
     const montoRaw = document.getElementById('eMonto').value;
     const msg = document.getElementById('eMsg');
     const btn = document.getElementById('eGuardar');
@@ -628,7 +647,7 @@
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     try {
-      const payload = { subscriptionId: editingId, planNombre, tamano, aroma };
+      const payload = { subscriptionId: editingId, planNombre, tamano, aroma, telefono, domicilio };
       if (montoRaw) payload.montoMensual = montoRaw;
       await api('update', payload);
       msg.className = 'modal-msg ok';
@@ -673,6 +692,7 @@
           monto: sub.montoMensual,
           fecha: sub.proximaFechaISO ? sub.proximaFechaISO.slice(0, 10) : '',
           pagado: sub.estado === 'active',
+          domicilio: sub.domicilio || '',
           notas: `Vinculado desde el Panel — ${sub.correo || ''}`.trim(),
           subscriptionId: sub.id,
           stockId: stockId || null,

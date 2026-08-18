@@ -250,6 +250,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       <select id="mdTipo"><option value="venta">Venta</option><option value="renta">Renta mensual</option></select>
     </div>
     <div class="field"><label>Cliente</label><input type="text" id="mdCliente"></div>
+    <div class="field"><label>Domicilio de instalación</label><input type="text" id="mdDomicilio" placeholder="Calle, número, colonia, ciudad"></div>
     <div class="field"><label>Modelo / paquete</label><input type="text" id="mdModelo" placeholder="Ej. A60 / Paquete Aura"></div>
     <div class="field"><label>Monto (MXN)</label><input type="number" id="mdMonto"></div>
     <div class="field"><label>Fecha</label><input type="date" id="mdFecha"></div>
@@ -349,6 +350,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
     <div class="field"><label>Equipo</label><input type="text" id="mrsModelo" readonly style="opacity:0.75;"></div>
     <div class="field"><label>Disponible</label><input type="text" id="mrsDisponible" readonly style="opacity:0.75;"></div>
     <div class="field"><label>Cliente</label><input type="text" id="mrsCliente" placeholder="Nombre del cliente"></div>
+    <div class="field"><label>Domicilio de instalación</label><input type="text" id="mrsDomicilio" placeholder="Calle, número, colonia, ciudad"></div>
     <div class="field"><label>Monto mensual (MXN)</label><input type="number" id="mrsMonto"></div>
     <div class="field"><label>Fecha</label><input type="date" id="mrsFecha"></div>
     <div class="checkrow">
@@ -1167,7 +1169,7 @@ function renderDifusores() {
   const rows = DIFUSORES.slice().reverse().map((d) => `
     <tr data-id="${d.id}">
       <td><span class="badge ${d.tipo === 'venta' ? 'ok' : 'muted'}">${d.tipo === 'venta' ? 'Venta' : 'Renta'}</span></td>
-      <td>${esc(d.cliente)}</td>
+      <td>${esc(d.cliente)}${d.domicilio ? `<div class="small">📍 ${esc(d.domicilio)}</div>` : ''}</td>
       <td>${esc(d.modelo)}</td>
       <td class="right">${money(d.monto)}</td>
       <td class="small">${esc(d.fecha || '—')}</td>
@@ -1201,6 +1203,7 @@ function openDifusorModal(id) {
   document.getElementById('mdTitle').textContent = id ? 'Editar registro' : 'Nuevo registro de difusor';
   document.getElementById('mdTipo').value = d ? d.tipo : 'venta';
   document.getElementById('mdCliente').value = d ? d.cliente : '';
+  document.getElementById('mdDomicilio').value = d ? (d.domicilio || '') : '';
   document.getElementById('mdModelo').value = d ? d.modelo : '';
   document.getElementById('mdMonto').value = d ? d.monto : '';
   document.getElementById('mdFecha').value = d ? (d.fecha || '') : '';
@@ -1233,6 +1236,7 @@ async function guardarDifusor() {
   const data = {
     tipo: document.getElementById('mdTipo').value,
     cliente, modelo, monto,
+    domicilio: document.getElementById('mdDomicilio').value.trim(),
     fecha: document.getElementById('mdFecha').value,
     pagado: document.getElementById('mdPagado').checked,
     activo: document.getElementById('mdActivo').checked,
@@ -1420,6 +1424,7 @@ function openRentarStockModal(id) {
   document.getElementById('mrsModelo').value = s.producto;
   document.getElementById('mrsDisponible').value = s.cantidad + ' disponible(s)';
   document.getElementById('mrsCliente').value = '';
+  document.getElementById('mrsDomicilio').value = '';
   document.getElementById('mrsMonto').value = '';
   document.getElementById('mrsFecha').value = '';
   document.getElementById('mrsPagado').checked = false;
@@ -1442,6 +1447,7 @@ async function guardarRentaDesdeStock() {
     cliente,
     modelo: s.producto,
     monto,
+    domicilio: document.getElementById('mrsDomicilio').value.trim(),
     fecha: document.getElementById('mrsFecha').value,
     pagado: document.getElementById('mrsPagado').checked,
     activo: true,
