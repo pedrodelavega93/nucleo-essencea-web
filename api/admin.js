@@ -303,6 +303,29 @@ async function accionMarkPaid(body) {
   return { invoiceId: factura.id, status: factura.status };
 }
 
+// ---------- action: invoices ----------
+// Historial de facturas (pagadas y pendientes) de una suscripción, para
+// mostrarlo en el panel al dar clic en "Ver historial".
+async function accionInvoices(body) {
+  const { subscriptionId } = body;
+  if (!subscriptionId) throw { status: 400, error: 'Falta la suscripción.' };
+
+  const facturas = await stripe.invoices.list({ subscription: subscriptionId, limit: 24 });
+  return {
+    invoices: facturas.data.map((f) => ({
+      id: f.id,
+      numero: f.number || f.id,
+      estado: f.status,
+      monto: f.total != null ? f.total / 100 : null,
+      moneda: f.currency,
+      fechaCreadaISO: f.created ? new Date(f.created * 1000).toISOString() : null,
+      fechaPagadaISO: f.status_transitions && f.status_transitions.paid_at ? new Date(f.status_transitions.paid_at * 1000).toISOString() : null,
+      hostedUrl: f.hosted_invoice_url || '',
+      pdfUrl: f.invoice_pdf || '',
+    })),
+  };
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -335,6 +358,9 @@ module.exports = async (req, res) => {
         break;
       case 'update':
         resultado = await accionUpdate(body);
+        break;
+      case 'invoices':
+        resultado = await accionInvoices(body);
         break;
       case 'markPaid':
         resultado = await accionMarkPaid(body);
