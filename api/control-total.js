@@ -4,8 +4,10 @@
 // la misma contraseña que el Panel (ADMIN_PASSWORD).
 //
 // Recibe { password, action, data? } donde action es una de:
-//   'get'  → devuelve los datos guardados (o null si no hay nada)
-//   'save' → guarda el objeto { ventas, gastos, difusores }
+//   'get'         → devuelve los datos guardados (o null si no hay nada)
+//   'save'        → guarda el objeto { ventas, gastos, difusores, stock }
+//   'linkDifusor' → crea o actualiza un registro de Difusores & Rentas
+//                   a partir de una suscripción del Panel (admin.html)
 //
 // Usa la base de datos Redis (Upstash) conectada al proyecto vía
 // Vercel Storage, hablando directo con su API REST por fetch — así
@@ -88,9 +90,26 @@ module.exports = async (req, res) => {
       const actual = (await kvGet()) || { ventas: [], gastos: [], difusores: [], stock: [] };
       if (!Array.isArray(actual.difusores)) actual.difusores = [];
 
-      // evita duplicar si ya se vinculó antes esta misma suscripción
-      if (data.subscriptionId && actual.difusores.some((d) => d.subscriptionId === data.subscriptionId)) {
-        return res.status(200).json({ ok: true, yaExistia: true });
+      // Si ya existe un registro vinculado a esta misma suscripción, lo
+      // actualizamos (cliente, monto y domicilio) en vez de crear uno
+      // nuevo o ignorar la llamada — así el Panel puede sincronizar el
+      // domicilio a Control Total cada vez que se guarda una edición,
+      // sin duplicar registros ni volver a descontar Stock.
+      if (data.subscriptionId) {
+        const existente = actual.difusores.find((d) => d.subscriptionId === data.subscriptionId);
+        if (existente) {
+          existente.cliente = data.cliente;
+          existente.modelo = data.modelo;
+          if (data.monto !== undefined && data.monto !== null && data.monto !== '' && !isNaN(Number(data.monto))) {
+            existente.monto = Number(data.monto);
+          }
+          if (data.domicilio !== undefined) existente.domicilio = data.domicilio;
+          if (data.notas) existente.notas = data.notas;
+
+          const ok = await kvSet(actual);
+          if (!ok) return res.status(500).json({ error: 'La base de datos no confirmó el guardado.' });
+          return res.status(200).json({ ok: true, id: existente.id, actualizado: true });
+        }
       }
 
       let maxNum = 0;
@@ -105,6 +124,7 @@ module.exports = async (req, res) => {
         cliente: data.cliente,
         modelo: data.modelo,
         monto: Number(data.monto) || 0,
+        domicilio: data.domicilio || '',
         fecha: data.fecha || '',
         pagado: !!data.pagado,
         activo: true,

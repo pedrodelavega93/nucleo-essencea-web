@@ -10,10 +10,13 @@
 //   'list'      → lista todas las suscripciones
 //   'create'    → da de alta una suscripción en efectivo
 //   'cancel'    → cancela (da de baja) una suscripción
-//   'update'    → modifica aroma/plan/tamaño/monto
+//   'update'    → modifica aroma/plan/tamaño/monto/domicilio
 //   'markPaid'  → marca como pagado el recibo abierto del mes
 //
 // Protegido con ADMIN_PASSWORD. Requiere STRIPE_SECRET_KEY.
+// No hay base de datos propia: todo (incluyendo el domicilio de
+// instalación) se guarda como metadata de la propia suscripción
+// de Stripe.
 // ============================================================
 
 const Stripe = require('stripe');
@@ -79,6 +82,7 @@ async function accionList() {
         nombre: customer ? (customer.name || '') : '',
         correo: customer ? (customer.email || '') : '',
         telefono: customer ? (customer.phone || '') : '',
+        domicilio: meta.domicilio || '',
         etiqueta,
         esAroma,
         planNombre: meta.plan_nombre || '',
@@ -131,7 +135,7 @@ function calcularMontoConIva(montoNeto, requiereFactura) {
 }
 
 async function accionCreate(body) {
-  const { nombre, correo, telefono, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura } = body;
+  const { nombre, correo, telefono, domicilio, tipoPedido, planNombre, tamano, aroma, montoMensual, fechaInicio, metodoPago, factura } = body;
   const metodoPagoNorm = metodoPago === 'transferencia' ? 'transferencia' : 'efectivo';
 
   const correoValido = correo && typeof correo === 'string' && correo.includes('@');
@@ -186,6 +190,7 @@ async function accionCreate(body) {
     plan_nombre: planNombre || '',
     tamano: tamano || '',
     aroma_elegido: aroma || '',
+    domicilio: domicilio ? String(domicilio).slice(0, 500) : '',
     metodo_pago: metodoPagoNorm,
     factura: factura ? 'si' : 'no',
     monto_neto: String(Number(montoMensual)),
@@ -224,7 +229,7 @@ async function accionCreate(body) {
 
   const subscription = await stripe.subscriptions.create(subscriptionConfig);
 
-  return { subscriptionId: subscription.id, customerId: customer.id };
+  return { subscriptionId: subscription.id, customerId: customer.id, domicilio: metadata.domicilio };
 }
 
 // ---------- action: cancel ----------
@@ -243,7 +248,7 @@ async function accionCancel(body) {
 
 // ---------- action: update ----------
 async function accionUpdate(body) {
-  const { subscriptionId, aroma, planNombre, tamano, montoMensual, marcarVinculado } = body;
+  const { subscriptionId, aroma, planNombre, tamano, domicilio, montoMensual, marcarVinculado } = body;
   if (!subscriptionId) throw { status: 400, error: 'Falta la suscripción a modificar.' };
 
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
@@ -252,6 +257,7 @@ async function accionUpdate(body) {
   if (aroma !== undefined) metaNueva.aroma_elegido = String(aroma).slice(0, 200);
   if (planNombre !== undefined) metaNueva.plan_nombre = String(planNombre).slice(0, 200);
   if (tamano !== undefined) metaNueva.tamano = String(tamano).slice(0, 100);
+  if (domicilio !== undefined) metaNueva.domicilio = String(domicilio).slice(0, 500);
   if (marcarVinculado) metaNueva.vinculado_ct = 'si';
 
   const updatePayload = { metadata: metaNueva };
