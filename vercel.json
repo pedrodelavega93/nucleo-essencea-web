@@ -6,3 +6,8 @@
     { "path": "/api/cron-reminders", "schedule": "0 14 * * *" }
   ]
 }
+{
+  "crons": [
+    { "path": "/api/cron-recordatorios", "schedule": "0 15 * * *" }
+  ]
+}
