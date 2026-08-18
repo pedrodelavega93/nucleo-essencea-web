@@ -496,6 +496,10 @@ function setBuyAroma(name) {
   catalogFeaturedChips.querySelectorAll('.catalog-featured-chip').forEach((c) => {
     c.classList.toggle('selected', c.dataset.aroma === name);
   });
+  // Al ocultar "Los más pedidos" el listado gana espacio arriba — regresamos
+  // el scroll de resultados al inicio para aprovecharlo desde el primer
+  // aroma, en vez de dejarlo donde haya quedado desplazado.
+  if (catalogResults) catalogResults.scrollTop = 0;
   updateBuyAddState();
   // Sube automáticamente hasta el panel de tamaños/precio, para que el
   // cliente no tenga que bajar manualmente en catálogos largos (aromas o
