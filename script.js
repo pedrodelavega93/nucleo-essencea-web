@@ -488,6 +488,11 @@ function setBuyAroma(name) {
   buyAroma = name;
   catalogBuyAroma.textContent = name;
   catalogBuy.style.display = 'block';
+  // Al elegir un aroma, escondemos "Los más pedidos" para dejarle más
+  // espacio vertical a la lista de resultados (que ya quedó reducida por
+  // el panel de tamaños/precio que aparece abajo) — así no se pierde de
+  // vista con listas largas como la de aceites (136 aromas).
+  catalogFeatured.style.display = 'none';
   catalogFeaturedChips.querySelectorAll('.catalog-featured-chip').forEach((c) => {
     c.classList.toggle('selected', c.dataset.aroma === name);
   });

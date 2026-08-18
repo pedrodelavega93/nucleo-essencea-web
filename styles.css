@@ -835,6 +835,9 @@ section{ position:relative; }
   flex:1;
   min-height:0;
 }
+@media(min-width:641px){
+  .catalog-results{ min-height:220px; }
+}
 .catalog-row{
   display:flex;
   justify-content:space-between;
