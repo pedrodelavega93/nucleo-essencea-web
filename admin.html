@@ -54,6 +54,7 @@
   .badge.factura{ color:var(--gold-2); border-color:var(--gold); background:rgba(184,144,94,0.08); }
   .badge.tarjeta{ color:var(--gold-2); border-color:var(--line); }
   .badge.status-active{ color:#8fce9b; border-color:#2f5a37; }
+  .badge.status-vencido{ color:#e08a8a; border-color:#5a2c2c; background:rgba(224,138,138,0.08); }
   .badge.status-past_due, .badge.status-unpaid{ color:#e0b48a; border-color:#5a4128; }
   .badge.status-canceled{ color:#e08a8a; border-color:#5a2c2c; }
   .row-actions{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -403,6 +404,22 @@
     }
   }
 
+  function estadoDisplay(s, dias) {
+    if (s.estado === 'canceled') {
+      return `<span class="badge status-vencido">FINALIZADO</span>`;
+    }
+    const yaVencido = s.estado === 'past_due' || s.estado === 'unpaid' || dias < 0;
+    if (yaVencido) {
+      return `<span class="badge status-vencido">VENCIDO</span>`;
+    }
+    let recordatorio = '';
+    if (dias <= 7) {
+      const label = dias === 0 ? 'Vence hoy' : dias === 1 ? 'Vence mañana' : `Vence en ${dias} días`;
+      recordatorio = `<div class="cell-sub" style="color:#e0b48a;">${label}</div>`;
+    }
+    return `<span class="badge status-active">ACTIVO</span>${recordatorio}`;
+  }
+
   function renderTable() {
     const body = document.getElementById('subTableBody');
     const visibles = allSubs.filter(matchesFilter)
@@ -419,9 +436,6 @@
       const dias = diasHasta(s.proximaFechaISO);
       const porVencer = s.estado !== 'canceled' && dias <= 7 && dias >= 0;
       const rowStyle = porVencer ? ' style="border-left:3px solid #d6a15c; background:rgba(214,161,92,0.06);"' : '';
-      const diasTag = porVencer
-        ? `<div class="cell-sub" style="color:#e0b48a;">${dias === 0 ? 'Vence hoy' : dias === 1 ? 'Vence mañana' : 'Vence en ' + dias + ' días'}</div>`
-        : '';
       return `
         <tr data-id="${s.id}"${rowStyle}>
           <td>
@@ -436,8 +450,8 @@
           </td>
           <td>${s.aroma || '—'}</td>
           <td>${money(s.montoMensual)}</td>
-          <td>${s.proximaFechaLabel}${diasTag}</td>
-          <td><span class="badge status-${s.estado}">${s.estado}</span></td>
+          <td>${s.proximaFechaLabel}</td>
+          <td>${estadoDisplay(s, dias)}</td>
           <td><span class="badge ${s.metodoPago}">${s.metodoPago}</span>${s.factura ? ' <span class="badge factura">factura</span>' : ''}</td>
           <td>
             <div class="row-actions">
