@@ -71,6 +71,7 @@
   .field{ margin-bottom:14px; }
   .field label{ display:block; font-size:0.72rem; color:var(--muted); margin-bottom:5px; }
   .field input, .field select{ width:100%; padding:10px 12px; background:var(--black); border:1px solid var(--line); border-radius:5px; color:var(--cream); font-family:'Jost',sans-serif; font-size:0.88rem; }
+  .field input[type="date"]{ color-scheme: dark; }
   .field input:focus, .field select:focus{ outline:none; border-color:var(--gold); }
   .modal-actions{ display:flex; gap:10px; margin-top:20px; }
   .modal-actions .admin-btn{ flex:1; }
@@ -99,6 +100,7 @@
     <div class="admin-actions">
       <button class="admin-btn" id="btnNueva">+ Nueva suscripción manual</button>
       <button class="admin-btn ghost" id="btnRefrescar">Actualizar</button>
+      <button class="admin-btn ghost" id="btnExportar">Exportar a CSV</button>
     </div>
   </div>
 
@@ -266,6 +268,18 @@
   </div>
 </div>
 
+<!-- ============ MODAL: HISTORIAL DE FACTURAS ============ -->
+<div class="modal-bg" id="modalHistorial">
+  <div class="modal-box" style="max-width:520px;">
+    <h3>Historial de facturas</h3>
+    <div class="small" id="hCliente" style="margin:-10px 0 16px; color:var(--muted);"></div>
+    <div id="hLista" style="max-height:50vh; overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="admin-btn ghost" data-close="modalHistorial">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   const STORAGE_KEY = 'nucleo_admin_pw';
@@ -420,11 +434,24 @@
     return `<span class="badge status-active">ACTIVO</span>${recordatorio}`;
   }
 
+  function prioridadEstado(s) {
+    const dias = diasHasta(s.proximaFechaISO);
+    if (s.estado === 'canceled') return 3; // finalizadas al final
+    const vencido = s.estado === 'past_due' || s.estado === 'unpaid' || dias < 0;
+    if (vencido) return 0; // vencidos primero
+    if (dias <= 7) return 1; // por vencer después
+    return 2; // resto
+  }
+
   function renderTable() {
     const body = document.getElementById('subTableBody');
     const visibles = allSubs.filter(matchesFilter)
       .slice()
-      .sort((a, b) => new Date(a.proximaFechaISO) - new Date(b.proximaFechaISO));
+      .sort((a, b) => {
+        const pa = prioridadEstado(a), pb = prioridadEstado(b);
+        if (pa !== pb) return pa - pb;
+        return new Date(a.proximaFechaISO) - new Date(b.proximaFechaISO);
+      });
 
     if (!visibles.length) {
       body.innerHTML = `<tr><td colspan="8" class="empty-msg">No hay suscripciones que coincidan con este filtro.</td></tr>`;
@@ -457,6 +484,7 @@
             <div class="row-actions">
               <button class="mini-btn" data-action="editar" data-id="${s.id}">Editar</button>
               ${puedeMarcarPago ? `<button class="mini-btn" data-action="pago" data-id="${s.id}">Marcar pago</button>` : ''}
+              <button class="mini-btn" data-action="historial" data-id="${s.id}">Historial</button>
               ${!s.esAroma ? (s.vinculadoCT
                 ? `<span class="mini-btn" style="opacity:0.6; cursor:default;">Vinculada ✓</span>`
                 : `<button class="mini-btn" data-action="vincular" data-id="${s.id}">Vincular a Control Total</button>`) : ''}
@@ -529,6 +557,8 @@
       }
     } else if (btn.dataset.action === 'vincular') {
       abrirModalVincular(sub);
+    } else if (btn.dataset.action === 'historial') {
+      abrirModalHistorial(sub, btn);
     }
   });
 
@@ -748,6 +778,72 @@
       btn.textContent = 'Vincular';
     }
   });
+
+  // ---- modal: historial de facturas ----
+  const modalHistorial = document.getElementById('modalHistorial');
+  function facturaEstadoLabel(estado) {
+    const mapa = { paid: 'Pagada', open: 'Pendiente', void: 'Anulada', uncollectible: 'Incobrable', draft: 'Borrador' };
+    return mapa[estado] || estado;
+  }
+  function fechaCorta(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }); }
+    catch (e) { return iso.slice(0, 10); }
+  }
+  async function abrirModalHistorial(sub, btnOrigen) {
+    document.getElementById('hCliente').textContent = sub.nombre || sub.correo || 'Sin nombre';
+    document.getElementById('hLista').innerHTML = '<p class="small">Cargando…</p>';
+    modalHistorial.classList.add('open');
+    if (btnOrigen) { btnOrigen.disabled = true; }
+    try {
+      const r = await api('invoices', { subscriptionId: sub.id });
+      const facturas = r.invoices || [];
+      const lista = document.getElementById('hLista');
+      if (!facturas.length) {
+        lista.innerHTML = '<p class="small">Todavía no hay facturas generadas para esta suscripción.</p>';
+      } else {
+        lista.innerHTML = facturas.map((f) => `
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);">
+            <div>
+              <div style="color:var(--cream); font-size:0.86rem;">${fechaCorta(f.fechaCreadaISO)}</div>
+              <div class="small">${facturaEstadoLabel(f.estado)}${f.fechaPagadaISO ? ' — pagada ' + fechaCorta(f.fechaPagadaISO) : ''}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="color:var(--gold-2); font-weight:500;">${money(f.monto)}</span>
+              ${f.hostedUrl ? `<a href="${f.hostedUrl}" target="_blank" rel="noopener" class="mini-btn">Ver</a>` : ''}
+            </div>
+          </div>`).join('');
+      }
+    } catch (err) {
+      document.getElementById('hLista').innerHTML = `<p class="small" style="color:#e08a8a;">No se pudo cargar el historial: ${err.message}</p>`;
+    } finally {
+      if (btnOrigen) { btnOrigen.disabled = false; }
+    }
+  }
+
+  // ---- exportar a CSV ----
+  function exportarCSV() {
+    const filas = allSubs.filter(matchesFilter);
+    const encabezados = ['Cliente', 'Correo', 'WhatsApp', 'Domicilio', 'Tipo/Plan', 'Aroma', 'Monto mensual', 'Próximo cobro', 'Estado', 'Método de pago', 'Requiere factura'];
+    const escCSV = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const lineas = [encabezados.map(escCSV).join(',')];
+    filas.forEach((s) => {
+      lineas.push([
+        s.nombre, s.correo, s.telefono, s.domicilio, s.etiqueta, s.aroma,
+        s.montoMensual, s.proximaFechaLabel, s.estado, s.metodoPago, s.factura ? 'Sí' : 'No',
+      ].map(escCSV).join(','));
+    });
+    const blob = new Blob(['\ufeff' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nucleo-suscripciones-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  document.getElementById('btnExportar').addEventListener('click', exportarCSV);
 
   // cerrar modales
   document.querySelectorAll('[data-close]').forEach((btn) => {
