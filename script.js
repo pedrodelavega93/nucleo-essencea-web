@@ -604,13 +604,12 @@ function openCatalog(type, onSelect, options) {
     catalogTitle.textContent = buyCtx.title;
     catalogSub.textContent = buyCtx.sub;
     catalogBuyLabel.textContent = buyCtx.label;
-    // En modo compra (Home Spray / Aceite / Perfume desde "conservar tu
-    // aroma") no mostramos "Los más pedidos" desde que se abre — con el
-    // panel de tamaños/precio que aparece después de elegir, el espacio
-    // vertical ya es limitado, y la prioridad es que la lista completa de
-    // aromas se vea desde el primer momento.
-    if (buyCtx.showFeatured) renderFeaturedChips();
-    catalogFeatured.style.display = 'none';
+    if (buyCtx.showFeatured) {
+      renderFeaturedChips();
+      catalogFeatured.style.display = 'block';
+    } else {
+      catalogFeatured.style.display = 'none';
+    }
     renderBuySizes();
     catalogBuy.style.display = 'none';
     catalogBuyAroma.textContent = '—';
@@ -694,6 +693,14 @@ if (catalogGroupFilter) {
       currentGroupFilter = chip.dataset.group;
       catalogGroupFilter.querySelectorAll('.catalog-gender-chip').forEach((c) => c.classList.remove('selected'));
       chip.classList.add('selected');
+      // Al elegir una familia específica (Frescos, Florales, Dulces...) le
+      // damos todo el espacio vertical a esa lista filtrada, escondiendo
+      // "Los más pedidos" — que solo tiene sentido cuando se está viendo
+      // "Todos". Al volver a "Todos" reaparece.
+      if (catalogFeatured) {
+        catalogFeatured.style.display = (currentGroupFilter === 'todos' && catalogBuyMode) ? 'block' : 'none';
+      }
+      if (catalogResults) catalogResults.scrollTop = 0;
       filterCatalog(catalogInput.value);
     });
   });
