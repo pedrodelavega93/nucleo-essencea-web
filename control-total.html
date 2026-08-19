@@ -732,6 +732,12 @@ function render() {
   else if (currentTab === 'stock') c.innerHTML = renderStock();
   else if (currentTab === 'flujo') c.innerHTML = renderFlujo();
   attachHandlers();
+  // Estas tres pestañas separan su caja de búsqueda del resto de la lista
+  // (para que el teclado no se cierre al escribir) — por eso los
+  // resultados se pintan aparte, después del shell.
+  if (currentTab === 'ventas') refreshVentasResults();
+  else if (currentTab === 'clientes') refreshClientesResults();
+  else if (currentTab === 'stock') refreshStockResults();
 }
 
 /* ============ RESUMEN ============ */
@@ -828,7 +834,7 @@ function renderResumen() {
 let ventasFiltro = { texto: '', estado: 'todas', pedido: '' };
 let pedidosExpandidos = new Set();
 
-function renderVentas() {
+function ventasResultsHtml() {
   const pedidosUnicos = Array.from(new Set(VENTAS.map((v) => v.pedido))).sort((a, b) => {
     const na = parseInt(a, 10), nb = parseInt(b, 10);
     if (!isNaN(na) && !isNaN(nb)) return na - nb;
@@ -908,6 +914,26 @@ function renderVentas() {
   }).join('');
 
   return `
+    <div class="pedidos-lista">
+      ${gruposHtml || '<div class="empty">No hay ventas que coincidan con este filtro.</div>'}
+    </div>
+    <div class="panel" style="margin-top:14px;">
+      <div class="foot-total" style="display:flex; justify-content:space-between;">
+        <span>Totales (con monto capturado)</span>
+        <span>Costo: ${money(totalCosto)} — Venta: ${money(totalVenta)} — Utilidad: ${money(lista.filter((v) => v.montoConocido).reduce((s, v) => s + (utilidadDe(v) || 0), 0))}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderVentas() {
+  const pedidosUnicos = Array.from(new Set(VENTAS.map((v) => v.pedido))).sort((a, b) => {
+    const na = parseInt(a, 10), nb = parseInt(b, 10);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return String(a).localeCompare(String(b));
+  });
+
+  return `
     <div class="pagehead">
       <h1 class="serif">Ventas / Pedidos</h1>
       <p>${VENTAS.length} artículos registrados en ${pedidosUnicos.length} pedidos.</p>
@@ -928,16 +954,40 @@ function renderVentas() {
       <button class="btn" id="btnNuevaVenta" style="margin-left:auto;">+ Nueva venta</button>
     </div>
 
-    <div class="pedidos-lista">
-      ${gruposHtml || '<div class="empty">No hay ventas que coincidan con este filtro.</div>'}
-    </div>
-    <div class="panel" style="margin-top:14px;">
-      <div class="foot-total" style="display:flex; justify-content:space-between;">
-        <span>Totales (con monto capturado)</span>
-        <span>Costo: ${money(totalCosto)} — Venta: ${money(totalVenta)} — Utilidad: ${money(lista.filter((v) => v.montoConocido).reduce((s, v) => s + (utilidadDe(v) || 0), 0))}</span>
-      </div>
-    </div>
+    <div id="ventasResultsWrap"></div>
   `;
+}
+
+// Vuelve a pintar SOLO la lista/totales de Ventas (nunca la caja de
+// búsqueda ni el resto del filterbar) — así el input nunca se destruye
+// mientras el cliente escribe, y el teclado del celular no se cierra en
+// cada letra.
+function refreshVentasResults() {
+  const wrap = document.getElementById('ventasResultsWrap');
+  if (!wrap) return;
+  wrap.innerHTML = ventasResultsHtml();
+  wrap.querySelectorAll('[data-pedidogroup]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const p = el.dataset.pedidogroup;
+      if (pedidosExpandidos.has(p)) pedidosExpandidos.delete(p);
+      else pedidosExpandidos.add(p);
+      refreshVentasResults();
+    });
+  });
+  wrap.querySelectorAll('[data-editrow]').forEach((el) => {
+    el.addEventListener('click', () => openVentaModal(el.dataset.editrow));
+  });
+  wrap.querySelectorAll('[data-delrow]').forEach((el) => {
+    el.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar esta venta?')) return;
+      VENTAS = VENTAS.filter((x) => x.id !== el.dataset.delrow);
+      await persist();
+      render();
+    });
+  });
+  wrap.querySelectorAll('[data-edit]').forEach((el) => {
+    el.addEventListener('click', () => openEditCell(el.dataset.id, el.dataset.edit));
+  });
 }
 
 function openEditCell(id, field) {
@@ -1043,7 +1093,7 @@ function buildClientesMap() {
   return map;
 }
 
-function renderClientes() {
+function clientesResultsHtml() {
   const map = buildClientesMap();
   let list = Object.values(map);
   if (clienteFiltro) {
@@ -1063,6 +1113,16 @@ function renderClientes() {
     </tr>`).join('');
 
   return `
+    <div class="twrap"><table>
+      <thead><tr><th>Cliente</th><th class="right">Artículos</th><th class="right">Total gastado (conocido)</th><th class="right">Pendientes</th><th class="right">Regalos</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" class="empty">Sin clientes aún.</td></tr>'}</tbody>
+    </table></div>
+  `;
+}
+
+function renderClientes() {
+  const map = buildClientesMap();
+  return `
     <div class="pagehead">
       <h1 class="serif">Clientes</h1>
       <p>${Object.keys(map).length} clientes distintos identificados a partir de tus ventas.</p>
@@ -1070,12 +1130,20 @@ function renderClientes() {
     <div class="filterbar">
       <input type="text" id="clienteBuscar" placeholder="Buscar cliente..." value="${esc(clienteFiltro)}">
     </div>
-    <div class="twrap"><table>
-      <thead><tr><th>Cliente</th><th class="right">Artículos</th><th class="right">Total gastado (conocido)</th><th class="right">Pendientes</th><th class="right">Regalos</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="6" class="empty">Sin clientes aún.</td></tr>'}</tbody>
-    </table></div>
+    <div id="clientesResultsWrap"></div>
     <div id="clienteDetalle"></div>
   `;
+}
+
+// Igual que en Ventas: separado de la caja de búsqueda para que el
+// teclado no se cierre al escribir.
+function refreshClientesResults() {
+  const wrap = document.getElementById('clientesResultsWrap');
+  if (!wrap) return;
+  wrap.innerHTML = clientesResultsHtml();
+  wrap.querySelectorAll('[data-verclient]').forEach((el) => {
+    el.addEventListener('click', () => mostrarHistorialCliente(el.dataset.verclient));
+  });
 }
 
 function mostrarHistorialCliente(nombre) {
@@ -1308,13 +1376,12 @@ async function guardarDifusor() {
 /* ============ STOCK ============ */
 let stockFiltro = '';
 
-function renderStock() {
+function stockResultsHtml() {
   let lista = STOCK.slice();
   if (stockFiltro) {
     const q = stockFiltro.toLowerCase();
     lista = lista.filter((s) => (s.producto || '').toLowerCase().includes(q) || (s.categoria || '').toLowerCase().includes(q));
   }
-  const totalUnidades = lista.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
 
   const rows = lista.slice().reverse().map((s) => `
     <tr data-id="${s.id}">
@@ -1328,24 +1395,60 @@ function renderStock() {
     </tr>`).join('');
 
   return `
-    <div class="pagehead">
-      <h1 class="serif">Stock</h1>
-      <p>Inventario disponible de inmediato: difusores y productos ya listos para entregar sin esperar pedido.</p>
-    </div>
-    <div class="kpi-row">
-      <div class="kpi"><div class="l">Productos distintos</div><div class="n">${lista.length}</div></div>
-      <div class="kpi"><div class="l">Unidades totales</div><div class="n ok">${totalUnidades}</div></div>
-    </div>
-    <div class="filterbar">
-      <input type="text" id="stockBuscar" placeholder="Buscar producto o categoría..." value="${esc(stockFiltro)}">
-      <button class="btn" id="btnNuevoStock" style="margin-left:auto;">+ Nuevo producto en stock</button>
-    </div>
     <div class="twrap"><table>
       <thead><tr><th>Producto</th><th>Categoría</th><th class="right">Cantidad</th><th class="right">Costo unit.</th><th class="right">Venta unit.</th><th>Notas</th><th></th></tr></thead>
       <tbody>${rows || '<tr><td colspan="7" class="empty">Sin productos en stock registrados aún.</td></tr>'}</tbody>
     </table></div>
   `;
 }
+
+function renderStock() {
+  const totalUnidades = STOCK.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+  return `
+    <div class="pagehead">
+      <h1 class="serif">Stock</h1>
+      <p>Inventario disponible de inmediato: difusores y productos ya listos para entregar sin esperar pedido.</p>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="l">Productos distintos</div><div class="n">${STOCK.length}</div></div>
+      <div class="kpi"><div class="l">Unidades totales</div><div class="n ok">${totalUnidades}</div></div>
+    </div>
+    <div class="filterbar">
+      <input type="text" id="stockBuscar" placeholder="Buscar producto o categoría..." value="${esc(stockFiltro)}">
+      <button class="btn" id="btnNuevoStock" style="margin-left:auto;">+ Nuevo producto en stock</button>
+    </div>
+    <div id="stockResultsWrap"></div>
+  `;
+}
+
+// Igual que en Ventas y Clientes: separado de la caja de búsqueda para
+// que el teclado no se cierre al escribir. Nota: los KPIs de arriba
+// (Productos distintos / Unidades totales) ahora muestran el total real
+// del inventario, no el filtrado — así no cambian solo por estar
+// buscando algo.
+function refreshStockResults() {
+  const wrap = document.getElementById('stockResultsWrap');
+  if (!wrap) return;
+  wrap.innerHTML = stockResultsHtml();
+  wrap.querySelectorAll('[data-vendstock]').forEach((el) => {
+    el.addEventListener('click', () => openVenderStockModal(el.dataset.vendstock));
+  });
+  wrap.querySelectorAll('[data-rentstock]').forEach((el) => {
+    el.addEventListener('click', () => openRentarStockModal(el.dataset.rentstock));
+  });
+  wrap.querySelectorAll('[data-editstock]').forEach((el) => {
+    el.addEventListener('click', () => openStockModal(el.dataset.editstock));
+  });
+  wrap.querySelectorAll('[data-delstock]').forEach((el) => {
+    el.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar este producto del stock?')) return;
+      STOCK = STOCK.filter((x) => x.id !== el.dataset.delstock);
+      await persist();
+      render();
+    });
+  });
+}
+
 
 function openStockModal(id) {
   editingId = id || null;
@@ -1608,43 +1711,27 @@ function attachHandlers() {
 
   // Ventas
   const vb = document.getElementById('ventasBuscar');
-  if (vb) vb.addEventListener('input', () => { ventasFiltro.texto = vb.value; render(); });
+  if (vb) vb.addEventListener('input', () => { ventasFiltro.texto = vb.value; refreshVentasResults(); });
   const vp = document.getElementById('ventasPedidoSel');
-  if (vp) vp.addEventListener('change', () => { ventasFiltro.pedido = vp.value; if (vp.value) pedidosExpandidos.add(vp.value); render(); });
-  document.querySelectorAll('[data-pedidogroup]').forEach((el) => {
-    el.addEventListener('click', () => {
-      const p = el.dataset.pedidogroup;
-      if (pedidosExpandidos.has(p)) pedidosExpandidos.delete(p);
-      else pedidosExpandidos.add(p);
-      render();
-    });
+  if (vp) vp.addEventListener('change', () => {
+    ventasFiltro.pedido = vp.value;
+    if (vp.value) pedidosExpandidos.add(vp.value);
+    refreshVentasResults();
   });
   document.querySelectorAll('[data-estado]').forEach((el) => {
-    el.addEventListener('click', () => { ventasFiltro.estado = el.dataset.estado; render(); });
+    el.addEventListener('click', () => {
+      ventasFiltro.estado = el.dataset.estado;
+      document.querySelectorAll('[data-estado]').forEach((c) => c.classList.remove('sel'));
+      el.classList.add('sel');
+      refreshVentasResults();
+    });
   });
   const bnv = document.getElementById('btnNuevaVenta');
   if (bnv) bnv.addEventListener('click', () => openVentaModal(null));
-  document.querySelectorAll('[data-editrow]').forEach((el) => {
-    el.addEventListener('click', () => openVentaModal(el.dataset.editrow));
-  });
-  document.querySelectorAll('[data-delrow]').forEach((el) => {
-    el.addEventListener('click', async () => {
-      if (!confirm('¿Eliminar esta venta?')) return;
-      VENTAS = VENTAS.filter((x) => x.id !== el.dataset.delrow);
-      await persist();
-      render();
-    });
-  });
-  document.querySelectorAll('[data-edit]').forEach((el) => {
-    el.addEventListener('click', () => openEditCell(el.dataset.id, el.dataset.edit));
-  });
 
   // Clientes
   const cb = document.getElementById('clienteBuscar');
-  if (cb) cb.addEventListener('input', () => { clienteFiltro = cb.value; render(); });
-  document.querySelectorAll('[data-verclient]').forEach((el) => {
-    el.addEventListener('click', () => mostrarHistorialCliente(el.dataset.verclient));
-  });
+  if (cb) cb.addEventListener('input', () => { clienteFiltro = cb.value; refreshClientesResults(); });
 
   // Gastos
   const bng = document.getElementById('btnNuevoGasto');
@@ -1683,26 +1770,9 @@ function attachHandlers() {
 
   // Stock
   const stb = document.getElementById('stockBuscar');
-  if (stb) stb.addEventListener('input', () => { stockFiltro = stb.value; render(); });
+  if (stb) stb.addEventListener('input', () => { stockFiltro = stb.value; refreshStockResults(); });
   const bnst = document.getElementById('btnNuevoStock');
   if (bnst) bnst.addEventListener('click', () => openStockModal(null));
-  document.querySelectorAll('[data-editstock]').forEach((el) => {
-    el.addEventListener('click', () => openStockModal(el.dataset.editstock));
-  });
-  document.querySelectorAll('[data-vendstock]').forEach((el) => {
-    el.addEventListener('click', () => openVenderStockModal(el.dataset.vendstock));
-  });
-  document.querySelectorAll('[data-rentstock]').forEach((el) => {
-    el.addEventListener('click', () => openRentarStockModal(el.dataset.rentstock));
-  });
-  document.querySelectorAll('[data-delstock]').forEach((el) => {
-    el.addEventListener('click', async () => {
-      if (!confirm('¿Eliminar este producto del stock?')) return;
-      STOCK = STOCK.filter((x) => x.id !== el.dataset.delstock);
-      await persist();
-      render();
-    });
-  });
 }
 
 document.getElementById('mvGuardar').addEventListener('click', guardarVenta);
