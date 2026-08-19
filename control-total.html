@@ -219,6 +219,10 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       <label><input type="checkbox" id="mvStock"> Stock (no es venta a cliente)</label>
       <label><input type="checkbox" id="mvDomicilio"> Envío a domicilio</label>
     </div>
+    <div class="checkrow" id="mvVincularStockWrap" style="display:none;">
+      <label><input type="checkbox" id="mvVincularStock" checked> Vincular al inventario de Stock <span id="mvVincularStockInfo" class="small" style="color:var(--muted);"></span></label>
+    </div>
+    <div class="small" id="mvVincularStockHelp" style="display:none; margin:-8px 0 12px; color:var(--muted);">Suma esta cantidad al producto en Stock (lo crea si no existe) — así puedes venderlo pieza por pieza después, sin perder este registro de compra en Ventas/Pedidos.</div>
     <div class="field" id="mvCostoEnvioWrap" style="display:none;"><label>Costo del envío (MXN)</label><input type="number" id="mvCostoEnvio" placeholder="0"></div>
     <div class="field"><label>Notas</label><textarea id="mvNotas"></textarea></div>
     <div class="modal-actions">
@@ -1033,8 +1037,36 @@ function openVentaModal(id) {
   document.getElementById('mvCostoEnvio').value = v && v.costoEnvio ? v.costoEnvio : '';
   document.getElementById('mvCostoEnvioWrap').style.display = (v && v.domicilio) ? '' : 'none';
   document.getElementById('mvNotas').value = v ? (v.notas || '') : '';
+  document.getElementById('mvVincularStock').checked = true;
+  actualizarVincularStockUI();
   openModalEl('modalVenta');
 }
+
+// Separa "Palacio de Hierro — 1 litro x2" en { base: "Palacio de Hierro — 1 litro", cantidad: 2 }.
+// Si no trae " xN" al final, asume cantidad 1.
+function extraerCantidadYBase(producto) {
+  const m = (producto || '').trim().match(/^(.*)\s+x(\d+)$/i);
+  if (m) return { base: m[1].trim(), cantidad: Math.max(1, parseInt(m[2], 10)) };
+  return { base: (producto || '').trim(), cantidad: 1 };
+}
+
+// Muestra/oculta la casilla "Vincular al inventario de Stock" — solo tiene
+// sentido al dar de alta una venta NUEVA marcada como Stock (para evitar
+// que editar una venta ya vinculada vuelva a sumarse al inventario cada
+// vez que se guarda).
+function actualizarVincularStockUI() {
+  const esEdicion = !!editingId;
+  const marcado = document.getElementById('mvStock').checked;
+  const mostrar = marcado && !esEdicion;
+  document.getElementById('mvVincularStockWrap').style.display = mostrar ? '' : 'none';
+  document.getElementById('mvVincularStockHelp').style.display = mostrar ? '' : 'none';
+  if (mostrar) {
+    const { base, cantidad } = extraerCantidadYBase(document.getElementById('mvProducto').value);
+    document.getElementById('mvVincularStockInfo').textContent = `(cantidad: ${cantidad}${base ? ' — ' + base : ''})`;
+  }
+}
+document.getElementById('mvStock').addEventListener('change', actualizarVincularStockUI);
+document.getElementById('mvProducto').addEventListener('input', actualizarVincularStockUI);
 
 async function guardarVenta() {
   const pedido = document.getElementById('mvPedido').value.trim();
@@ -1068,6 +1100,31 @@ async function guardarVenta() {
   } else {
     data.id = nextId('v', VENTAS);
     data.origen = 'manual';
+
+    // Vincular al inventario de Stock: solo al dar de alta (no al editar),
+    // para no duplicar la cantidad cada vez que se vuelva a guardar.
+    if (data.stock && document.getElementById('mvVincularStock').checked) {
+      const { base, cantidad } = extraerCantidadYBase(producto);
+      const baseLower = base.toLowerCase();
+      let stockItem = STOCK.find((s) => (s.producto || '').trim().toLowerCase() === baseLower && s.categoria === data.categoria);
+      if (stockItem) {
+        stockItem.cantidad = (Number(stockItem.cantidad) || 0) + cantidad;
+      } else {
+        stockItem = {
+          id: nextId('st', STOCK),
+          producto: base,
+          categoria: data.categoria,
+          cantidad,
+          costoUnitario: costo != null ? Math.round((costo / cantidad) * 100) / 100 : null,
+          ventaUnitaria: venta != null ? Math.round((venta / cantidad) * 100) / 100 : null,
+          notas: `Vinculado desde Pedido ${pedido || '—'}`,
+        };
+        STOCK.push(stockItem);
+      }
+      data.vinculadoStock = true;
+      data.stockLinkId = stockItem.id;
+    }
+
     VENTAS.push(data);
   }
   await persist();
@@ -1821,6 +1878,7 @@ document.getElementById('mvAplicarArticulo').addEventListener('click', () => {
   const msg = document.getElementById('mvSugerirMsg');
   msg.textContent = esDifusor ? 'Aplicado — captura el costo y venta a mano.' : (esRegalo ? 'Aplicado como regalo: venta en $0, costo se mantiene.' : 'Aplicado a los campos de abajo.');
   msg.style.color = 'var(--ok)';
+  actualizarVincularStockUI();
 });
 
 document.getElementById('mvSugerir').addEventListener('click', () => {
