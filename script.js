@@ -1420,6 +1420,7 @@ if (difusoresScrollBottom) {
 
   const TOTAL_STEPS = 7;
   let currentStep = 1;
+  let wizardInicializado = false;
 
   const progressLabel = document.getElementById('wizardProgressLabel');
   const progressFill = document.getElementById('wizardProgressFill');
@@ -1442,6 +1443,19 @@ if (difusoresScrollBottom) {
     nav.style.display = n > TOTAL_STEPS ? 'none' : 'flex';
     nextBtn.textContent = n === TOTAL_STEPS ? 'Ver mi propuesta' : 'Siguiente';
     if (n > TOTAL_STEPS) computeResult();
+    // Cambiar de paso puede cambiar mucho la altura de la página (un paso
+    // alto seguido de uno corto, por ejemplo) — sin esto, el navegador
+    // reacomoda solo el scroll y la página "cae" hacia lo que quede
+    // debajo del wizard (como los paquetes). Fijamos el scroll al inicio
+    // del wizard en cada cambio, para que siempre se vea el paso nuevo.
+    // (Se omite en la primera carga de la página para no saltar solos al
+    // wizard antes de que el visitante haya interactuado con él.)
+    if (wizardInicializado) {
+      requestAnimationFrame(() => {
+        wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+    wizardInicializado = true;
   }
 
   backBtn.addEventListener('click', () => { if (currentStep > 1) showStep(currentStep - 1); });
