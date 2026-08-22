@@ -446,10 +446,20 @@ section{ position:relative; }
   transform:scale(1.05);
 }
 
+/* Los 3 logos originales (Umai Sushi, Abi Corpus, Glow Fitness) traen más
+   espacio en blanco alrededor del diseño dentro de su propio archivo que
+   los logos nuevos — por eso se ven más chicos dentro de la misma caja.
+   Les damos más alto/ancho a su fila para que se perciban del mismo
+   tamaño que los de la cinta de abajo. */
+.trust-marquee-top .trust-logo{ height:84px; }
+.trust-marquee-top .trust-logo img{ max-width:220px; }
+
 @media (max-width:640px){
   .trust-track{ gap:44px; animation-duration:64s; }
   .trust-logo{ height:40px; }
   .trust-logo img{ max-width:110px; }
+  .trust-marquee-top .trust-logo{ height:60px; }
+  .trust-marquee-top .trust-logo img{ max-width:150px; }
 }
 
 /* ---------- product sections ---------- */
