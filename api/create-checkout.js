@@ -32,6 +32,14 @@ const { buscarAroma } = require('./_aroma-catalog');
 // Los perfumes, aerosoles y aceites NO se incluyen aquí.
 const DIFUSOR_KEYS = ['a60', 'a300', 'a1000', 'a3000', 'a5000', 'carpro'];
 
+// ---------- Pago "A Plazos" (solo A300, A1000, A3000, A5000) ----------
+// Mismas constantes que en script.js — deben coincidir para que el precio
+// mostrado en el carrito sea idéntico al que realmente se cobra en Stripe.
+const MSI_ELIGIBLE_PRODUCTS = ['a300', 'a1000', 'a3000', 'a5000'];
+const MSI_FEES = { 3: 0.05, 6: 0.075, 12: 0.125 };
+const CARD_FEE_PCT = 0.036;
+const CARD_FEE_FIXED_CENTS = 300; // $3 MXN, en centavos
+
 const PRODUCTS = {
   perfume30:  { price: 'price_1Tv3HPB3WyWa7QbIkGZYMj9D',  mode: 'payment' },
   perfume60:  { price: 'price_1Tv3HlB3WyWa7QbIAcw4YoAz',  mode: 'payment' },
@@ -198,6 +206,46 @@ module.exports = async (req, res) => {
         );
       }
 
+      // ---------- Pago "A Plazos" (solo si TODO el carrito es elegible) ----------
+      // Validamos en el servidor, sin confiar en lo que mande el navegador —
+      // así nadie puede forzar el precio a plazos sobre productos que no
+      // deben llevarlo (perfumes, aceites, etc.).
+      const paymentPlan = body.paymentPlan || { type: 'contado' };
+      let esPlazos = false;
+      let mesesPlazos = null;
+
+      if (paymentPlan.type === 'plazos') {
+        mesesPlazos = parseInt(paymentPlan.months, 10);
+        const feeMsi = MSI_FEES[mesesPlazos];
+        const todosElegibles = body.items.every((it) => MSI_ELIGIBLE_PRODUCTS.includes(it.productKey));
+
+        if (!feeMsi) {
+          res.status(400).json({ error: 'El plazo a meses elegido no es válido.' });
+          return;
+        }
+        if (!todosElegibles) {
+          res.status(400).json({ error: 'El pago a plazos solo está disponible cuando el carrito contiene únicamente difusores A300, A1000, A3000 o A5000.' });
+          return;
+        }
+
+        // Ajustamos el precio total (no cada línea por separado) para que el
+        // costo fijo de $3 MXN de Stripe se aplique una sola vez por
+        // transacción, y luego repartimos el ajuste proporcionalmente entre
+        // las líneas del carrito.
+        const totalContadoCents = lineItems.reduce(
+          (s, li) => s + li.price_data.unit_amount * li.quantity, 0
+        );
+        const denominador = 1 - CARD_FEE_PCT - feeMsi;
+        const totalPlazosCents = Math.round((totalContadoCents + CARD_FEE_FIXED_CENTS) / denominador);
+        const factor = totalPlazosCents / totalContadoCents;
+
+        lineItems.forEach((li) => {
+          li.price_data.unit_amount = Math.round(li.price_data.unit_amount * factor);
+        });
+
+        esPlazos = true;
+      }
+
       const sessionConfig = {
         mode: 'payment',
         line_items: lineItems,
@@ -207,6 +255,15 @@ module.exports = async (req, res) => {
         success_url: origin + '/?pago=exitoso',
         cancel_url: origin + '/?pago=cancelado',
       };
+
+      // Activa Meses Sin Intereses de Stripe únicamente en esta sesión — el
+      // precio ya viene ajustado arriba para que a NÚCLEO le quede el mismo
+      // neto sin importar el plazo que elija el cliente.
+      if (esPlazos) {
+        sessionConfig.payment_method_options = {
+          card: { installments: { enabled: true } },
+        };
+      }
 
       const customFields = [];
 
@@ -230,6 +287,11 @@ module.exports = async (req, res) => {
       if (hayDifusor) {
         mensajes.push('En la dirección de instalación del difusor incluye calle, número, colonia y código postal.');
       }
+      if (esPlazos) {
+        mensajes.push(
+          `El precio ya incluye el costo de administración por financiamiento con tarjeta de crédito. Selecciona el plan a ${mesesPlazos} meses cuando tu tarjeta lo muestre como opción.`
+        );
+      }
       sessionConfig.custom_text = { submit: { message: mensajes.join(' ') } };
 
       // Metadata para el correo de aviso de pedido (Zapier: Stripe → Gmail).
@@ -238,6 +300,7 @@ module.exports = async (req, res) => {
         resumen_pedido: resumenPartes.join(' | ').slice(0, 500),
         requiere_instalacion: hayDifusor ? 'si' : 'no',
         campo_instalacion_key: hayDifusor ? 'direccion_instalacion' : '',
+        plan_pago: esPlazos ? ('plazos_' + mesesPlazos + 'm') : 'contado',
       };
 
       const session = await stripe.checkout.sessions.create(sessionConfig);
