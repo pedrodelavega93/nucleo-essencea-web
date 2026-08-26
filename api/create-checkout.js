@@ -236,7 +236,12 @@ module.exports = async (req, res) => {
           (s, li) => s + li.price_data.unit_amount * li.quantity, 0
         );
         const denominador = 1 - CARD_FEE_PCT - feeMsi;
-        const totalPlazosCents = Math.round((totalContadoCents + CARD_FEE_FIXED_CENTS) / denominador);
+        let totalPlazosCents = Math.round((totalContadoCents + CARD_FEE_FIXED_CENTS) / denominador);
+        // Redondeo a peso completo — debe coincidir exactamente con el
+        // mismo redondeo que hace calcularPrecioAPlazos() en script.js,
+        // para que el total que el cliente vio en el carrito sea idéntico
+        // al que realmente se le cobra aquí (sin diferencia de centavos).
+        totalPlazosCents = Math.round(totalPlazosCents / 100) * 100;
         const factor = totalPlazosCents / totalContadoCents;
 
         lineItems.forEach((li) => {
