@@ -27,7 +27,11 @@ const CARD_FEE_FIXED = 3;
 function calcularPrecioAPlazos(precioContado, meses) {
   const feeMsi = MSI_FEES[meses] || 0;
   const denominador = 1 - CARD_FEE_PCT - feeMsi;
-  return (precioContado + CARD_FEE_FIXED) / denominador;
+  const bruto = (precioContado + CARD_FEE_FIXED) / denominador;
+  // Se redondea a peso completo — así el total que se muestra aquí es
+  // idéntico, centavo por centavo, al que realmente se cobra en Stripe
+  // (api/create-checkout.js aplica el mismo redondeo).
+  return Math.round(bruto);
 }
 
 // --- Nav flotante: aparece después del hero ---
