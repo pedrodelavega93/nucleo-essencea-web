@@ -1223,6 +1223,27 @@
         <span>Total</span>
         <span class="cart-total serif" id="cartTotal">$0 MXN</span>
       </div>
+      <div class="cart-plan" id="cartPlan" style="display:none;">
+        <div class="cart-plan-toggle">
+          <label class="cart-plan-radio">
+            <input type="radio" name="cartPaymentPlan" id="cartPlanContado" value="contado" checked>
+            Pago de contado
+          </label>
+          <label class="cart-plan-radio">
+            <input type="radio" name="cartPaymentPlan" id="cartPlanPlazos" value="plazos">
+            A Plazos con tarjeta
+          </label>
+        </div>
+        <div class="cart-plan-detail" id="cartPlanDetail" style="display:none;">
+          <select id="cartPlanMeses">
+            <option value="3">3 meses</option>
+            <option value="6">6 meses</option>
+            <option value="12">12 meses</option>
+          </select>
+          <p class="cart-plan-summary" id="cartPlanSummary"></p>
+          <p class="cart-plan-disclaimer">El precio a plazos incluye el costo de administración por financiamiento con tarjeta de crédito.</p>
+        </div>
+      </div>
       <p class="cart-note">El costo de envío o la opción de recoger en tienda se elige en el pago seguro de Stripe.</p>
       <div class="cart-email-capture" id="cartEmailCapture">
         <label for="cartEmailInput" class="cart-email-label">¿Te recordamos tu carrito si no completas la compra? (opcional)</label>

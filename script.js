@@ -6,6 +6,30 @@
 // abandonado. REEMPLAZAR con la URL real de tu "Catch Hook" en Zapier.
 const ABANDONED_CART_WEBHOOK = 'https://hook.us2.make.com/95k56of8z8yv179ea7dtp54pnc0h3s9y';
 
+// ---------- Pago "A Plazos" (difusores equipo) ----------
+// Disponible solo para estos modelos, y solo cuando el carrito contiene
+// ÚNICAMENTE artículos de esta lista (para no mezclar el ajuste de precio
+// con productos que no lo llevan, como aromas o perfumes).
+const MSI_ELIGIBLE_PRODUCTS = ['a300', 'a1000', 'a3000', 'a5000'];
+
+// % extra que cobra Stripe por ofrecer meses sin intereses en México,
+// según el plazo — se suma a la comisión normal de cobro con tarjeta.
+const MSI_FEES = { 3: 0.05, 6: 0.075, 12: 0.125 };
+
+// Comisión estándar de Stripe por cualquier cobro con tarjeta en México.
+const CARD_FEE_PCT = 0.036;
+const CARD_FEE_FIXED = 3;
+
+// Calcula el precio final "A Plazos" para que, después de que Stripe
+// descuente ambas comisiones, a NÚCLEO le quede neto el mismo precio de
+// contado — el cliente que elige plazos es quien absorbe el costo del
+// financiamiento, no el negocio.
+function calcularPrecioAPlazos(precioContado, meses) {
+  const feeMsi = MSI_FEES[meses] || 0;
+  const denominador = 1 - CARD_FEE_PCT - feeMsi;
+  return (precioContado + CARD_FEE_FIXED) / denominador;
+}
+
 // --- Nav flotante: aparece después del hero ---
 const topnav = document.querySelector('.topnav');
 const hero = document.querySelector('.hero');
@@ -1125,7 +1149,15 @@ if (difusoresScrollBottom) {
     try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch (e) {}
   }
 
-  const money = (n) => '$' + n.toLocaleString('es-MX') + ' MXN';
+  const money = (n) => '$' + Math.round(n).toLocaleString('es-MX') + ' MXN';
+
+  // Estado del plan de pago elegido ("contado" o "plazos" + meses). Se
+  // reinicia a "contado" cada vez que el carrito deja de ser elegible.
+  let paymentPlan = { type: 'contado', months: 3 };
+
+  function carritoElegiblePlazos() {
+    return cart.length > 0 && cart.every((it) => MSI_ELIGIBLE_PRODUCTS.includes(it.productKey));
+  }
 
   const fab = document.getElementById('cartFab');
   const countEl = document.getElementById('cartCount');
@@ -1138,8 +1170,33 @@ if (difusoresScrollBottom) {
   const payBtn = document.getElementById('cartPayBtn');
   const toastEl = document.getElementById('toast');
   const cartEmailInput = document.getElementById('cartEmailInput');
+  const cartPlanEl = document.getElementById('cartPlan');
+  const cartPlanContadoInput = document.getElementById('cartPlanContado');
+  const cartPlanPlazosInput = document.getElementById('cartPlanPlazos');
+  const cartPlanDetailEl = document.getElementById('cartPlanDetail');
+  const cartPlanMesesSelect = document.getElementById('cartPlanMeses');
+  const cartPlanSummaryEl = document.getElementById('cartPlanSummary');
 
   if (!fab || !drawer) return;
+
+  if (cartPlanContadoInput) {
+    cartPlanContadoInput.addEventListener('change', () => {
+      paymentPlan = { type: 'contado', months: paymentPlan.months };
+      renderCart();
+    });
+  }
+  if (cartPlanPlazosInput) {
+    cartPlanPlazosInput.addEventListener('change', () => {
+      paymentPlan = { type: 'plazos', months: parseInt(cartPlanMesesSelect.value, 10) };
+      renderCart();
+    });
+  }
+  if (cartPlanMesesSelect) {
+    cartPlanMesesSelect.addEventListener('change', () => {
+      paymentPlan = { type: 'plazos', months: parseInt(cartPlanMesesSelect.value, 10) };
+      renderCart();
+    });
+  }
 
   let toastTimer;
   function showToast(msg) {
@@ -1283,8 +1340,28 @@ if (difusoresScrollBottom) {
       );
     }).join('');
 
-    const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
-    totalEl.textContent = money(total);
+    const totalContado = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+
+    // ---- Plan de pago (Contado / A Plazos) ----
+    const elegible = carritoElegiblePlazos();
+    if (!elegible && paymentPlan.type === 'plazos') paymentPlan = { type: 'contado', months: 3 };
+    cartPlanEl.style.display = elegible ? 'block' : 'none';
+    cartPlanContadoInput.checked = paymentPlan.type === 'contado';
+    cartPlanPlazosInput.checked = paymentPlan.type === 'plazos';
+    cartPlanDetailEl.style.display = paymentPlan.type === 'plazos' ? 'block' : 'none';
+    cartPlanMesesSelect.value = String(paymentPlan.months);
+
+    if (paymentPlan.type === 'plazos') {
+      const meses = paymentPlan.months;
+      const totalPlazos = calcularPrecioAPlazos(totalContado, meses);
+      const mensualidad = totalPlazos / meses;
+      cartPlanSummaryEl.textContent =
+        meses + ' pagos de ' + money(mensualidad) + ' — Total ' + money(totalPlazos);
+      totalEl.textContent = money(totalPlazos);
+    } else {
+      cartPlanSummaryEl.textContent = '';
+      totalEl.textContent = money(totalContado);
+    }
 
     itemsEl.querySelectorAll('.cart-item').forEach((row) => {
       const i = parseInt(row.dataset.index, 10);
@@ -1355,6 +1432,9 @@ if (difusoresScrollBottom) {
             aroma: it.aroma,
             name: it.name,
           })),
+          paymentPlan: paymentPlan.type === 'plazos'
+            ? { type: 'plazos', months: paymentPlan.months }
+            : { type: 'contado' },
         }),
       });
       const data = await resp.json();
