@@ -685,6 +685,14 @@ section{ position:relative; }
 .buy-mini:hover{ background:var(--gold); color:#171310; }
 .feature-copy .buy-btn{ display:inline-block; max-width:260px; }
 
+.catalog-cta-label{
+  margin:0 0 6px;
+  font-family:'Jost', sans-serif;
+  font-size:0.85rem;
+  font-weight:700;
+  letter-spacing:0.16em;
+  color:var(--gold);
+}
 .catalog-link{
   display:inline-flex;
   align-items:center;

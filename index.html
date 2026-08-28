@@ -36,9 +36,17 @@
         <a href="#suscripcion-aromas" role="menuitem">Suscripción de Aromas</a>
       </div>
     </div>
-    <a href="#home-sprays">Home Sprays</a>
-    <a href="#perfumes">Perfumes</a>
-    <a href="#aceites">Aceites</a>
+    <div class="nav-dropdown" data-nav-dropdown>
+      <button type="button" class="nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+        CATÁLOGOS
+        <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-dropdown-menu" role="menu">
+        <a href="#perfumes" role="menuitem">Catálogo de Perfumes</a>
+        <a href="#aceites" role="menuitem">Catálogo de Aceites Ambientales</a>
+        <a href="#home-sprays" role="menuitem">Catálogo de Home Sprays</a>
+      </div>
+    </div>
     <a href="#eventos">Eventos</a>
   </nav>
 </header>
@@ -65,9 +73,17 @@
           <a href="#suscripcion-aromas" role="menuitem">Suscripción Mensual de Aromas</a>
         </div>
       </div>
-      <a class="pill" href="#home-sprays">Home Sprays</a>
-      <a class="pill" href="#perfumes">Perfumes</a>
-      <a class="pill" href="#aceites">Aceites para difusor</a>
+      <div class="pill-dropdown" data-nav-dropdown>
+        <button type="button" class="pill pill-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+          CATÁLOGOS
+          <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav-dropdown-menu" role="menu">
+          <a href="#perfumes" role="menuitem">Catálogo de Perfumes</a>
+          <a href="#aceites" role="menuitem">Catálogo de Aceites Ambientales</a>
+          <a href="#home-sprays" role="menuitem">Catálogo de Home Sprays</a>
+        </div>
+      </div>
       <a class="pill" href="#eventos">Eventos</a>
     </div>
   </div>
@@ -473,6 +489,7 @@
             <span class="price serif">$600 <span style="font-family:'Jost',sans-serif;font-size:0.65rem;color:var(--muted);">MXN</span></span>
           </div>
         </div>
+        <p class="catalog-cta-label">CATÁLOGOS</p>
         <button class="catalog-link" data-catalog="ambientales">Consulta los aromas en nuestro catálogo →</button>
         <div class="qty-control" data-qty>
           <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
@@ -510,6 +527,7 @@
       <div class="feature-copy">
         <p class="desc">Esencia artesanal en envase de autor. Disponible en tres
           tamaños — la fragancia se elige del catálogo al momento del pedido.</p>
+        <p class="catalog-cta-label">CATÁLOGOS</p>
         <button class="catalog-link" data-catalog="perfumes">Consulta los perfumes en nuestro catálogo →</button>
         <div class="size-price-list">
           <div class="size-price-row">
@@ -571,6 +589,7 @@
       <div class="feature-copy">
         <p class="desc">Fórmula concentrada en frasco ámbar, lista para tu difusor NÚCLEO.
           Disponible en tres presentaciones — el aroma se elige del catálogo al momento del pedido.</p>
+        <p class="catalog-cta-label">CATÁLOGOS</p>
         <button class="catalog-link" data-catalog="ambientales">Consulta los aromas en nuestro catálogo →</button>
         <div class="size-price-list">
           <div class="size-price-row">
