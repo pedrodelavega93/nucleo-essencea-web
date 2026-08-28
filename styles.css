@@ -162,6 +162,15 @@ section{ position:relative; }
 .hero.has-open-dropdown{
   overflow:visible;
 }
+/* El puntito animado de "desliza hacia abajo" queda justo en la zona
+   donde cae el menú de Catálogos/Núcleo Business al abrirse — se oculta
+   mientras cualquiera de los dos esté abierto para que no se encimen. */
+.hero:has(.nav-dropdown-menu:hover) .scroll-cue,
+.hero:has(.pill-dropdown:hover) .scroll-cue,
+.hero.has-open-dropdown .scroll-cue{
+  opacity:0;
+  visibility:hidden;
+}
 
 .mist{
   position:absolute;
@@ -303,7 +312,7 @@ section{ position:relative; }
   opacity:0;
   visibility:hidden;
   transition:opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
-  z-index:70;
+  z-index:120;
 }
 .pill-dropdown:hover .nav-dropdown-menu,
 .pill-dropdown.open .nav-dropdown-menu{
@@ -334,6 +343,7 @@ section{ position:relative; }
   height:52px;
   background:linear-gradient(180deg, transparent, var(--gold) 60%, transparent);
   z-index:2;
+  transition:opacity 0.2s ease, visibility 0.2s ease;
 }
 .scroll-cue::after{
   content:'';
