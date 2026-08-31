@@ -1495,9 +1495,9 @@ if (difusoresScrollBottom) {
 
   /* Precios centralizados — editar solo aquí para actualizar todo el cotizador */
   const EVENT_PRICING = {
-    essential: { label: 'Essential', price: 2000, hourExtra: 200, hoursIncluded: 4, maxM2: 150 },
-    signature: { label: 'Signature', price: 3000, hourExtra: 250, hoursIncluded: 6, maxM2: 350 },
-    premium: { label: 'Premium', price: 4500, hourExtra: 300, hoursIncluded: 8, maxM2: 700 },
+    essential: { label: 'Essential', price: 4000, hourExtra: 200, hoursIncluded: 4, maxM2: 150 },
+    signature: { label: 'Signature', price: 5000, hourExtra: 250, hoursIncluded: 6, maxM2: 350 },
+    premium: { label: 'Premium', price: 6500, hourExtra: 300, hoursIncluded: 8, maxM2: 700 },
     experience: { label: 'Experience', price: null, hourExtra: null, hoursIncluded: null, maxM2: Infinity },
   };
   const money = (n) => '$' + n.toLocaleString('es-MX');
