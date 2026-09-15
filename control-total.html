@@ -315,6 +315,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
     <div class="field"><label>Cantidad disponible</label><input type="number" id="mstCantidad" min="0" value="1"></div>
     <div class="field"><label>Costo unitario (MXN)</label><input type="number" id="mstCostoUnitario" placeholder="0"></div>
     <div class="field"><label>Precio de venta sugerido (MXN)</label><input type="number" id="mstVentaUnitaria" placeholder="0"></div>
+    <div class="small" id="mstTotalPreview" style="margin:-6px 0 12px; color:var(--gold-2);"></div>
     <div class="small" id="mstAplicarMsg" style="margin:-6px 0 12px;"></div>
     <div class="field"><label>Notas</label><textarea id="mstNotas" placeholder="Ej. modelo, color, ubicación..."></textarea></div>
     <div class="modal-actions">
@@ -474,6 +475,7 @@ function renderNuevoPedido() {
 
   const filasItems = pedidoDraft.items.map((it, idx) => `
     <tr>
+      <td>${esc(it.cliente)}${it.stock ? ' <span class="badge muted">Stock</span>' : ''}</td>
       <td>${esc(it.tipoLabel)}</td>
       <td>${esc(it.producto)}</td>
       <td class="center">${it.cantidad}</td>
@@ -488,13 +490,14 @@ function renderNuevoPedido() {
   return `
     <div class="pagehead">
       <h1 class="serif">Nuevo Pedido</h1>
-      <p>Captura un pedido completo de una vez: cliente, número de pedido y todos sus artículos.</p>
+      <p>Captura un pedido completo de una vez. Un mismo "Pedido" puede incluir artículos de <strong>varios clientes distintos</strong> — por eso el cliente se guarda por cada artículo que agregas, no una sola vez para todo el pedido.</p>
     </div>
 
     <div class="panel">
       <h3>Datos del pedido</h3>
       <div class="field"><label>Pedido (número o referencia)</label><input type="text" id="npPedido" placeholder="Ej. 33" value="${esc(pedidoDraft.pedido)}"></div>
-      <div class="field"><label>Cliente</label><input type="text" id="npCliente" placeholder="Nombre del cliente" value="${esc(pedidoDraft.cliente)}"></div>
+      <div class="field"><label>Cliente (para el próximo artículo que agregues)</label><input type="text" id="npCliente" placeholder="Nombre del cliente" value="${esc(pedidoDraft.cliente)}"></div>
+      <p class="small" style="margin:0;">Este campo se guarda junto con cada artículo en el momento en que le das "+ Agregar a la lista" — así puedes cambiarlo entre un artículo y otro sin afectar los que ya agregaste.</p>
     </div>
 
     <div class="panel">
@@ -523,16 +526,18 @@ function renderNuevoPedido() {
         <label><input type="checkbox" id="npPagado"> Pagado</label>
         <label><input type="checkbox" id="npEntregado"> Entregado</label>
         <label><input type="checkbox" id="npRegalo"> Regalo</label>
+        <label><input type="checkbox" id="npStock"> Stock (no es venta a cliente)</label>
       </div>
+      <p class="small" style="margin:-6px 0 12px;">Si marcas "Stock", este artículo se suma en automático al inventario de la pestaña <strong>Stock</strong> (lo crea si no existe) — no necesitas capturarlo ahí también. Si dejas "Cliente" vacío junto con esta casilla, se guarda como "Stock" por default.</p>
       <button class="btn" id="npAgregarItem">+ Agregar a la lista</button>
     </div>
 
     <div class="panel">
       <h3>Artículos del pedido (${pedidoDraft.items.length})</h3>
       <div class="twrap"><table>
-        <thead><tr><th>Tipo</th><th>Producto</th><th class="center">Cant.</th><th class="right">Costo</th><th class="right">Venta</th><th></th></tr></thead>
-        <tbody>${filasItems || '<tr><td colspan="6" class="empty">Aún no agregas artículos a este pedido.</td></tr>'}</tbody>
-        <tfoot><tr><td colspan="3" class="foot-total">Totales</td><td class="right foot-total">${money(totalCosto)}</td><td class="right foot-total">${money(totalVenta)}</td><td></td></tr></tfoot>
+        <thead><tr><th>Cliente</th><th>Tipo</th><th>Producto</th><th class="center">Cant.</th><th class="right">Costo</th><th class="right">Venta</th><th></th></tr></thead>
+        <tbody>${filasItems || '<tr><td colspan="7" class="empty">Aún no agregas artículos a este pedido.</td></tr>'}</tbody>
+        <tfoot><tr><td colspan="4" class="foot-total">Totales</td><td class="right foot-total">${money(totalCosto)}</td><td class="right foot-total">${money(totalVenta)}</td><td></td></tr></tfoot>
       </table></div>
       <div class="filterbar" style="margin-top:16px;">
         <button class="btn" id="npGuardarPedido" ${pedidoDraft.items.length === 0 ? 'disabled' : ''}>Guardar pedido completo (${pedidoDraft.items.length} artículo${pedidoDraft.items.length === 1 ? '' : 's'})</button>
@@ -550,6 +555,18 @@ function npAgregarItemHandler() {
   const cantidad = Math.max(1, parseInt(document.getElementById('npCantidad').value, 10) || 1);
   const costo = parseFloat(document.getElementById('npCosto').value);
   const venta = parseFloat(document.getElementById('npVenta').value);
+  const esStock = document.getElementById('npStock').checked;
+
+  // El cliente se toma (y se congela) en este momento — así, si después
+  // cambias el cuadro de "Cliente" para el siguiente artículo, este ya
+  // agregado NO se ve afectado. Antes se guardaba solo un cliente para
+  // TODO el pedido, y por eso a veces terminaba pisando el nombre correcto
+  // con lo último que quedara escrito (ej. "Stock" al capturar aceites).
+  let clienteActual = document.getElementById('npCliente').value.trim();
+  if (!clienteActual) {
+    if (esStock) clienteActual = 'Stock';
+    else { showToast('Falta el nombre del cliente para este artículo.'); return; }
+  }
 
   if (isNaN(venta)) { showToast('Falta capturar el precio de venta.'); return; }
 
@@ -572,28 +589,29 @@ function npAgregarItemHandler() {
     cantidad,
     costo: isNaN(costo) ? 0 : costo,
     venta,
+    cliente: clienteActual,
+    stock: esStock,
     pagado: document.getElementById('npPagado').checked,
     entregado: document.getElementById('npEntregado').checked,
     regalo: document.getElementById('npRegalo').checked,
   });
 
   // guardar pedido/cliente actuales del formulario antes de re-renderizar
+  // (el cliente aquí es solo para prellenar la caja del próximo artículo)
   pedidoDraft.pedido = document.getElementById('npPedido').value.trim();
-  pedidoDraft.cliente = document.getElementById('npCliente').value.trim();
+  pedidoDraft.cliente = clienteActual;
   render();
 }
 
 async function npGuardarPedidoHandler() {
   const pedido = (document.getElementById('npPedido').value || pedidoDraft.pedido).trim();
-  const cliente = (document.getElementById('npCliente').value || pedidoDraft.cliente).trim();
-  if (!cliente) { showToast('Falta el nombre del cliente.'); return; }
   if (pedidoDraft.items.length === 0) { showToast('Agrega al menos un artículo.'); return; }
 
   pedidoDraft.items.forEach((it) => {
-    VENTAS.push({
+    const ventaData = {
       id: nextId('v', VENTAS),
       pedido: pedido || '—',
-      cliente,
+      cliente: it.cliente,
       producto: it.producto,
       categoria: it.categoria,
       costo: it.costo,
@@ -602,11 +620,19 @@ async function npGuardarPedidoHandler() {
       pagado: it.pagado,
       entregado: it.entregado,
       regalo: it.regalo,
-      stock: false,
+      stock: it.stock,
       domicilio: false,
       notas: '',
       origen: 'manual',
-    });
+    };
+    VENTAS.push(ventaData);
+
+    // Si el artículo se marcó como Stock, se vincula en automático al
+    // inventario de la pestaña Stock — mismo mecanismo que usa el
+    // checkbox "Vincular al inventario" del modal de Nueva venta.
+    if (it.stock) {
+      vincularItemAStock(it.producto, it.categoria, it.costo, it.venta, pedido);
+    }
   });
 
   await persist();
@@ -1050,6 +1076,32 @@ function extraerCantidadYBase(producto) {
   return { base: (producto || '').trim(), cantidad: 1 };
 }
 
+// Vincula un artículo al inventario de Stock: crea el producto si no
+// existe, o le suma la cantidad si ya había uno igual (mismo nombre base
+// + categoría). Usado tanto por el modal de "Nueva venta" (checkbox
+// "Vincular al inventario") como por "Nuevo Pedido" (checkbox "Stock" en
+// cada artículo).
+function vincularItemAStock(producto, categoria, costo, venta, pedido) {
+  const { base, cantidad } = extraerCantidadYBase(producto);
+  const baseLower = base.toLowerCase();
+  let stockItem = STOCK.find((s) => (s.producto || '').trim().toLowerCase() === baseLower && s.categoria === categoria);
+  if (stockItem) {
+    stockItem.cantidad = (Number(stockItem.cantidad) || 0) + cantidad;
+  } else {
+    stockItem = {
+      id: nextId('st', STOCK),
+      producto: base,
+      categoria,
+      cantidad,
+      costoUnitario: (costo != null && !isNaN(costo)) ? Math.round((costo / cantidad) * 100) / 100 : null,
+      ventaUnitaria: (venta != null && !isNaN(venta)) ? Math.round((venta / cantidad) * 100) / 100 : null,
+      notas: `Vinculado desde Pedido ${pedido || '—'}`,
+    };
+    STOCK.push(stockItem);
+  }
+  return stockItem;
+}
+
 // Muestra/oculta la casilla "Vincular al inventario de Stock" — solo tiene
 // sentido al dar de alta una venta NUEVA marcada como Stock (para evitar
 // que editar una venta ya vinculada vuelva a sumarse al inventario cada
@@ -1104,23 +1156,7 @@ async function guardarVenta() {
     // Vincular al inventario de Stock: solo al dar de alta (no al editar),
     // para no duplicar la cantidad cada vez que se vuelva a guardar.
     if (data.stock && document.getElementById('mvVincularStock').checked) {
-      const { base, cantidad } = extraerCantidadYBase(producto);
-      const baseLower = base.toLowerCase();
-      let stockItem = STOCK.find((s) => (s.producto || '').trim().toLowerCase() === baseLower && s.categoria === data.categoria);
-      if (stockItem) {
-        stockItem.cantidad = (Number(stockItem.cantidad) || 0) + cantidad;
-      } else {
-        stockItem = {
-          id: nextId('st', STOCK),
-          producto: base,
-          categoria: data.categoria,
-          cantidad,
-          costoUnitario: costo != null ? Math.round((costo / cantidad) * 100) / 100 : null,
-          ventaUnitaria: venta != null ? Math.round((venta / cantidad) * 100) / 100 : null,
-          notas: `Vinculado desde Pedido ${pedido || '—'}`,
-        };
-        STOCK.push(stockItem);
-      }
+      const stockItem = vincularItemAStock(producto, data.categoria, costo, venta, pedido);
       data.vinculadoStock = true;
       data.stockLinkId = stockItem.id;
     }
@@ -1517,8 +1553,34 @@ function openStockModal(id) {
   document.getElementById('mstCostoUnitario').value = s && s.costoUnitario ? s.costoUnitario : '';
   document.getElementById('mstVentaUnitaria').value = s && s.ventaUnitaria ? s.ventaUnitaria : '';
   document.getElementById('mstNotas').value = s ? (s.notas || '') : '';
+  actualizarMstTotalPreview();
   openModalEl('modalStock');
 }
+
+// Los campos "Costo unitario" y "Venta unitaria" son, a propósito, el
+// precio de UNA sola pieza — así el botón "Vender" siempre cobra/descuenta
+// correctamente aunque solo se venda una unidad de varias. Este texto solo
+// muestra el total (cantidad × unitario) como referencia, sin cambiar lo
+// que se guarda.
+function actualizarMstTotalPreview() {
+  const cantidad = parseFloat(document.getElementById('mstCantidad').value);
+  const costoU = parseFloat(document.getElementById('mstCostoUnitario').value);
+  const ventaU = parseFloat(document.getElementById('mstVentaUnitaria').value);
+  const preview = document.getElementById('mstTotalPreview');
+  if (!preview) return;
+  if (!cantidad || cantidad <= 0 || (isNaN(costoU) && isNaN(ventaU))) {
+    preview.textContent = '';
+    return;
+  }
+  const partes = [];
+  if (!isNaN(costoU)) partes.push('Costo total: ' + money(costoU * cantidad));
+  if (!isNaN(ventaU)) partes.push('Venta total: ' + money(ventaU * cantidad));
+  preview.textContent = `Con ${cantidad} pieza${cantidad === 1 ? '' : 's'} — ${partes.join(' · ')}`;
+}
+['mstCantidad', 'mstCostoUnitario', 'mstVentaUnitaria'].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', actualizarMstTotalPreview);
+});
 
 async function guardarStock() {
   const producto = document.getElementById('mstProducto').value.trim();
@@ -1946,6 +2008,7 @@ document.getElementById('mstAplicarArticulo').addEventListener('click', () => {
   const msg = document.getElementById('mstAplicarMsg');
   msg.textContent = esDifusor ? 'Aplicado — captura el costo y venta a mano (varían por equipo).' : 'Aplicado a los campos de abajo.';
   msg.style.color = 'var(--ok)';
+  actualizarMstTotalPreview();
 });
 
 document.getElementById('mstGuardar').addEventListener('click', guardarStock);
@@ -1965,9 +2028,6 @@ document.getElementById('mvsSugerir').addEventListener('click', () => {
   const s = sugerirPrecio(producto);
   const msg = document.getElementById('mvsSugerirMsg');
   if (s) {
-    // sugerirPrecio ya multiplica por una cantidad leída del propio texto del
-    // producto; aquí la queremos multiplicada por "Cantidad a vender", así
-    // que recalculamos sobre el precio unitario que detectó.
     const costoUnit = s.costo / s.cantidad;
     const ventaUnit = s.venta / s.cantidad;
     document.getElementById('mvsCosto').value = Math.round(costoUnit * cant * 100) / 100;
