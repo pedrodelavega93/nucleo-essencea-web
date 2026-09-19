@@ -240,7 +240,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       <label><input type="checkbox" id="mvEntregado"> Entregado</label>
       <label><input type="checkbox" id="mvRegalo"> Regalo</label>
       <label><input type="checkbox" id="mvStock"> Stock (no es venta a cliente)</label>
-      <label><input type="checkbox" id="mvDomicilio"> Envío a domicilio</label>
+      <label><input type="checkbox" id="mvDomicilio"> Envío a domicilio (+$100)</label>
     </div>
     <div class="checkrow" id="mvVincularStockWrap" style="display:none;">
       <label><input type="checkbox" id="mvVincularStock" checked> Vincular al inventario de Stock <span id="mvVincularStockInfo" class="small" style="color:var(--muted);"></span></label>
@@ -448,6 +448,20 @@ function sugerirPrecio(producto) {
   return null;
 }
 
+// Costo fijo que se le cobra al cliente por envío a domicilio — al marcar
+// la casilla "Envío a domicilio" (tanto en Nuevo Pedido como en Nueva
+// venta / Editar venta) se suma o resta automáticamente del campo Venta,
+// para que el total que ve el cliente (incluido el de WhatsApp) siempre
+// quede correcto sin tener que sumarlo a mano.
+const COSTO_ENVIO_DOMICILIO = 100;
+function ajustarVentaEnvio(checked, ventaFieldId) {
+  const ventaEl = document.getElementById(ventaFieldId);
+  if (!ventaEl) return;
+  const actual = parseFloat(ventaEl.value);
+  if (isNaN(actual)) return; // sin precio capturado aún, nada que ajustar
+  ventaEl.value = checked ? (actual + COSTO_ENVIO_DOMICILIO) : Math.max(0, actual - COSTO_ENVIO_DOMICILIO);
+}
+
 /* ============ NUEVO PEDIDO (captura rápida de un pedido completo) ============ */
 const TIPOS_ARTICULO = {
   perfume: {
@@ -570,8 +584,10 @@ function renderNuevoPedido() {
         <label><input type="checkbox" id="npEntregado"> Entregado</label>
         <label><input type="checkbox" id="npRegalo"> Regalo</label>
         <label><input type="checkbox" id="npStock"> Stock (no es venta a cliente)</label>
+        <label><input type="checkbox" id="npDomicilio"> Envío a domicilio (+$100)</label>
       </div>
-      <p class="small" style="margin:-6px 0 12px;">Si marcas "Stock", este artículo se suma en automático al inventario de la pestaña <strong>Stock</strong> (lo crea si no existe) — no necesitas capturarlo ahí también. Si dejas "Cliente" vacío junto con esta casilla, se guarda como "Stock" por default.</p>
+      <div class="field" id="npCostoEnvioWrap" style="display:none;"><label>Costo real del envío (MXN, opcional)</label><input type="number" id="npCostoEnvio" placeholder="0"></div>
+      <p class="small" style="margin:-6px 0 12px;">Si marcas "Stock", este artículo se suma en automático al inventario de la pestaña <strong>Stock</strong> (lo crea si no existe) — no necesitas capturarlo ahí también. Si dejas "Cliente" vacío junto con esta casilla, se guarda como "Stock" por default. Si marcas "Envío a domicilio", se suman $100 al campo Venta de arriba automáticamente.</p>
       <button class="btn" id="npAgregarItem">+ Agregar a la lista</button>
     </div>
 
@@ -612,6 +628,8 @@ function npAgregarItemHandler() {
   }
   const telefonoActual = document.getElementById('npTelefono').value.trim();
   const correoActual = document.getElementById('npCorreo').value.trim();
+  const esDomicilio = document.getElementById('npDomicilio').checked;
+  const costoEnvioRaw = document.getElementById('npCostoEnvio').value;
 
   if (isNaN(venta)) { showToast('Falta capturar el precio de venta.'); return; }
 
@@ -638,6 +656,8 @@ function npAgregarItemHandler() {
     telefono: telefonoActual,
     email: correoActual,
     stock: esStock,
+    domicilio: esDomicilio,
+    costoEnvio: esDomicilio ? (parseFloat(costoEnvioRaw) || 0) : 0,
     pagado: document.getElementById('npPagado').checked,
     entregado: document.getElementById('npEntregado').checked,
     regalo: document.getElementById('npRegalo').checked,
@@ -670,7 +690,8 @@ async function npGuardarPedidoHandler() {
       entregado: it.entregado,
       regalo: it.regalo,
       stock: it.stock,
-      domicilio: false,
+      domicilio: it.domicilio || false,
+      costoEnvio: it.costoEnvio || 0,
       notas: '',
       origen: 'manual',
     };
@@ -1999,6 +2020,14 @@ function attachHandlers() {
       if (npRegaloEl2.checked) document.getElementById('npVenta').value = 0;
     });
   }
+  const npDomicilioEl = document.getElementById('npDomicilio');
+  if (npDomicilioEl) {
+    npDomicilioEl.addEventListener('change', (e) => {
+      document.getElementById('npCostoEnvioWrap').style.display = e.target.checked ? '' : 'none';
+      if (!e.target.checked) document.getElementById('npCostoEnvio').value = '';
+      ajustarVentaEnvio(e.target.checked, 'npVenta');
+    });
+  }
   const npAgregarBtn = document.getElementById('npAgregarItem');
   if (npAgregarBtn) npAgregarBtn.addEventListener('click', npAgregarItemHandler);
   document.querySelectorAll('[data-npremove]').forEach((el) => {
@@ -2154,6 +2183,7 @@ document.getElementById('mvRegalo').addEventListener('change', (e) => {
 document.getElementById('mvDomicilio').addEventListener('change', (e) => {
   document.getElementById('mvCostoEnvioWrap').style.display = e.target.checked ? '' : 'none';
   if (!e.target.checked) document.getElementById('mvCostoEnvio').value = '';
+  ajustarVentaEnvio(e.target.checked, 'mvVenta');
 });
 document.getElementById('mgGuardar').addEventListener('click', guardarGasto);
 document.getElementById('mdGuardar').addEventListener('click', guardarDifusor);
