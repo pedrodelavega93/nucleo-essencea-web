@@ -991,6 +991,29 @@ function abrirWhatsappCliente(pedido, cliente) {
   window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
 }
 
+// Mensaje corto de aviso cuando el pedido pasa a "Enviado" — a diferencia
+// del mensaje de confirmación, aquí no se repite el detalle de productos:
+// solo la noticia de que va en reparto, con el link de estatus por si el
+// cliente quiere ver el detalle completo de nuevo.
+function construirMensajeEnviado(pedido, clienteNombre) {
+  const link = `${ESTATUS_PAGE_URL}?pedido=${encodeURIComponent(pedido)}`;
+  return `¡Hola ${clienteNombre}! 🌿 Tu pedido de *NÚCLEO essences* se encuentra en reparto para ser entregado el día de hoy.\n\n` +
+    `📦 Estatus: Enviado\n\n` +
+    `Puedes revisar el detalle de tu pedido aquí:\n👉 ${link}\n\n` +
+    `Cualquier duda, escríbenos por este mismo medio✨\n\nCon aroma,\nNÚCLEO essences`;
+}
+
+function abrirWhatsappEnviado(pedido, cliente) {
+  const est = getEstatusCliente(pedido, cliente);
+  const telefono = (est.telefono || '').replace(/\D/g, '');
+  if (!telefono || telefono.length < 10) {
+    showToast('Captura primero el WhatsApp de ' + cliente + ' (con lada de país, ej. 5218112345678).');
+    return;
+  }
+  const mensaje = construirMensajeEnviado(pedido, cliente);
+  window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
+}
+
 /* ============ VENTAS / PEDIDOS ============ */
 let ventasFiltro = { texto: '', estado: 'todas', pedido: '' };
 let pedidosExpandidos = new Set();
@@ -1102,6 +1125,7 @@ function ventasResultsHtml() {
               <input type="checkbox" data-domiciliosel="${esc(p)}" data-domiciliocliente="${esc(cliente)}" ${est.domicilio ? 'checked' : ''}> Envío a domicilio (+$100)
             </label>
             <button class="btn sm" data-enviarwa="${esc(p)}" data-enviarwacliente="${esc(cliente)}">📲 Enviar WhatsApp</button>
+            <button class="btn sm ghost" data-avisarenviado="${esc(p)}" data-avisarenviadocliente="${esc(cliente)}">🚚 Avisar que se envió</button>
             ${est.actualizado ? `<span class="small" style="color:var(--muted); width:100%;">Actualizado: ${new Date(est.actualizado).toLocaleString('es-MX')}</span>` : ''}
           </div>
         </div>`;
@@ -1203,8 +1227,15 @@ function refreshVentasResults() {
   });
   wrap.querySelectorAll('[data-estatussel]').forEach((el) => {
     el.addEventListener('change', async () => {
-      await actualizarEstatusCliente(el.dataset.estatussel, el.dataset.estatuscliente, 'estatus', el.value);
+      const pedido = el.dataset.estatussel, cliente = el.dataset.estatuscliente;
+      await actualizarEstatusCliente(pedido, cliente, 'estatus', el.value);
       refreshVentasResults();
+      // Al marcar un pedido como "Enviado" ofrecemos avisarle al cliente
+      // de inmediato — sin obligarlo, por si solo se estaba corrigiendo
+      // el estatus por error.
+      if (el.value === 'enviado' && confirm(`¿Avisarle a ${cliente} que su pedido se envió?`)) {
+        abrirWhatsappEnviado(pedido, cliente);
+      }
     });
   });
   wrap.querySelectorAll('[data-telpedido]').forEach((el) => {
@@ -1227,6 +1258,9 @@ function refreshVentasResults() {
   });
   wrap.querySelectorAll('[data-enviarwa]').forEach((el) => {
     el.addEventListener('click', () => abrirWhatsappCliente(el.dataset.enviarwa, el.dataset.enviarwacliente));
+  });
+  wrap.querySelectorAll('[data-avisarenviado]').forEach((el) => {
+    el.addEventListener('click', () => abrirWhatsappEnviado(el.dataset.avisarenviado, el.dataset.avisarenviadocliente));
   });
 }
 
