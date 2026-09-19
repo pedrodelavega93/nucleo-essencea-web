@@ -78,6 +78,8 @@ body{margin:0;background:var(--black);color:var(--cream);font-family:'Jost',sans
 .cliente-estatus-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px;}
 .cliente-estatus-nombre{font-family:'Playfair Display',serif; color:var(--gold-2); font-size:0.92rem;}
 
+.np-cliente-header td{background:rgba(184,144,94,0.06); color:var(--gold-2); padding-top:10px; padding-bottom:6px; border-bottom:1px solid var(--line);}
+
 .pedido-estatus-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:6px;}
 .pedido-estatus-row select, .pedido-estatus-row input[type=tel], .pedido-estatus-row input[type=text]{
   background:var(--black); border:1px solid var(--line); color:var(--cream); padding:7px 10px;
@@ -495,16 +497,33 @@ function renderNuevoPedido() {
   const esDifusor = npFormTipo === 'difusor';
   const primerTamano = cfg.tamanos ? cfg.tamanos[0] : null;
 
-  const filasItems = pedidoDraft.items.map((it, idx) => `
-    <tr>
-      <td>${esc(it.cliente)}${it.stock ? ' <span class="badge muted">Stock</span>' : ''}</td>
-      <td>${esc(it.tipoLabel)}</td>
-      <td>${esc(it.producto)}</td>
-      <td class="center">${it.cantidad}</td>
-      <td class="right">${money(it.costo)}</td>
-      <td class="right">${money(it.venta)}</td>
-      <td><button class="btn sm danger" data-npremove="${idx}">✕</button></td>
-    </tr>`).join('');
+  // Agrupamos los artículos ya agregados por cliente (en el orden en que
+  // se agregó el primero de cada uno) — así, si un mismo cliente pide
+  // varios productos, aparecen juntos bajo su nombre en vez de como
+  // renglones sueltos que repiten el nombre cada vez.
+  const ordenClientesDraft = [];
+  const itemsPorClienteDraft = {};
+  pedidoDraft.items.forEach((it, idx) => {
+    const key = it.cliente || '(sin nombre)';
+    if (!itemsPorClienteDraft[key]) { itemsPorClienteDraft[key] = []; ordenClientesDraft.push(key); }
+    itemsPorClienteDraft[key].push(Object.assign({}, it, { _idx: idx }));
+  });
+
+  const filasItems = ordenClientesDraft.map((cliente) => {
+    const itemsCliente = itemsPorClienteDraft[cliente];
+    const filasCliente = itemsCliente.map((it) => `
+      <tr>
+        <td>${esc(it.tipoLabel)}</td>
+        <td>${esc(it.producto)}</td>
+        <td class="center">${it.cantidad}</td>
+        <td class="right">${money(it.costo)}</td>
+        <td class="right">${money(it.venta)}</td>
+        <td><button class="btn sm danger" data-npremove="${it._idx}">✕</button></td>
+      </tr>`).join('');
+    return `
+      <tr class="np-cliente-header"><td colspan="6"><strong>${esc(cliente)}</strong>${itemsCliente[0].stock ? ' <span class="badge muted">Stock</span>' : ''} <span class="small" style="color:var(--muted);">— ${itemsCliente.length} artículo${itemsCliente.length === 1 ? '' : 's'}</span></td></tr>
+      ${filasCliente}`;
+  }).join('');
 
   const totalCosto = pedidoDraft.items.reduce((s, it) => s + (Number(it.costo) || 0), 0);
   const totalVenta = pedidoDraft.items.reduce((s, it) => s + (Number(it.venta) || 0), 0);
@@ -559,9 +578,9 @@ function renderNuevoPedido() {
     <div class="panel">
       <h3>Artículos del pedido (${pedidoDraft.items.length})</h3>
       <div class="twrap"><table>
-        <thead><tr><th>Cliente</th><th>Tipo</th><th>Producto</th><th class="center">Cant.</th><th class="right">Costo</th><th class="right">Venta</th><th></th></tr></thead>
-        <tbody>${filasItems || '<tr><td colspan="7" class="empty">Aún no agregas artículos a este pedido.</td></tr>'}</tbody>
-        <tfoot><tr><td colspan="4" class="foot-total">Totales</td><td class="right foot-total">${money(totalCosto)}</td><td class="right foot-total">${money(totalVenta)}</td><td></td></tr></tfoot>
+        <thead><tr><th>Tipo</th><th>Producto</th><th class="center">Cant.</th><th class="right">Costo</th><th class="right">Venta</th><th></th></tr></thead>
+        <tbody>${filasItems || '<tr><td colspan="6" class="empty">Aún no agregas artículos a este pedido.</td></tr>'}</tbody>
+        <tfoot><tr><td colspan="3" class="foot-total">Totales</td><td class="right foot-total">${money(totalCosto)}</td><td class="right foot-total">${money(totalVenta)}</td><td></td></tr></tfoot>
       </table></div>
       <div class="filterbar" style="margin-top:16px;">
         <button class="btn" id="npGuardarPedido" ${pedidoDraft.items.length === 0 ? 'disabled' : ''}>Guardar pedido completo (${pedidoDraft.items.length} artículo${pedidoDraft.items.length === 1 ? '' : 's'})</button>
