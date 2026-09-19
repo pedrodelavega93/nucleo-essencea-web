@@ -8,6 +8,9 @@
 //   'save'        → guarda el objeto { ventas, gastos, difusores, stock }
 //   'linkDifusor' → crea o actualiza un registro de Difusores & Rentas
 //                   a partir de una suscripción del Panel (admin.html)
+//   'estatusPublico' → (SIN contraseña) usada por /estatus.html para que
+//                   el cliente consulte el estatus de su propio pedido,
+//                   validando pedido + correo/WhatsApp antes de responder
 //
 // Usa la base de datos Redis (Upstash) conectada al proyecto vía
 // Vercel Storage, hablando directo con su API REST por fetch — así
@@ -62,6 +65,54 @@ module.exports = async (req, res) => {
 
     const body = req.body || {};
     const { password, action, data } = body;
+
+    // ------------------------------------------------------------
+    // Acción PÚBLICA — consulta de estatus de pedido por el cliente.
+    // NO requiere contraseña (la usa la página pública /estatus.html),
+    // pero solo devuelve datos si el pedido Y el correo/WhatsApp que
+    // escribió el cliente coinciden con lo que Control Total tiene
+    // guardado para ese pedido — así nadie puede ver el pedido de otra
+    // persona con solo adivinar el número.
+    // ------------------------------------------------------------
+    if (action === 'estatusPublico') {
+      const pedidoBuscado = String(body.pedido || '').trim();
+      const identificador = String(body.identificador || '').trim().toLowerCase();
+      if (!pedidoBuscado || !identificador) {
+        return res.status(400).json({ error: 'Falta el número de pedido o el correo/WhatsApp.' });
+      }
+
+      const actual = (await kvGet()) || {};
+      const estatuses = actual.estatuses || {};
+      const registro = estatuses[pedidoBuscado];
+
+      const soloDigitos = (s) => String(s || '').replace(/\D/g, '');
+      const idDigitos = soloDigitos(identificador);
+      const coincide = !!registro && (
+        (registro.email && registro.email.trim().toLowerCase() === identificador) ||
+        (registro.telefono && idDigitos.length >= 8 && soloDigitos(registro.telefono).endsWith(idDigitos))
+      );
+
+      if (!coincide) {
+        // Mismo mensaje tanto si el pedido no existe como si el dato no
+        // coincide, para no revelar cuál de los dos falló.
+        return res.status(200).json({ ok: true, encontrado: false });
+      }
+
+      const ventas = Array.isArray(actual.ventas) ? actual.ventas : [];
+      const items = ventas.filter((v) => String(v.pedido) === pedidoBuscado && !v.stock);
+      const productos = items.map((v) => ({ producto: v.producto, venta: v.montoConocido ? v.venta : null }));
+      const total = items.reduce((s, v) => s + (v.montoConocido ? (v.venta || 0) : 0), 0);
+
+      return res.status(200).json({
+        ok: true,
+        encontrado: true,
+        pedido: pedidoBuscado,
+        estatus: registro.estatus || 'pendiente',
+        actualizado: registro.actualizado || null,
+        productos,
+        total,
+      });
+    }
 
     if (!password || password !== process.env.ADMIN_PASSWORD) {
       return res.status(401).json({ error: 'Contraseña incorrecta.' });
