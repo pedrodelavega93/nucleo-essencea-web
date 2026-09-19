@@ -83,23 +83,33 @@ module.exports = async (req, res) => {
 
       const actual = (await kvGet()) || {};
       const estatuses = actual.estatuses || {};
-      const registro = estatuses[pedidoBuscado];
+      // Un mismo pedido puede tener varios clientes — cada uno guardado
+      // como estatuses[pedido][nombreCliente]. Buscamos cuál de ellos
+      // coincide con el correo/WhatsApp que escribió quien consulta.
+      const porCliente = estatuses[pedidoBuscado] || {};
 
       const soloDigitos = (s) => String(s || '').replace(/\D/g, '');
       const idDigitos = soloDigitos(identificador);
-      const coincide = !!registro && (
-        (registro.email && registro.email.trim().toLowerCase() === identificador) ||
-        (registro.telefono && idDigitos.length >= 8 && soloDigitos(registro.telefono).endsWith(idDigitos))
-      );
 
-      if (!coincide) {
+      let clienteEncontrado = null;
+      let registro = null;
+      for (const nombreCliente of Object.keys(porCliente)) {
+        const reg = porCliente[nombreCliente];
+        const coincide = reg && (
+          (reg.email && reg.email.trim().toLowerCase() === identificador) ||
+          (reg.telefono && idDigitos.length >= 8 && soloDigitos(reg.telefono).endsWith(idDigitos))
+        );
+        if (coincide) { clienteEncontrado = nombreCliente; registro = reg; break; }
+      }
+
+      if (!registro) {
         // Mismo mensaje tanto si el pedido no existe como si el dato no
         // coincide, para no revelar cuál de los dos falló.
         return res.status(200).json({ ok: true, encontrado: false });
       }
 
       const ventas = Array.isArray(actual.ventas) ? actual.ventas : [];
-      const items = ventas.filter((v) => String(v.pedido) === pedidoBuscado && !v.stock);
+      const items = ventas.filter((v) => String(v.pedido) === pedidoBuscado && v.cliente === clienteEncontrado && !v.stock);
       const productos = items.map((v) => ({ producto: v.producto, venta: v.montoConocido ? v.venta : null }));
       const total = items.reduce((s, v) => s + (v.montoConocido ? (v.venta || 0) : 0), 0);
 
