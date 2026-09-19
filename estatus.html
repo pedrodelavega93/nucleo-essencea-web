@@ -202,9 +202,16 @@ async function consultarEstatus() {
     document.getElementById('pasos').innerHTML = renderPasos(estKey);
 
     const items = Array.isArray(body.productos) ? body.productos : [];
-    document.getElementById('itemsList').innerHTML = items.map((it) =>
+    let itemsHtml = items.map((it) =>
       `<div class="item-row"><span class="nom">${escapeHtml(it.producto || '')}</span><span class="precio">${money(it.venta)}</span></div>`
     ).join('') || '<div class="item-row"><span class="nom">Sin artículos visibles</span></div>';
+    // El envío a domicilio se cobra una sola vez por pedido y siempre se
+    // muestra como su propia línea, nunca mezclado dentro del precio de
+    // un producto.
+    if (body.envio) {
+      itemsHtml += `<div class="item-row"><span class="nom">🚚 Envío a domicilio</span><span class="precio">${money(body.envio)}</span></div>`;
+    }
+    document.getElementById('itemsList').innerHTML = itemsHtml;
 
     document.getElementById('totalPedido').textContent = money(body.total);
     document.getElementById('actualizadoTxt').textContent = body.actualizado

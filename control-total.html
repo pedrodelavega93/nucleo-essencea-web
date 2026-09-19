@@ -240,7 +240,7 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       <label><input type="checkbox" id="mvEntregado"> Entregado</label>
       <label><input type="checkbox" id="mvRegalo"> Regalo</label>
       <label><input type="checkbox" id="mvStock"> Stock (no es venta a cliente)</label>
-      <label><input type="checkbox" id="mvDomicilio"> Envío a domicilio (+$100)</label>
+      <label><input type="checkbox" id="mvDomicilio"> Envío a domicilio</label>
     </div>
     <div class="checkrow" id="mvVincularStockWrap" style="display:none;">
       <label><input type="checkbox" id="mvVincularStock" checked> Vincular al inventario de Stock <span id="mvVincularStockInfo" class="small" style="color:var(--muted);"></span></label>
@@ -448,20 +448,6 @@ function sugerirPrecio(producto) {
   return null;
 }
 
-// Costo fijo que se le cobra al cliente por envío a domicilio — al marcar
-// la casilla "Envío a domicilio" (tanto en Nuevo Pedido como en Nueva
-// venta / Editar venta) se suma o resta automáticamente del campo Venta,
-// para que el total que ve el cliente (incluido el de WhatsApp) siempre
-// quede correcto sin tener que sumarlo a mano.
-const COSTO_ENVIO_DOMICILIO = 100;
-function ajustarVentaEnvio(checked, ventaFieldId) {
-  const ventaEl = document.getElementById(ventaFieldId);
-  if (!ventaEl) return;
-  const actual = parseFloat(ventaEl.value);
-  if (isNaN(actual)) return; // sin precio capturado aún, nada que ajustar
-  ventaEl.value = checked ? (actual + COSTO_ENVIO_DOMICILIO) : Math.max(0, actual - COSTO_ENVIO_DOMICILIO);
-}
-
 /* ============ NUEVO PEDIDO (captura rápida de un pedido completo) ============ */
 const TIPOS_ARTICULO = {
   perfume: {
@@ -496,7 +482,7 @@ const TIPOS_ARTICULO = {
   },
 };
 
-let pedidoDraft = { pedido: '', cliente: '', telefono: '', correo: '', items: [] };
+let pedidoDraft = { pedido: '', cliente: '', telefono: '', correo: '', domicilio: false, items: [] };
 let npFormTipo = 'perfume';
 let npDraftItemCounter = 0;
 
@@ -554,7 +540,10 @@ function renderNuevoPedido() {
       <div class="field"><label>Cliente (para el próximo artículo que agregues)</label><input type="text" id="npCliente" placeholder="Nombre del cliente" value="${esc(pedidoDraft.cliente)}"></div>
       <div class="field"><label>WhatsApp del cliente (opcional)</label><input type="tel" id="npTelefono" placeholder="Ej. 5218112345678" value="${esc(pedidoDraft.telefono || '')}"></div>
       <div class="field"><label>Correo del cliente (opcional)</label><input type="text" id="npCorreo" placeholder="correo@ejemplo.com" value="${esc(pedidoDraft.correo || '')}"></div>
-      <p class="small" style="margin:0;">Estos tres campos se guardan junto con cada artículo en el momento en que le das "+ Agregar a la lista" — así puedes cambiarlos entre un artículo y otro sin afectar los que ya agregaste. El WhatsApp/correo se usan después para el botón "Enviar WhatsApp" y la página de estatus del pedido.</p>
+      <label class="small" style="color:var(--muted); display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+        <input type="checkbox" id="npDomicilioCliente" ${pedidoDraft.domicilio ? 'checked' : ''}> Este cliente pidió envío a domicilio (+$100, una sola vez aunque tenga varios productos)
+      </label>
+      <p class="small" style="margin:0;">Estos campos se guardan junto con cada artículo en el momento en que le das "+ Agregar a la lista" — así puedes cambiarlos entre un artículo y otro sin afectar los que ya agregaste. El WhatsApp/correo/envío se usan después para el botón "Enviar WhatsApp" y la página de estatus del pedido.</p>
     </div>
 
     <div class="panel">
@@ -584,10 +573,8 @@ function renderNuevoPedido() {
         <label><input type="checkbox" id="npEntregado"> Entregado</label>
         <label><input type="checkbox" id="npRegalo"> Regalo</label>
         <label><input type="checkbox" id="npStock"> Stock (no es venta a cliente)</label>
-        <label><input type="checkbox" id="npDomicilio"> Envío a domicilio (+$100)</label>
       </div>
-      <div class="field" id="npCostoEnvioWrap" style="display:none;"><label>Costo real del envío (MXN, opcional)</label><input type="number" id="npCostoEnvio" placeholder="0"></div>
-      <p class="small" style="margin:-6px 0 12px;">Si marcas "Stock", este artículo se suma en automático al inventario de la pestaña <strong>Stock</strong> (lo crea si no existe) — no necesitas capturarlo ahí también. Si dejas "Cliente" vacío junto con esta casilla, se guarda como "Stock" por default. Si marcas "Envío a domicilio", se suman $100 al campo Venta de arriba automáticamente.</p>
+      <p class="small" style="margin:-6px 0 12px;">Si marcas "Stock", este artículo se suma en automático al inventario de la pestaña <strong>Stock</strong> (lo crea si no existe) — no necesitas capturarlo ahí también. Si dejas "Cliente" vacío junto con esta casilla, se guarda como "Stock" por default.</p>
       <button class="btn" id="npAgregarItem">+ Agregar a la lista</button>
     </div>
 
@@ -628,8 +615,7 @@ function npAgregarItemHandler() {
   }
   const telefonoActual = document.getElementById('npTelefono').value.trim();
   const correoActual = document.getElementById('npCorreo').value.trim();
-  const esDomicilio = document.getElementById('npDomicilio').checked;
-  const costoEnvioRaw = document.getElementById('npCostoEnvio').value;
+  const domicilioActual = document.getElementById('npDomicilioCliente').checked;
 
   if (isNaN(venta)) { showToast('Falta capturar el precio de venta.'); return; }
 
@@ -656,8 +642,7 @@ function npAgregarItemHandler() {
     telefono: telefonoActual,
     email: correoActual,
     stock: esStock,
-    domicilio: esDomicilio,
-    costoEnvio: esDomicilio ? (parseFloat(costoEnvioRaw) || 0) : 0,
+    domicilioCliente: domicilioActual,
     pagado: document.getElementById('npPagado').checked,
     entregado: document.getElementById('npEntregado').checked,
     regalo: document.getElementById('npRegalo').checked,
@@ -669,6 +654,7 @@ function npAgregarItemHandler() {
   pedidoDraft.cliente = clienteActual;
   pedidoDraft.telefono = telefonoActual;
   pedidoDraft.correo = correoActual;
+  pedidoDraft.domicilio = domicilioActual;
   render();
 }
 
@@ -690,8 +676,7 @@ async function npGuardarPedidoHandler() {
       entregado: it.entregado,
       regalo: it.regalo,
       stock: it.stock,
-      domicilio: it.domicilio || false,
-      costoEnvio: it.costoEnvio || 0,
+      domicilio: false,
       notas: '',
       origen: 'manual',
     };
@@ -703,16 +688,24 @@ async function npGuardarPedidoHandler() {
     if (it.stock) {
       vincularItemAStock(it.producto, it.categoria, it.costo, it.venta, pedido);
     } else {
-      // Guarda el WhatsApp/correo de este cliente para que ya quede listo
-      // el botón "Enviar WhatsApp" y la página de estatus, sin tener que
-      // volver a capturarlo después.
+      // Guarda el WhatsApp/correo/envío de este cliente para que ya quede
+      // listo el botón "Enviar WhatsApp" y la página de estatus, sin tener
+      // que volver a capturarlo después. El envío a domicilio se guarda
+      // UNA sola vez por cliente (no por artículo), aunque tenga varios
+      // productos en este mismo pedido.
       sincronizarContactoCliente(pedido || '—', it.cliente, it.telefono, it.email);
+      if (it.domicilioCliente) {
+        if (!ESTATUSES[pedido || '—']) ESTATUSES[pedido || '—'] = {};
+        if (!ESTATUSES[pedido || '—'][it.cliente]) ESTATUSES[pedido || '—'][it.cliente] = { estatus: 'pendiente', telefono: '', email: '' };
+        ESTATUSES[pedido || '—'][it.cliente].domicilio = true;
+        ESTATUSES[pedido || '—'][it.cliente].costoEnvio = 100;
+      }
     }
   });
 
   await persist();
   showToast(`Pedido ${pedido || ''} guardado con ${pedidoDraft.items.length} artículo(s).`);
-  pedidoDraft = { pedido: '', cliente: '', telefono: '', correo: '', items: [] };
+  pedidoDraft = { pedido: '', cliente: '', telefono: '', correo: '', domicilio: false, items: [] };
   currentTab = 'ventas';
   document.querySelectorAll('.navitem').forEach((n) => n.classList.toggle('active', n.dataset.tab === 'ventas'));
   render();
@@ -946,7 +939,7 @@ const ESTATUS_PEDIDO_ORDEN = ['pendiente', 'preparando', 'enviado', 'entregado']
 const ESTATUS_PAGE_URL = 'https://nucleoessences.com/estatus.html';
 
 function getEstatusCliente(pedido, cliente) {
-  return (ESTATUSES[pedido] && ESTATUSES[pedido][cliente]) || { estatus: 'pendiente', telefono: '', email: '', actualizado: null };
+  return (ESTATUSES[pedido] && ESTATUSES[pedido][cliente]) || { estatus: 'pendiente', telefono: '', email: '', domicilio: false, costoEnvio: 0, actualizado: null };
 }
 
 async function actualizarEstatusCliente(pedido, cliente, campo, valor) {
@@ -971,14 +964,19 @@ function sincronizarContactoCliente(pedido, cliente, telefono, email) {
 // Arma el mismo mensaje de confirmación aprobado para WhatsApp, con la
 // lista real de artículos del pedido y el link a la página pública de
 // estatus. Los aceites/spray/perfumes marcados como Stock (inventario
-// interno, no venta a cliente) se excluyen de la lista.
-function construirMensajeWhatsapp(pedido, items, clienteNombre) {
+// interno, no venta a cliente) se excluyen de la lista. El envío a
+// domicilio se cobra UNA sola vez por cliente (no por producto) y se
+// muestra como su propia línea, nunca sumado al precio de un artículo.
+function construirMensajeWhatsapp(pedido, items, clienteNombre, envio) {
   const visibles = items.filter((v) => !v.stock);
   const productosTexto = visibles.map((v) => `🧴 ${v.producto}`).join('\n') || '🧴 Tu pedido';
-  const total = visibles.reduce((s, v) => s + (v.montoConocido ? (v.venta || 0) : 0), 0);
+  const subtotal = visibles.reduce((s, v) => s + (v.montoConocido ? (v.venta || 0) : 0), 0);
+  const costoEnvio = envio && envio.domicilio ? (Number(envio.costoEnvio) || 100) : 0;
+  const envioTexto = costoEnvio ? `\n🚚 Envío a domicilio: ${money(costoEnvio)}` : '';
+  const total = subtotal + costoEnvio;
   const link = `${ESTATUS_PAGE_URL}?pedido=${encodeURIComponent(pedido)}`;
   return `¡Hola ${clienteNombre}! 🌿 Gracias por tu compra en *NÚCLEO essences*.\n\n` +
-    `Resumen de tu pedido:\n${productosTexto}\n💰 Total: ${money(total)}\n\n` +
+    `Resumen de tu pedido:\n${productosTexto}${envioTexto}\n💰 Total: ${money(total)}\n\n` +
     `Puedes revisar el estatus de tu pedido en cualquier momento aquí:\n👉 ${link}\n\n` +
     `Cualquier duda, escríbenos por este mismo medio✨\n\nCon aroma,\nNÚCLEO essences`;
 }
@@ -991,7 +989,7 @@ function abrirWhatsappCliente(pedido, cliente) {
     return;
   }
   const items = VENTAS.filter((v) => v.pedido === pedido && v.cliente === cliente);
-  const mensaje = construirMensajeWhatsapp(pedido, items, cliente);
+  const mensaje = construirMensajeWhatsapp(pedido, items, cliente, est);
   window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
 }
 
@@ -1102,6 +1100,9 @@ function ventasResultsHtml() {
             </label>
             <input type="tel" data-telpedido="${esc(p)}" data-telcliente="${esc(cliente)}" placeholder="WhatsApp (ej. 5218112345678)" value="${esc(est.telefono || '')}">
             <input type="text" data-emailpedido="${esc(p)}" data-emailcliente="${esc(cliente)}" placeholder="Correo (opcional)" value="${esc(est.email || '')}">
+            <label class="small" style="color:var(--muted); display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" data-domiciliosel="${esc(p)}" data-domiciliocliente="${esc(cliente)}" ${est.domicilio ? 'checked' : ''}> Envío a domicilio (+$100)
+            </label>
             <button class="btn sm" data-enviarwa="${esc(p)}" data-enviarwacliente="${esc(cliente)}">📲 Enviar WhatsApp</button>
             ${est.actualizado ? `<span class="small" style="color:var(--muted); width:100%;">Actualizado: ${new Date(est.actualizado).toLocaleString('es-MX')}</span>` : ''}
           </div>
@@ -1213,6 +1214,18 @@ function refreshVentasResults() {
   });
   wrap.querySelectorAll('[data-emailpedido]').forEach((el) => {
     el.addEventListener('blur', () => actualizarEstatusCliente(el.dataset.emailpedido, el.dataset.emailcliente, 'email', el.value.trim()));
+  });
+  wrap.querySelectorAll('[data-domiciliosel]').forEach((el) => {
+    el.addEventListener('change', async () => {
+      const p = el.dataset.domiciliosel, cliente = el.dataset.domiciliocliente;
+      if (!ESTATUSES[p]) ESTATUSES[p] = {};
+      if (!ESTATUSES[p][cliente]) ESTATUSES[p][cliente] = { estatus: 'pendiente', telefono: '', email: '' };
+      ESTATUSES[p][cliente].domicilio = el.checked;
+      ESTATUSES[p][cliente].costoEnvio = el.checked ? 100 : 0;
+      ESTATUSES[p][cliente].actualizado = new Date().toISOString();
+      await persist();
+      refreshVentasResults();
+    });
   });
   wrap.querySelectorAll('[data-enviarwa]').forEach((el) => {
     el.addEventListener('click', () => abrirWhatsappCliente(el.dataset.enviarwa, el.dataset.enviarwacliente));
@@ -2020,14 +2033,6 @@ function attachHandlers() {
       if (npRegaloEl2.checked) document.getElementById('npVenta').value = 0;
     });
   }
-  const npDomicilioEl = document.getElementById('npDomicilio');
-  if (npDomicilioEl) {
-    npDomicilioEl.addEventListener('change', (e) => {
-      document.getElementById('npCostoEnvioWrap').style.display = e.target.checked ? '' : 'none';
-      if (!e.target.checked) document.getElementById('npCostoEnvio').value = '';
-      ajustarVentaEnvio(e.target.checked, 'npVenta');
-    });
-  }
   const npAgregarBtn = document.getElementById('npAgregarItem');
   if (npAgregarBtn) npAgregarBtn.addEventListener('click', npAgregarItemHandler);
   document.querySelectorAll('[data-npremove]').forEach((el) => {
@@ -2043,7 +2048,7 @@ function attachHandlers() {
   const npLimpiarBtn = document.getElementById('npLimpiarPedido');
   if (npLimpiarBtn) npLimpiarBtn.addEventListener('click', () => {
     if (pedidoDraft.items.length && !confirm('¿Borrar todo el pedido en captura?')) return;
-    pedidoDraft = { pedido: '', cliente: '', telefono: '', correo: '', items: [] };
+    pedidoDraft = { pedido: '', cliente: '', telefono: '', correo: '', domicilio: false, items: [] };
     render();
   });
 
@@ -2183,7 +2188,6 @@ document.getElementById('mvRegalo').addEventListener('change', (e) => {
 document.getElementById('mvDomicilio').addEventListener('change', (e) => {
   document.getElementById('mvCostoEnvioWrap').style.display = e.target.checked ? '' : 'none';
   if (!e.target.checked) document.getElementById('mvCostoEnvio').value = '';
-  ajustarVentaEnvio(e.target.checked, 'mvVenta');
 });
 document.getElementById('mgGuardar').addEventListener('click', guardarGasto);
 document.getElementById('mdGuardar').addEventListener('click', guardarDifusor);
