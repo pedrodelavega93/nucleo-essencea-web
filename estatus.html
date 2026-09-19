@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estatus de tu pedido — NÚCLEO essences</title>
+<meta name="robots" content="noindex">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap');
+
+:root{
+  --black:#0a0908; --panel:#131110; --panel-2:#1a1512;
+  --gold:#b8905e; --gold-2:#d9bd8e; --cream:#efe6da; --muted:#a89a8c;
+  --line:rgba(184,144,94,0.2);
+  --ok:#8fce9b; --warn:#e0b48a; --info:#8fb8ce; --err:#e08a8a;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; background:var(--black); color:var(--cream);
+  font-family:'Jost',sans-serif; font-weight:300; -webkit-font-smoothing:antialiased;
+  display:flex; align-items:center; justify-content:center; padding:32px 16px;
+}
+.serif{font-family:'Playfair Display',serif;}
+.wrap{width:100%; max-width:460px;}
+.brand{text-align:center; margin-bottom:26px;}
+.brand .word{font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; letter-spacing:0.05em;}
+.brand .word em{display:block; font-style:italic; font-weight:400; font-size:0.68rem; letter-spacing:0.3em; color:var(--gold); margin-top:4px;}
+
+.card{background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:28px 26px; box-shadow:0 16px 40px rgba(0,0,0,0.4);}
+.card h1{font-family:'Playfair Display',serif; font-size:1.3rem; margin:0 0 8px; font-weight:600;}
+.card p.sub{color:var(--muted); font-size:0.86rem; margin:0 0 22px; line-height:1.5;}
+
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:0.72rem; color:var(--muted); margin-bottom:6px; letter-spacing:0.03em;}
+.field input{
+  width:100%; padding:12px 14px; background:var(--black); border:1px solid var(--line);
+  color:var(--cream); border-radius:7px; font-family:'Jost',sans-serif; font-size:0.9rem;
+}
+.field input:focus{outline:none; border-color:var(--gold);}
+
+.btn{
+  width:100%; padding:13px; background:var(--gold); color:var(--black); border:none;
+  border-radius:7px; font-family:'Jost',sans-serif; font-weight:600; font-size:0.85rem;
+  letter-spacing:0.04em; cursor:pointer; transition:opacity .2s; margin-top:6px;
+}
+.btn:hover{opacity:0.88;}
+.btn:disabled{opacity:0.55; cursor:default;}
+.btn.ghost{background:transparent; color:var(--gold-2); border:1px solid var(--gold); margin-top:12px;}
+
+.error-msg{color:var(--err); font-size:0.82rem; margin:12px 0 0; min-height:16px; line-height:1.5;}
+
+/* ---- resultado ---- */
+.resultado{display:none;}
+.resultado.show{display:block;}
+.formulario.hide{display:none;}
+
+.estatus-linea{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
+.estatus-punto{width:12px; height:12px; border-radius:50%; flex:none;}
+.estatus-punto.pendiente{background:var(--warn);}
+.estatus-punto.preparando{background:var(--gold);}
+.estatus-punto.enviado{background:var(--info);}
+.estatus-punto.entregado{background:var(--ok);}
+.estatus-titulo{font-family:'Playfair Display',serif; font-size:1.1rem; color:var(--gold-2);}
+.estatus-desc{color:var(--muted); font-size:0.84rem; margin:0 0 20px; line-height:1.5;}
+
+.pasos{display:flex; justify-content:space-between; margin-bottom:24px; position:relative;}
+.pasos::before{content:''; position:absolute; top:9px; left:9px; right:9px; height:2px; background:var(--line); z-index:0;}
+.paso{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:6px; flex:1;}
+.paso .dot{width:18px; height:18px; border-radius:50%; background:var(--black); border:2px solid var(--line);}
+.paso.activo .dot{border-color:var(--gold); background:var(--gold);}
+.paso.hecho .dot{border-color:var(--gold); background:var(--gold);}
+.paso span.label{font-size:0.62rem; color:var(--muted); text-align:center; letter-spacing:0.02em;}
+.paso.activo span.label, .paso.hecho span.label{color:var(--gold-2);}
+
+.items-list{border-top:1px solid var(--line); padding-top:16px; margin-top:4px;}
+.item-row{display:flex; justify-content:space-between; gap:12px; font-size:0.85rem; padding:6px 0; color:var(--cream);}
+.item-row .nom{color:var(--cream);}
+.item-row .precio{color:var(--muted); white-space:nowrap;}
+.total-row{display:flex; justify-content:space-between; font-weight:600; color:var(--gold-2); border-top:1px solid var(--line); margin-top:10px; padding-top:12px; font-family:'Playfair Display',serif; font-size:1.05rem;}
+.actualizado{color:var(--muted); font-size:0.72rem; margin-top:16px; text-align:center;}
+
+.wa-support{
+  display:block; text-align:center; margin-top:22px; padding:12px; border-radius:8px;
+  background:rgba(184,144,94,0.08); color:var(--gold-2); text-decoration:none; font-size:0.82rem;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="word">NÚCLEO<em>essences</em></div>
+  </div>
+
+  <div class="card">
+
+    <div class="formulario" id="formulario">
+      <h1 class="serif">Estatus de tu pedido</h1>
+      <p class="sub">Ingresa tu número de pedido y el correo o WhatsApp con el que compraste.</p>
+
+      <div class="field">
+        <label for="inPedido">Número de pedido</label>
+        <input type="text" id="inPedido" placeholder="Ej. 33" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="inIdentificador">Correo o WhatsApp con el que compraste</label>
+        <input type="text" id="inIdentificador" placeholder="tu@correo.com o tu número">
+      </div>
+
+      <button class="btn" id="btnConsultar">Consultar estatus</button>
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <div class="resultado" id="resultado">
+      <div class="estatus-linea">
+        <span class="estatus-punto" id="estatusPunto"></span>
+        <span class="estatus-titulo serif" id="estatusTitulo"></span>
+      </div>
+      <p class="estatus-desc" id="estatusDesc"></p>
+
+      <div class="pasos" id="pasos"></div>
+
+      <div class="items-list" id="itemsList"></div>
+      <div class="total-row"><span>Total</span><span id="totalPedido"></span></div>
+      <div class="actualizado" id="actualizadoTxt"></div>
+
+      <a class="wa-support" id="waSupport" href="https://wa.me/528116551406" target="_blank" rel="noopener">
+        ¿Alguna duda? Escríbenos por WhatsApp →
+      </a>
+
+      <button class="btn ghost" id="btnOtro">Consultar otro pedido</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ESTATUS_INFO = {
+  pendiente:  { label: 'Pendiente',  desc: 'Recibimos tu pedido y lo estamos revisando.' },
+  preparando: { label: 'Preparando', desc: 'Estamos preparando tu pedido con cuidado.' },
+  enviado:    { label: 'Enviado',    desc: 'Tu pedido va en camino.' },
+  entregado:  { label: 'Entregado',  desc: '¡Tu pedido fue entregado! Esperamos que lo disfrutes.' },
+};
+const ORDEN_PASOS = ['pendiente', 'preparando', 'enviado', 'entregado'];
+
+const money = (n) => (n === null || n === undefined || isNaN(n))
+  ? 'Por confirmar'
+  : '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' MXN';
+
+const formulario = document.getElementById('formulario');
+const resultado = document.getElementById('resultado');
+const errorMsg = document.getElementById('errorMsg');
+const btnConsultar = document.getElementById('btnConsultar');
+const inPedido = document.getElementById('inPedido');
+const inIdentificador = document.getElementById('inIdentificador');
+
+// Prellenar el número de pedido si llega por la URL (?pedido=33), como
+// pasa cuando el cliente entra desde el link que le mandamos por WhatsApp.
+const params = new URLSearchParams(window.location.search);
+if (params.get('pedido')) inPedido.value = params.get('pedido');
+
+function renderPasos(estatusActual) {
+  const idxActual = ORDEN_PASOS.indexOf(estatusActual);
+  return ORDEN_PASOS.map((k, i) => {
+    const cls = i < idxActual ? 'hecho' : (i === idxActual ? 'activo' : '');
+    return `<div class="paso ${cls}"><span class="dot"></span><span class="label">${ESTATUS_INFO[k].label}</span></div>`;
+  }).join('');
+}
+
+async function consultarEstatus() {
+  const pedido = inPedido.value.trim();
+  const identificador = inIdentificador.value.trim();
+  errorMsg.textContent = '';
+
+  if (!pedido || !identificador) {
+    errorMsg.textContent = 'Escribe tu número de pedido y tu correo o WhatsApp.';
+    return;
+  }
+
+  btnConsultar.disabled = true;
+  btnConsultar.textContent = 'Consultando…';
+
+  try {
+    const resp = await fetch('/api/control-total', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'estatusPublico', pedido, identificador }),
+    });
+    const body = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) throw new Error(body.error || 'No se pudo consultar el estatus.');
+
+    if (!body.encontrado) {
+      errorMsg.textContent = 'No encontramos ese pedido con esos datos. Verifica el número de pedido y que el correo o WhatsApp sea el mismo con el que compraste.';
+      return;
+    }
+
+    const estKey = ESTATUS_INFO[body.estatus] ? body.estatus : 'pendiente';
+    document.getElementById('estatusPunto').className = 'estatus-punto ' + estKey;
+    document.getElementById('estatusTitulo').textContent = ESTATUS_INFO[estKey].label;
+    document.getElementById('estatusDesc').textContent = ESTATUS_INFO[estKey].desc;
+    document.getElementById('pasos').innerHTML = renderPasos(estKey);
+
+    const items = Array.isArray(body.productos) ? body.productos : [];
+    document.getElementById('itemsList').innerHTML = items.map((it) =>
+      `<div class="item-row"><span class="nom">${escapeHtml(it.producto || '')}</span><span class="precio">${money(it.venta)}</span></div>`
+    ).join('') || '<div class="item-row"><span class="nom">Sin artículos visibles</span></div>';
+
+    document.getElementById('totalPedido').textContent = money(body.total);
+    document.getElementById('actualizadoTxt').textContent = body.actualizado
+      ? 'Última actualización: ' + new Date(body.actualizado).toLocaleString('es-MX')
+      : '';
+
+    formulario.classList.add('hide');
+    resultado.classList.add('show');
+  } catch (err) {
+    errorMsg.textContent = err.message || 'Ocurrió un error al consultar tu pedido. Intenta de nuevo.';
+  } finally {
+    btnConsultar.disabled = false;
+    btnConsultar.textContent = 'Consultar estatus';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+btnConsultar.addEventListener('click', consultarEstatus);
+[inPedido, inIdentificador].forEach((el) => {
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter') consultarEstatus(); });
+});
+
+document.getElementById('btnOtro').addEventListener('click', () => {
+  resultado.classList.remove('show');
+  formulario.classList.remove('hide');
+  inIdentificador.value = '';
+  errorMsg.textContent = '';
+});
+
+// Si venimos con ?pedido= en la URL, dejamos el cursor listo en el
+// siguiente campo para que el cliente solo tenga que escribir su dato.
+if (params.get('pedido')) inIdentificador.focus();
+</script>
+</body>
+</html>

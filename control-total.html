@@ -67,6 +67,20 @@ body{margin:0;background:var(--black);color:var(--cream);font-family:'Jost',sans
 .pedido-grupo-total{font-weight:600; color:var(--gold-2); flex:none; margin-left:auto;}
 .pedido-grupo.abierto{border-color:var(--gold);}
 
+.estatus-badge{font-size:0.63rem; letter-spacing:0.05em; text-transform:uppercase; padding:4px 10px; border-radius:999px; border:1px solid var(--line); flex:none; white-space:nowrap;}
+.estatus-badge.pendiente{color:var(--warn); border-color:#5a4128;}
+.estatus-badge.preparando{color:var(--gold-2); border-color:var(--gold);}
+.estatus-badge.enviado{color:#8fb8ce; border-color:#2f4a5a;}
+.estatus-badge.entregado{color:var(--ok); border-color:#2f5a37;}
+
+.pedido-estatus-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+.pedido-estatus-row select, .pedido-estatus-row input[type=tel], .pedido-estatus-row input[type=text]{
+  background:var(--black); border:1px solid var(--line); color:var(--cream); padding:7px 10px;
+  border-radius:6px; font-family:'Jost',sans-serif; font-size:0.78rem;
+}
+.pedido-estatus-row input[type=tel]{ width:220px; }
+.pedido-estatus-row input[type=text]{ width:200px; }
+
 /* ---- filter bar ---- */
 .filterbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
 .filterbar input[type=text], .filterbar select{background:var(--black);border:1px solid var(--line);color:var(--cream);padding:8px 12px;border-radius:6px;font-family:'Jost',sans-serif;font-size:0.82rem;}
@@ -393,6 +407,7 @@ let VENTAS = [];
 let GASTOS = [];
 let DIFUSORES = [];
 let STOCK = [];
+let ESTATUSES = {}; // { [pedido]: { estatus, telefono, email, actualizado } } — usado por /estatus.html
 let currentTab = 'resumen';
 let editingId = null; // id del registro que se está editando en un modal (null = nuevo)
 
@@ -701,12 +716,14 @@ async function loadAll() {
   GASTOS = (parsed && parsed.gastos) ? parsed.gastos : null;
   DIFUSORES = (parsed && parsed.difusores) ? parsed.difusores : null;
   STOCK = (parsed && parsed.stock) ? parsed.stock : null;
+  ESTATUSES = (parsed && parsed.estatuses) ? parsed.estatuses : null;
 
   let needsSeed = false;
   if (VENTAS === null) { VENTAS = SEED_VENTAS.slice(); needsSeed = true; }
   if (GASTOS === null) { GASTOS = SEED_GASTOS.slice(); needsSeed = true; }
   if (DIFUSORES === null) { DIFUSORES = []; needsSeed = true; }
   if (STOCK === null) { STOCK = []; needsSeed = true; }
+  if (ESTATUSES === null) { ESTATUSES = {}; needsSeed = true; }
 
   if (needsSeed) await persist();
 }
@@ -715,7 +732,7 @@ async function loadAll() {
    Reintentamos automáticamente con espera creciente antes de avisar
    al usuario que algo realmente falló. */
 async function persist(retries = 4) {
-  const payload = { ventas: VENTAS, gastos: GASTOS, difusores: DIFUSORES, stock: STOCK };
+  const payload = { ventas: VENTAS, gastos: GASTOS, difusores: DIFUSORES, stock: STOCK, estatuses: ESTATUSES };
   let lastError = null;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -860,6 +877,50 @@ function renderResumen() {
   `;
 }
 
+/* ============ ESTATUS DE PEDIDO (para /estatus.html y el botón de WhatsApp) ============ */
+const ESTATUS_PEDIDO_LABELS = { pendiente: 'Pendiente', preparando: 'Preparando', enviado: 'Enviado', entregado: 'Entregado' };
+const ESTATUS_PEDIDO_ORDEN = ['pendiente', 'preparando', 'enviado', 'entregado'];
+const ESTATUS_PAGE_URL = 'https://nucleoessences.com/estatus.html';
+
+function getEstatusPedido(pedido) {
+  return ESTATUSES[pedido] || { estatus: 'pendiente', telefono: '', email: '', actualizado: null };
+}
+
+async function actualizarEstatusPedido(pedido, campo, valor) {
+  if (!ESTATUSES[pedido]) ESTATUSES[pedido] = { estatus: 'pendiente', telefono: '', email: '' };
+  ESTATUSES[pedido][campo] = valor;
+  ESTATUSES[pedido].actualizado = new Date().toISOString();
+  await persist();
+}
+
+// Arma el mismo mensaje de confirmación aprobado para WhatsApp, con la
+// lista real de artículos del pedido y el link a la página pública de
+// estatus. Los aceites/spray/perfumes marcados como Stock (inventario
+// interno, no venta a cliente) se excluyen de la lista.
+function construirMensajeWhatsapp(pedido, items, clienteNombre) {
+  const visibles = items.filter((v) => !v.stock);
+  const productosTexto = visibles.map((v) => `🧴 ${v.producto}`).join('\n') || '🧴 Tu pedido';
+  const total = visibles.reduce((s, v) => s + (v.montoConocido ? (v.venta || 0) : 0), 0);
+  const link = `${ESTATUS_PAGE_URL}?pedido=${encodeURIComponent(pedido)}`;
+  return `¡Hola ${clienteNombre}! 🌿 Gracias por tu compra en *NÚCLEO essences*.\n\n` +
+    `Resumen de tu pedido:\n${productosTexto}\n💰 Total: ${money(total)}\n\n` +
+    `Puedes revisar el estatus de tu pedido en cualquier momento aquí:\n👉 ${link}\n\n` +
+    `Cualquier duda, escríbenos por este mismo medio✨\n\nCon aroma,\nNÚCLEO essences`;
+}
+
+function abrirWhatsappPedido(pedido) {
+  const est = getEstatusPedido(pedido);
+  const telefono = (est.telefono || '').replace(/\D/g, '');
+  if (!telefono || telefono.length < 10) {
+    showToast('Captura primero el WhatsApp del cliente (con lada de país, ej. 5218112345678).');
+    return;
+  }
+  const items = VENTAS.filter((v) => v.pedido === pedido);
+  const clienteNombre = (items.find((v) => v.cliente && v.cliente !== 'Venta general (mostrador)') || items[0] || {}).cliente || 'cliente';
+  const mensaje = construirMensajeWhatsapp(pedido, items, clienteNombre);
+  window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
+}
+
 /* ============ VENTAS / PEDIDOS ============ */
 let ventasFiltro = { texto: '', estado: 'todas', pedido: '' };
 let pedidosExpandidos = new Set();
@@ -925,6 +986,8 @@ function ventasResultsHtml() {
     const clientesLabel = clientesUnicos.length ? clientesUnicos.slice(0, 3).join(', ') + (clientesUnicos.length > 3 ? ` +${clientesUnicos.length - 3}` : '') : 'Venta general (mostrador)';
     const totalPedidoVenta = items.filter((v) => v.montoConocido).reduce((s, v) => s + (v.venta || 0), 0);
     const abierto = pedidosExpandidos.has(p);
+    const estRec = getEstatusPedido(p);
+    const estKey = ESTATUS_PEDIDO_ORDEN.includes(estRec.estatus) ? estRec.estatus : 'pendiente';
 
     return `
       <div class="pedido-grupo ${abierto ? 'abierto' : ''}">
@@ -933,13 +996,25 @@ function ventasResultsHtml() {
           <span class="pedido-grupo-titulo">Pedido ${esc(p)}</span>
           <span class="pedido-grupo-cliente small">${esc(clientesLabel)}</span>
           <span class="pedido-grupo-meta small">${items.length} artículo${items.length === 1 ? '' : 's'}</span>
+          <span class="estatus-badge ${estKey}">${ESTATUS_PEDIDO_LABELS[estKey]}</span>
           <span class="pedido-grupo-total">${money(totalPedidoVenta)}</span>
         </div>
         ${abierto ? `
         <div class="twrap" style="margin-top:10px;"><table>
           <thead><tr><th>Cliente</th><th>Producto</th><th class="right">Costo</th><th class="right">Venta</th><th class="right">Utilidad</th><th>Estado</th><th></th></tr></thead>
           <tbody>${items.map(filaVenta).join('')}</tbody>
-        </table></div>` : ''}
+        </table></div>
+        <div class="pedido-estatus-row">
+          <label class="small" style="color:var(--muted); display:flex; align-items:center; gap:6px;">Estatus del pedido
+            <select data-estatussel="${esc(p)}">
+              ${ESTATUS_PEDIDO_ORDEN.map((k) => `<option value="${k}" ${estKey === k ? 'selected' : ''}>${ESTATUS_PEDIDO_LABELS[k]}</option>`).join('')}
+            </select>
+          </label>
+          <input type="tel" data-telpedido="${esc(p)}" placeholder="WhatsApp del cliente (ej. 5218112345678)" value="${esc(estRec.telefono || '')}">
+          <input type="text" data-emailpedido="${esc(p)}" placeholder="Correo del cliente (opcional)" value="${esc(estRec.email || '')}">
+          <button class="btn sm" data-enviarwa="${esc(p)}">📲 Enviar WhatsApp al cliente</button>
+          ${estRec.actualizado ? `<span class="small" style="color:var(--muted); width:100%;">Estatus actualizado: ${new Date(estRec.actualizado).toLocaleString('es-MX')}</span>` : ''}
+        </div>` : ''}
       </div>`;
   }).join('');
 
@@ -1017,6 +1092,21 @@ function refreshVentasResults() {
   });
   wrap.querySelectorAll('[data-edit]').forEach((el) => {
     el.addEventListener('click', () => openEditCell(el.dataset.id, el.dataset.edit));
+  });
+  wrap.querySelectorAll('[data-estatussel]').forEach((el) => {
+    el.addEventListener('change', async () => {
+      await actualizarEstatusPedido(el.dataset.estatussel, 'estatus', el.value);
+      refreshVentasResults();
+    });
+  });
+  wrap.querySelectorAll('[data-telpedido]').forEach((el) => {
+    el.addEventListener('blur', () => actualizarEstatusPedido(el.dataset.telpedido, 'telefono', el.value.trim()));
+  });
+  wrap.querySelectorAll('[data-emailpedido]').forEach((el) => {
+    el.addEventListener('blur', () => actualizarEstatusPedido(el.dataset.emailpedido, 'email', el.value.trim()));
+  });
+  wrap.querySelectorAll('[data-enviarwa]').forEach((el) => {
+    el.addEventListener('click', () => abrirWhatsappPedido(el.dataset.enviarwa));
   });
 }
 
