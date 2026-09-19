@@ -240,13 +240,11 @@ input.cellinput{background:var(--black);border:1px solid var(--gold);color:var(-
       <label><input type="checkbox" id="mvEntregado"> Entregado</label>
       <label><input type="checkbox" id="mvRegalo"> Regalo</label>
       <label><input type="checkbox" id="mvStock"> Stock (no es venta a cliente)</label>
-      <label><input type="checkbox" id="mvDomicilio"> Envío a domicilio</label>
     </div>
     <div class="checkrow" id="mvVincularStockWrap" style="display:none;">
       <label><input type="checkbox" id="mvVincularStock" checked> Vincular al inventario de Stock <span id="mvVincularStockInfo" class="small" style="color:var(--muted);"></span></label>
     </div>
     <div class="small" id="mvVincularStockHelp" style="display:none; margin:-8px 0 12px; color:var(--muted);">Suma esta cantidad al producto en Stock (lo crea si no existe) — así puedes venderlo pieza por pieza después, sin perder este registro de compra en Ventas/Pedidos.</div>
-    <div class="field" id="mvCostoEnvioWrap" style="display:none;"><label>Costo del envío (MXN)</label><input type="number" id="mvCostoEnvio" placeholder="0"></div>
     <div class="field"><label>Notas</label><textarea id="mvNotas"></textarea></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal('modalVenta')">Cancelar</button>
@@ -1274,9 +1272,6 @@ function openVentaModal(id) {
   document.getElementById('mvEntregado').checked = v ? !!v.entregado : false;
   document.getElementById('mvRegalo').checked = v ? !!v.regalo : false;
   document.getElementById('mvStock').checked = v ? !!v.stock : false;
-  document.getElementById('mvDomicilio').checked = v ? !!v.domicilio : false;
-  document.getElementById('mvCostoEnvio').value = v && v.costoEnvio ? v.costoEnvio : '';
-  document.getElementById('mvCostoEnvioWrap').style.display = (v && v.domicilio) ? '' : 'none';
   document.getElementById('mvNotas').value = v ? (v.notas || '') : '';
   document.getElementById('mvVincularStock').checked = true;
   actualizarVincularStockUI();
@@ -1356,8 +1351,6 @@ async function guardarVenta() {
     entregado: document.getElementById('mvEntregado').checked,
     regalo: document.getElementById('mvRegalo').checked,
     stock: document.getElementById('mvStock').checked,
-    domicilio: document.getElementById('mvDomicilio').checked,
-    costoEnvio: document.getElementById('mvDomicilio').checked ? (parseFloat(document.getElementById('mvCostoEnvio').value) || 0) : 0,
     notas: document.getElementById('mvNotas').value.trim(),
   };
 
@@ -2184,10 +2177,6 @@ document.getElementById('mvSugerir').addEventListener('click', () => {
 });
 document.getElementById('mvRegalo').addEventListener('change', (e) => {
   if (e.target.checked) document.getElementById('mvVenta').value = 0;
-});
-document.getElementById('mvDomicilio').addEventListener('change', (e) => {
-  document.getElementById('mvCostoEnvioWrap').style.display = e.target.checked ? '' : 'none';
-  if (!e.target.checked) document.getElementById('mvCostoEnvio').value = '';
 });
 document.getElementById('mgGuardar').addEventListener('click', guardarGasto);
 document.getElementById('mdGuardar').addEventListener('click', guardarDifusor);
