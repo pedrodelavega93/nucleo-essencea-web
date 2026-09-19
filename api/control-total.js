@@ -111,7 +111,12 @@ module.exports = async (req, res) => {
       const ventas = Array.isArray(actual.ventas) ? actual.ventas : [];
       const items = ventas.filter((v) => String(v.pedido) === pedidoBuscado && v.cliente === clienteEncontrado && !v.stock);
       const productos = items.map((v) => ({ producto: v.producto, venta: v.montoConocido ? v.venta : null }));
-      const total = items.reduce((s, v) => s + (v.montoConocido ? (v.venta || 0) : 0), 0);
+      const subtotal = items.reduce((s, v) => s + (v.montoConocido ? (v.venta || 0) : 0), 0);
+      // El envío a domicilio se cobra UNA sola vez por cliente (no por
+      // producto) y se reporta como su propio monto, nunca sumado dentro
+      // del precio de ningún artículo.
+      const envio = registro.domicilio ? (Number(registro.costoEnvio) || 100) : 0;
+      const total = subtotal + envio;
 
       return res.status(200).json({
         ok: true,
@@ -120,6 +125,7 @@ module.exports = async (req, res) => {
         estatus: registro.estatus || 'pendiente',
         actualizado: registro.actualizado || null,
         productos,
+        envio,
         total,
       });
     }
