@@ -257,6 +257,7 @@ module.exports = async (req, res) => {
         shipping_address_collection: { allowed_countries: ['MX'] },
         phone_number_collection: { enabled: true },
         shipping_options: buildShippingOptions(),
+        allow_promotion_codes: true,
         success_url: origin + '/?pago=exitoso',
         cancel_url: origin + '/?pago=cancelado',
       };
@@ -355,6 +356,7 @@ module.exports = async (req, res) => {
       line_items: [lineItem],
       shipping_address_collection: { allowed_countries: ['MX'] },
       phone_number_collection: { enabled: true },
+      allow_promotion_codes: true,
       success_url: product.mode === 'subscription'
         ? origin + '/?pago=exitoso&sub=1&session_id={CHECKOUT_SESSION_ID}'
         : origin + '/?pago=exitoso',
