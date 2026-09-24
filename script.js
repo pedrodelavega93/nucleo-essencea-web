@@ -1803,7 +1803,8 @@ if (difusoresScrollBottom) {
 // POP-UP DE BIENVENIDA — registro + código personal (10%)
 // Aparece una sola vez por navegador: a los 7 segundos o cuando
 // el visitante baja ~35% de la página (lo que pase primero).
-// Pide nombre, correo y WhatsApp; /api/welcome-code genera un
+// Pide nombre, correo y WhatsApp; /api/create-checkout (action
+// welcome_code) genera un
 // código único de un solo uso y lo guardamos aquí para mostrarlo
 // de nuevo si reabre el pop-up. Al cerrarlo queda el botón "10%".
 // ============================================================
@@ -1897,10 +1898,10 @@ if (difusoresScrollBottom) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Generando tu código…';
     try {
-      const r = await fetch('/api/welcome-code', {
+      const r = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, correo, telefono }),
+        body: JSON.stringify({ action: 'welcome_code', nombre, correo, telefono }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || !data.code) throw new Error(data.error || 'No pudimos generar tu código. Intenta de nuevo.');
