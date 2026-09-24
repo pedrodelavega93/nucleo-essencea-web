@@ -20,6 +20,9 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // automáticamente esos datos en el resumen del pedido a partir del
 // nombre del aroma que eligió el cliente.
 const { buscarAroma } = require('./_aroma-catalog');
+// Código de bienvenida del pop-up (va aquí para no pasar el límite
+// de 12 funciones del plan Hobby de Vercel).
+const welcomeCode = require('./_welcome-code');
 
 // ------------------------------------------------------------
 // Cada "price_..." es el Price ID real de Stripe (Dashboard →
@@ -119,6 +122,10 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Método no permitido' });
     return;
+  }
+
+  if (req.body && req.body.action === 'welcome_code') {
+    return welcomeCode(req, res);
   }
 
   try {
