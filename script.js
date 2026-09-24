@@ -1800,38 +1800,61 @@ if (difusoresScrollBottom) {
 })();
 
 // ============================================================
-// POP-UP DE BIENVENIDA — código de descuento (10%)
+// POP-UP DE BIENVENIDA — registro + código personal (10%)
 // Aparece una sola vez por navegador: a los 7 segundos o cuando
 // el visitante baja ~35% de la página (lo que pase primero).
-// Al cerrarlo queda un botón flotante "10%" para reabrirlo.
+// Pide nombre, correo y WhatsApp; /api/welcome-code genera un
+// código único de un solo uso y lo guardamos aquí para mostrarlo
+// de nuevo si reabre el pop-up. Al cerrarlo queda el botón "10%".
 // ============================================================
 (function () {
   const SHOWN_KEY = 'nucleo_welcome_popup_shown';
   const BADGE_HIDDEN_KEY = 'nucleo_welcome_badge_hidden';
+  const CODE_KEY = 'nucleo_welcome_code';
   const overlay = document.getElementById('welcomePopupOverlay');
   if (!overlay) return;
 
-  const closeBtn = document.getElementById('welcomePopupClose');
-  const codeBtn = document.getElementById('welcomePopupCode');
-  const copyLabel = document.getElementById('welcomePopupCopyLabel');
-  const cta = document.getElementById('welcomePopupCta');
-  const badge = document.getElementById('welcomeBadge');
-  const badgeClose = document.getElementById('welcomeBadgeClose');
+  const $ = (id) => document.getElementById(id);
+  const closeBtn = $('welcomePopupClose');
+  const form = $('welcomeForm');
+  const nameIn = $('welcomeName');
+  const emailIn = $('welcomeEmail');
+  const phoneIn = $('welcomePhone');
+  const errorEl = $('welcomeError');
+  const submitBtn = $('welcomeSubmit');
+  const success = $('welcomeSuccess');
+  const hello = $('welcomeHello');
+  const codeBtn = $('welcomePopupCode');
+  const codeText = $('welcomeCodeText');
+  const copyLabel = $('welcomePopupCopyLabel');
+  const cta = $('welcomePopupCta');
+  const badge = $('welcomeBadge');
+  const badgeClose = $('welcomeBadgeClose');
 
   const get = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 
+  function showCode(code, nombre) {
+    codeText.textContent = code;
+    hello.textContent = (nombre ? '¡Listo, ' + nombre + '! ' : '¡Listo! ') + 'Este es tu código personal:';
+    form.hidden = true;
+    success.hidden = false;
+  }
+
+  const saved = get(CODE_KEY);
+  if (saved) {
+    try { const d = JSON.parse(saved); if (d.code) showCode(d.code, d.nombre); } catch (e) {}
+  }
+
   function showBadge() {
     if (badge && get(BADGE_HIDDEN_KEY) !== '1') badge.hidden = false;
   }
-
   function openPopup() {
     overlay.classList.add('is-open');
     if (badge) badge.hidden = true;
     set(SHOWN_KEY, '1');
     cleanupTriggers();
   }
-
   function closePopup() {
     overlay.classList.remove('is-open');
     set(SHOWN_KEY, '1');
@@ -1848,7 +1871,6 @@ if (difusoresScrollBottom) {
     if (timer) clearTimeout(timer);
     window.removeEventListener('scroll', onScroll);
   }
-
   if (get(SHOWN_KEY) === '1') {
     showBadge();
   } else {
@@ -1856,34 +1878,67 @@ if (difusoresScrollBottom) {
     window.addEventListener('scroll', onScroll, { passive: true });
   }
 
-  // --- Copiar código ---
-  if (codeBtn) {
-    codeBtn.addEventListener('click', async () => {
-      const code = 'BIENVENIDO10';
-      let ok = false;
-      try { await navigator.clipboard.writeText(code); ok = true; } catch (e) {
-        const t = document.createElement('textarea');
-        t.value = code; document.body.appendChild(t); t.select();
-        try { ok = document.execCommand('copy'); } catch (err) {}
-        t.remove();
-      }
-      if (copyLabel) copyLabel.textContent = ok ? '¡Copiado!' : 'Mantén presionado para copiar';
-      codeBtn.classList.toggle('copied', ok);
-    });
+  // --- Registro ---
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.hidden = !msg;
   }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    [nameIn, emailIn, phoneIn].forEach((i) => i.classList.remove('invalid'));
+    const nombre = nameIn.value.trim();
+    const correo = emailIn.value.trim();
+    const telefono = phoneIn.value.replace(/[^\d]/g, '');
+    if (!nombre) { nameIn.classList.add('invalid'); return showError('Escribe tu nombre.'); }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) { emailIn.classList.add('invalid'); return showError('Revisa tu correo, parece incompleto.'); }
+    if (telefono.length < 10) { phoneIn.classList.add('invalid'); return showError('Escribe tu WhatsApp a 10 dígitos.'); }
+
+    showError('');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Generando tu código…';
+    try {
+      const r = await fetch('/api/welcome-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, correo, telefono }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.code) throw new Error(data.error || 'No pudimos generar tu código. Intenta de nuevo.');
+      set(CODE_KEY, JSON.stringify({ code: data.code, nombre }));
+      showCode(data.code, nombre);
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Obtener mi 10%';
+    }
+  });
+
+  // --- Copiar código ---
+  codeBtn.addEventListener('click', async () => {
+    const code = codeText.textContent;
+    let ok = false;
+    try { await navigator.clipboard.writeText(code); ok = true; } catch (e) {
+      const t = document.createElement('textarea');
+      t.value = code; document.body.appendChild(t); t.select();
+      try { ok = document.execCommand('copy'); } catch (err) {}
+      t.remove();
+    }
+    copyLabel.textContent = ok ? '¡Copiado!' : 'Mantén presionado para copiar';
+    codeBtn.classList.toggle('copied', ok);
+  });
 
   // --- Cerrar ---
   if (closeBtn) closeBtn.addEventListener('click', closePopup);
   if (cta) cta.addEventListener('click', closePopup);
+  document.querySelectorAll('[data-welcome-nav]').forEach((a) => a.addEventListener('click', closePopup));
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closePopup(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && overlay.classList.contains('is-open')) closePopup();
   });
 
   // --- Reabrir desde la tira o el botón flotante ---
-  document.querySelectorAll('[data-open-welcome]').forEach((el) => {
-    el.addEventListener('click', openPopup);
-  });
+  document.querySelectorAll('[data-open-welcome]').forEach((el) => el.addEventListener('click', openPopup));
   if (badgeClose) {
     badgeClose.addEventListener('click', () => {
       badge.hidden = true;

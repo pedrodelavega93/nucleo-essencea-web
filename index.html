@@ -24,7 +24,7 @@
 <!-- ============ TIRA DE ANUNCIOS (rota sola, fija arriba) ============ -->
 <div class="announce-bar" id="announceBar" role="region" aria-label="Anuncios">
   <div class="announce-track" aria-live="off">
-    <button type="button" class="announce-msg is-active" data-open-welcome>10% en tu primera compra · código <strong>BIENVENIDO10</strong></button>
+    <button type="button" class="announce-msg is-active" data-open-welcome>10% en tu primera compra · <strong>Obtén tu código</strong></button>
     <a class="announce-msg" href="#suscripcion">Renta de difusores profesionales para tu negocio</a>
     <a class="announce-msg" href="#suscripcion-aromas">Suscripción mensual de aromas</a>
     <a class="announce-msg" href="#eventos">Aromatización para bodas y eventos</a>
@@ -1518,17 +1518,39 @@
 <div class="welcome-popup-overlay" id="welcomePopupOverlay">
   <div class="welcome-popup" role="dialog" aria-modal="true" aria-label="Descuento de bienvenida">
     <button class="modal-close welcome-popup-close" id="welcomePopupClose" aria-label="Cerrar">✕</button>
-    <img class="welcome-popup-img" src="assets/difusor-pro-poster.jpg" alt="Difusor profesional NÚCLEO">
+    <img class="welcome-popup-img" src="assets/welcome-popup.jpg" alt="Difusores profesionales NÚCLEO essences en una sala">
     <div class="welcome-popup-body">
       <div class="eyebrow">Bienvenida NÚCLEO</div>
       <h3 class="serif">10% de descuento <em>en tu primera compra</em></h3>
-      <p>Usa este código al momento de pagar:</p>
-      <button type="button" class="welcome-popup-code" id="welcomePopupCode" aria-label="Copiar código BIENVENIDO10">
-        <span>BIENVENIDO10</span>
-        <small id="welcomePopupCopyLabel">Toca para copiar</small>
-      </button>
-      <a href="#difusores" class="welcome-popup-cta" id="welcomePopupCta">Ver difusores</a>
-      <p class="welcome-popup-hint">Aplícalo en el campo de código de descuento durante el pago seguro con Stripe.</p>
+      <p class="welcome-popup-scope">Válido en <strong>toda la tienda</strong>: difusores, perfumes, aceites ambientales, home sprays y suscripciones.</p>
+
+      <!-- Paso 1: registro -->
+      <form class="welcome-form" id="welcomeForm" novalidate>
+        <input type="text" id="welcomeName" name="nombre" placeholder="Tu nombre" autocomplete="given-name" required>
+        <input type="email" id="welcomeEmail" name="correo" placeholder="Correo electrónico" autocomplete="email" inputmode="email" required>
+        <input type="tel" id="welcomePhone" name="telefono" placeholder="WhatsApp (10 dígitos)" autocomplete="tel" inputmode="tel" required>
+        <p class="welcome-form-error" id="welcomeError" role="alert" hidden></p>
+        <button type="submit" class="welcome-popup-cta" id="welcomeSubmit">Obtener mi 10%</button>
+        <p class="welcome-popup-hint">Un código personal por cliente, válido una sola vez en tu primera compra. Te lo enviamos también a tu correo.</p>
+      </form>
+
+      <!-- Paso 2: código entregado -->
+      <div class="welcome-success" id="welcomeSuccess" hidden>
+        <p id="welcomeHello">¡Listo! Este es tu código personal:</p>
+        <button type="button" class="welcome-popup-code" id="welcomePopupCode" aria-label="Copiar código">
+          <span id="welcomeCodeText"></span>
+          <small id="welcomePopupCopyLabel">Toca para copiar</small>
+        </button>
+        <a href="#difusores" class="welcome-popup-cta" id="welcomePopupCta">Empezar a comprar</a>
+        <div class="welcome-cats">
+          <a href="#difusores" data-welcome-nav>Difusores</a>
+          <a href="#perfumes" data-welcome-nav>Perfumes</a>
+          <a href="#aceites" data-welcome-nav>Aceites</a>
+          <a href="#home-sprays" data-welcome-nav>Home sprays</a>
+          <a href="#suscripcion" data-welcome-nav>Renta</a>
+        </div>
+        <p class="welcome-popup-hint">Escríbelo en “Agregar código promocional” al pagar con Stripe.</p>
+      </div>
     </div>
   </div>
 </div>

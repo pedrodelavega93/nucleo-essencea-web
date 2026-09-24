@@ -2988,6 +2988,8 @@ body.catalog-open .catalog-scroll-nav{ display:none; }
   position:relative;
   width:100%;
   max-width:420px;
+  max-height:calc(100svh - 40px);
+  overflow-y:auto;
   background:var(--panel-2, #1a1512);
   border:1px solid var(--gold);
   border-radius:14px;
@@ -3008,8 +3010,10 @@ body.catalog-open .catalog-scroll-nav{ display:none; }
 }
 .welcome-popup-img{
   width:100%;
-  height:200px;
+  height:auto;
+  aspect-ratio:4 / 3;
   object-fit:cover;
+  object-position:center bottom;
   display:block;
 }
 .welcome-popup-body{
@@ -3080,7 +3084,7 @@ body.catalog-open .catalog-scroll-nav{ display:none; }
   margin:0 !important;
 }
 @media (max-width:480px){
-  .welcome-popup-img{ height:150px; }
+  .welcome-popup-img{ aspect-ratio:16 / 11; }
   .welcome-popup-body{ padding:20px 18px 24px; }
 }
 
@@ -3202,3 +3206,63 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
   .welcome-badge{ left:16px; bottom:78px; }
   .welcome-badge-open{ width:56px; height:56px; }
 }
+
+
+/* ---------- Pop-up de bienvenida: registro y código personal ---------- */
+.welcome-popup-scope{ font-size:0.8rem !important; }
+.welcome-popup-scope strong{ color:var(--gold-2); font-weight:500; }
+.welcome-form{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+.welcome-form input{
+  width:100%;
+  padding:12px 14px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--line);
+  border-radius:8px;
+  color:var(--cream);
+  font-family:'Jost', sans-serif;
+  font-size:16px; /* 16px evita el zoom automático en iPhone */
+  font-weight:300;
+  outline:none;
+  transition:border-color 0.2s ease;
+}
+.welcome-form input::placeholder{ color:var(--muted); }
+.welcome-form input:focus{ border-color:var(--gold); }
+.welcome-form input.invalid{ border-color:#c0584f; }
+.welcome-form .welcome-popup-cta{
+  width:100%;
+  max-width:none;
+  margin:4px 0 10px;
+  font-family:'Jost', sans-serif;
+  cursor:pointer;
+}
+.welcome-form .welcome-popup-cta[disabled]{ opacity:0.6; cursor:wait; }
+.welcome-form-error{
+  font-size:0.78rem !important;
+  color:#e0897f !important;
+  margin:0 !important;
+  text-align:left;
+}
+.welcome-cats{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+  margin:0 0 14px;
+}
+.welcome-cats a{
+  font-size:0.66rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--gold-2);
+  text-decoration:none;
+  border:1px solid var(--line);
+  border-radius:40px;
+  padding:7px 12px;
+  transition:border-color 0.2s ease;
+}
+.welcome-cats a:hover{ border-color:var(--gold); }
+@media (max-width:480px){
+  .welcome-popup-img{ aspect-ratio:16 / 8; }
+}
+
+.welcome-form[hidden], .welcome-success[hidden], .welcome-form-error[hidden]{ display:none !important; }
