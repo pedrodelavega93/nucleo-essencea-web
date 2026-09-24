@@ -21,6 +21,17 @@
 </head>
 <body>
 
+<!-- ============ TIRA DE ANUNCIOS (rota sola, fija arriba) ============ -->
+<div class="announce-bar" id="announceBar" role="region" aria-label="Anuncios">
+  <div class="announce-track" aria-live="off">
+    <button type="button" class="announce-msg is-active" data-open-welcome>10% en tu primera compra · código <strong>BIENVENIDO10</strong></button>
+    <a class="announce-msg" href="#suscripcion">Renta de difusores profesionales para tu negocio</a>
+    <a class="announce-msg" href="#suscripcion-aromas">Suscripción mensual de aromas</a>
+    <a class="announce-msg" href="#eventos">Aromatización para bodas y eventos</a>
+  </div>
+</div>
+
+
 <!-- ============ NAV FLOTANTE ============ -->
 <header class="topnav">
   <a href="#" class="wordmark" aria-label="Ir al inicio">NÚCLEO<em>essences</em></a>
@@ -1275,6 +1286,7 @@
         </div>
       </div>
       <p class="cart-note">El costo de envío o la opción de recoger en tienda se elige en el pago seguro de Stripe.</p>
+      <p class="cart-discount-note">🎁 Recuerda aplicar tu código de descuento de bienvenida en el siguiente paso de pago.</p>
       <div class="cart-email-capture" id="cartEmailCapture">
         <label for="cartEmailInput" class="cart-email-label">¿Te recordamos tu carrito si no completas la compra? (opcional)</label>
         <input type="email" id="cartEmailInput" class="cart-email-input" placeholder="tu@correo.com" autocomplete="email">
@@ -1500,6 +1512,35 @@
     Contratos Renta Mensual
   </a>
 </section>
+
+
+<!-- ============ POP-UP DE BIENVENIDA (10% de descuento) ============ -->
+<div class="welcome-popup-overlay" id="welcomePopupOverlay">
+  <div class="welcome-popup" role="dialog" aria-modal="true" aria-label="Descuento de bienvenida">
+    <button class="modal-close welcome-popup-close" id="welcomePopupClose" aria-label="Cerrar">✕</button>
+    <img class="welcome-popup-img" src="assets/difusor-pro-poster.jpg" alt="Difusor profesional NÚCLEO">
+    <div class="welcome-popup-body">
+      <div class="eyebrow">Bienvenida NÚCLEO</div>
+      <h3 class="serif">10% de descuento <em>en tu primera compra</em></h3>
+      <p>Usa este código al momento de pagar:</p>
+      <button type="button" class="welcome-popup-code" id="welcomePopupCode" aria-label="Copiar código BIENVENIDO10">
+        <span>BIENVENIDO10</span>
+        <small id="welcomePopupCopyLabel">Toca para copiar</small>
+      </button>
+      <a href="#difusores" class="welcome-popup-cta" id="welcomePopupCta">Ver difusores</a>
+      <p class="welcome-popup-hint">Aplícalo en el campo de código de descuento durante el pago seguro con Stripe.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ BOTÓN FLOTANTE 10% (reabre el pop-up) ============ -->
+<div class="welcome-badge" id="welcomeBadge" hidden>
+  <button type="button" class="welcome-badge-open" data-open-welcome aria-label="Ver descuento de bienvenida">
+    <span class="welcome-badge-num">10%</span>
+    <span class="welcome-badge-txt">OFF</span>
+  </button>
+  <button type="button" class="welcome-badge-close" id="welcomeBadgeClose" aria-label="Ocultar descuento">✕</button>
+</div>
 
 <script src="assets/perfumes-data.js"></script>
 <script src="assets/ambientales-data.js"></script>

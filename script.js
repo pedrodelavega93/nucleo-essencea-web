@@ -1798,3 +1798,115 @@ if (difusoresScrollBottom) {
     if (e.key === 'Escape') closeMenu();
   });
 })();
+
+// ============================================================
+// POP-UP DE BIENVENIDA — código de descuento (10%)
+// Aparece una sola vez por navegador: a los 7 segundos o cuando
+// el visitante baja ~35% de la página (lo que pase primero).
+// Al cerrarlo queda un botón flotante "10%" para reabrirlo.
+// ============================================================
+(function () {
+  const SHOWN_KEY = 'nucleo_welcome_popup_shown';
+  const BADGE_HIDDEN_KEY = 'nucleo_welcome_badge_hidden';
+  const overlay = document.getElementById('welcomePopupOverlay');
+  if (!overlay) return;
+
+  const closeBtn = document.getElementById('welcomePopupClose');
+  const codeBtn = document.getElementById('welcomePopupCode');
+  const copyLabel = document.getElementById('welcomePopupCopyLabel');
+  const cta = document.getElementById('welcomePopupCta');
+  const badge = document.getElementById('welcomeBadge');
+  const badgeClose = document.getElementById('welcomeBadgeClose');
+
+  const get = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+  function showBadge() {
+    if (badge && get(BADGE_HIDDEN_KEY) !== '1') badge.hidden = false;
+  }
+
+  function openPopup() {
+    overlay.classList.add('is-open');
+    if (badge) badge.hidden = true;
+    set(SHOWN_KEY, '1');
+    cleanupTriggers();
+  }
+
+  function closePopup() {
+    overlay.classList.remove('is-open');
+    set(SHOWN_KEY, '1');
+    showBadge();
+  }
+
+  // --- Disparadores automáticos (solo la primera visita) ---
+  let timer = null;
+  function onScroll() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    if (max > 0 && window.scrollY / max > 0.35) openPopup();
+  }
+  function cleanupTriggers() {
+    if (timer) clearTimeout(timer);
+    window.removeEventListener('scroll', onScroll);
+  }
+
+  if (get(SHOWN_KEY) === '1') {
+    showBadge();
+  } else {
+    timer = setTimeout(openPopup, 7000);
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  // --- Copiar código ---
+  if (codeBtn) {
+    codeBtn.addEventListener('click', async () => {
+      const code = 'BIENVENIDO10';
+      let ok = false;
+      try { await navigator.clipboard.writeText(code); ok = true; } catch (e) {
+        const t = document.createElement('textarea');
+        t.value = code; document.body.appendChild(t); t.select();
+        try { ok = document.execCommand('copy'); } catch (err) {}
+        t.remove();
+      }
+      if (copyLabel) copyLabel.textContent = ok ? '¡Copiado!' : 'Mantén presionado para copiar';
+      codeBtn.classList.toggle('copied', ok);
+    });
+  }
+
+  // --- Cerrar ---
+  if (closeBtn) closeBtn.addEventListener('click', closePopup);
+  if (cta) cta.addEventListener('click', closePopup);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closePopup(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('is-open')) closePopup();
+  });
+
+  // --- Reabrir desde la tira o el botón flotante ---
+  document.querySelectorAll('[data-open-welcome]').forEach((el) => {
+    el.addEventListener('click', openPopup);
+  });
+  if (badgeClose) {
+    badgeClose.addEventListener('click', () => {
+      badge.hidden = true;
+      set(BADGE_HIDDEN_KEY, '1');
+    });
+  }
+})();
+
+// ============================================================
+// TIRA DE ANUNCIOS — rota los mensajes cada 4.5 s con fade
+// ============================================================
+(function () {
+  const msgs = document.querySelectorAll('#announceBar .announce-msg');
+  if (msgs.length < 2) return;
+  let i = 0;
+  let paused = false;
+  const bar = document.getElementById('announceBar');
+  bar.addEventListener('mouseenter', () => { paused = true; });
+  bar.addEventListener('mouseleave', () => { paused = false; });
+  setInterval(() => {
+    if (paused || document.hidden) return;
+    msgs[i].classList.remove('is-active');
+    i = (i + 1) % msgs.length;
+    msgs[i].classList.add('is-active');
+  }, 4500);
+})();
