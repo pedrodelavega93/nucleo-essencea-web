@@ -3306,3 +3306,18 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
   .welcome-form{ gap:8px; }
   .welcome-form input{ padding:10px 14px; }
 }
+
+
+/* ---------- Logo Leche y Miel (cinta superior) ----------
+   Es un logo casi cuadrado (texto + oso), así que se le da un poco
+   más de alto para que se lea al mismo tamaño visual que los demás.
+   La cinta de arriba ahora tiene 5 logos en lugar de 4: se alarga la
+   duración para que avance a la misma velocidad que antes. */
+.trust-marquee-top .trust-logo-lym{ height:104px; }
+.trust-marquee-top .trust-logo-lym img{ max-width:120px; }
+.trust-marquee-top .trust-track{ animation-duration:110s; }
+@media (max-width:640px){
+  .trust-marquee-top .trust-logo-lym{ height:74px; }
+  .trust-marquee-top .trust-logo-lym img{ max-width:84px; }
+  .trust-marquee-top .trust-track{ animation-duration:80s; }
+}
