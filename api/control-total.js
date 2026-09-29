@@ -116,7 +116,14 @@ module.exports = async (req, res) => {
       // producto) y se reporta como su propio monto, nunca sumado dentro
       // del precio de ningún artículo.
       const envio = registro.domicilio ? (Number(registro.costoEnvio) || 100) : 0;
-      const total = subtotal + envio;
+      // Descuento / cupón capturado en el panel de control para este
+      // cliente. Aplica solo sobre los productos, no sobre el envío.
+      const descuentoPct = Math.min(100, Math.max(0, Number(registro.descuentoPct) || 0));
+      const descuentoMonto = descuentoPct ? Math.round(subtotal * descuentoPct / 100 * 100) / 100 : 0;
+      const descuento = descuentoMonto
+        ? { pct: descuentoPct, codigo: String(registro.descuentoCodigo || '').trim(), monto: descuentoMonto }
+        : null;
+      const total = subtotal - descuentoMonto + envio;
 
       return res.status(200).json({
         ok: true,
@@ -125,6 +132,8 @@ module.exports = async (req, res) => {
         estatus: registro.estatus || 'pendiente',
         actualizado: registro.actualizado || null,
         productos,
+        subtotal,
+        descuento,
         envio,
         total,
       });
