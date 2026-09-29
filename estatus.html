@@ -76,6 +76,7 @@ body{
 .item-row{display:flex; justify-content:space-between; gap:12px; font-size:0.85rem; padding:6px 0; color:var(--cream);}
 .item-row .nom{color:var(--cream);}
 .item-row .precio{color:var(--muted); white-space:nowrap;}
+.item-row.descuento .nom, .item-row.descuento .precio{color:var(--gold-2);}
 .total-row{display:flex; justify-content:space-between; font-weight:600; color:var(--gold-2); border-top:1px solid var(--line); margin-top:10px; padding-top:12px; font-family:'Playfair Display',serif; font-size:1.05rem;}
 .actualizado{color:var(--muted); font-size:0.72rem; margin-top:16px; text-align:center;}
 
@@ -205,6 +206,12 @@ async function consultarEstatus() {
     let itemsHtml = items.map((it) =>
       `<div class="item-row"><span class="nom">${escapeHtml(it.producto || '')}</span><span class="precio">${money(it.venta)}</span></div>`
     ).join('') || '<div class="item-row"><span class="nom">Sin artículos visibles</span></div>';
+    // Descuento / cupón aplicado (solo sobre productos, no sobre el envío).
+    if (body.descuento && body.descuento.monto) {
+      const d = body.descuento;
+      const etiqueta = '🎁 Descuento' + (d.codigo ? ' ' + escapeHtml(d.codigo) : '') + ' (' + d.pct + '%)';
+      itemsHtml += `<div class="item-row descuento"><span class="nom">${etiqueta}</span><span class="precio">−${money(d.monto)}</span></div>`;
+    }
     // El envío a domicilio se cobra una sola vez por pedido y siempre se
     // muestra como su propia línea, nunca mezclado dentro del precio de
     // un producto.

@@ -87,6 +87,12 @@ body{margin:0;background:var(--black);color:var(--cream);font-family:'Jost',sans
 }
 .pedido-estatus-row input[type=tel]{ width:220px; }
 .pedido-estatus-row input[type=text]{ width:200px; }
+.pedido-estatus-row input[type=number]{
+  background:var(--black); border:1px solid var(--line); color:var(--cream); padding:7px 10px;
+  border-radius:6px; font-family:'Jost',sans-serif; font-size:0.78rem; width:90px;
+}
+.pedido-estatus-row input.desc-codigo{ width:150px; }
+.desc-resumen{ color:var(--gold-2, #d9bd8e); }
 
 /* ---- filter bar ---- */
 .filterbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
@@ -936,6 +942,17 @@ const ESTATUS_PEDIDO_LABELS = { pendiente: 'Pendiente', preparando: 'Preparando'
 const ESTATUS_PEDIDO_ORDEN = ['pendiente', 'preparando', 'enviado', 'entregado'];
 const ESTATUS_PAGE_URL = 'https://nucleoessences.com/estatus.html';
 
+// Descuento / cupón aplicado a UN cliente dentro del pedido. Se guarda
+// como porcentaje (ej. 10) y opcionalmente el código que usó
+// (ej. NUCLEO-7K3QX). Aplica solo sobre los productos, nunca sobre el
+// envío — igual que en Stripe, donde el cupón no descuenta el envío.
+function descuentoDe(est, subtotal) {
+  const pct = Math.min(100, Math.max(0, Number(est && est.descuentoPct) || 0));
+  const codigo = String((est && est.descuentoCodigo) || '').trim();
+  const monto = pct ? Math.round(subtotal * pct / 100 * 100) / 100 : 0;
+  return { pct, codigo, monto };
+}
+
 function getEstatusCliente(pedido, cliente) {
   return (ESTATUSES[pedido] && ESTATUSES[pedido][cliente]) || { estatus: 'pendiente', telefono: '', email: '', domicilio: false, costoEnvio: 0, actualizado: null };
 }
@@ -971,10 +988,12 @@ function construirMensajeWhatsapp(pedido, items, clienteNombre, envio) {
   const subtotal = visibles.reduce((s, v) => s + (v.montoConocido ? (v.venta || 0) : 0), 0);
   const costoEnvio = envio && envio.domicilio ? (Number(envio.costoEnvio) || 100) : 0;
   const envioTexto = costoEnvio ? `\n🚚 Envío a domicilio: ${money(costoEnvio)}` : '';
-  const total = subtotal + costoEnvio;
+  const desc = descuentoDe(envio, subtotal);
+  const descTexto = desc.monto ? `\n🎁 Descuento${desc.codigo ? ' ' + desc.codigo : ''} (${desc.pct}%): -${money(desc.monto)}` : '';
+  const total = subtotal - desc.monto + costoEnvio;
   const link = `${ESTATUS_PAGE_URL}?pedido=${encodeURIComponent(pedido)}`;
   return `¡Hola ${clienteNombre}! 🌿 Gracias por tu compra en *NÚCLEO essences*.\n\n` +
-    `Resumen de tu pedido:\n${productosTexto}${envioTexto}\n💰 Total: ${money(total)}\n\n` +
+    `Resumen de tu pedido:\n${productosTexto}${descTexto}${envioTexto}\n💰 Total: ${money(total)}\n\n` +
     `Puedes revisar el estatus de tu pedido en cualquier momento aquí:\n👉 ${link}\n\n` +
     `Cualquier duda, escríbenos por este mismo medio✨\n\nCon aroma,\nNÚCLEO essences`;
 }
@@ -1092,6 +1111,10 @@ function ventasResultsHtml() {
       itemsPorCliente[key].push(v);
     });
     const nombresClientes = Object.keys(itemsPorCliente);
+    const descuentosPedido = nombresClientes.reduce((sum, c) => {
+      const sub = itemsPorCliente[c].filter((v) => v.montoConocido).reduce((t, v) => t + (v.venta || 0), 0);
+      return sum + descuentoDe(getEstatusCliente(p, c), sub).monto;
+    }, 0);
 
     let estatusHeaderKey = null;
     if (nombresClientes.length) {
@@ -1124,6 +1147,11 @@ function ventasResultsHtml() {
             <label class="small" style="color:var(--muted); display:flex; align-items:center; gap:6px;">
               <input type="checkbox" data-domiciliosel="${esc(p)}" data-domiciliocliente="${esc(cliente)}" ${est.domicilio ? 'checked' : ''}> Envío a domicilio (+$100)
             </label>
+            <label class="small" style="color:var(--muted); display:flex; align-items:center; gap:6px;">Descuento
+              <input type="number" min="0" max="100" step="1" data-descpct="${esc(p)}" data-desccliente="${esc(cliente)}" placeholder="%" value="${est.descuentoPct ? esc(est.descuentoPct) : ''}">%
+            </label>
+            <input type="text" class="desc-codigo" data-desccodigo="${esc(p)}" data-desccodigocliente="${esc(cliente)}" placeholder="Código de cupón (opcional)" value="${esc(est.descuentoCodigo || '')}">
+            ${(() => { const sub = itemsCliente.filter((v) => v.montoConocido && !v.stock).reduce((t, v) => t + (v.venta || 0), 0); const d = descuentoDe(est, sub); return d.monto ? `<span class="small desc-resumen">−${money(d.monto)} · Total cliente: ${money(sub - d.monto + (est.domicilio ? (Number(est.costoEnvio) || 100) : 0))}</span>` : ''; })()}
             <button class="btn sm" data-enviarwa="${esc(p)}" data-enviarwacliente="${esc(cliente)}">📲 Enviar WhatsApp</button>
             <button class="btn sm ghost" data-avisarenviado="${esc(p)}" data-avisarenviadocliente="${esc(cliente)}">🚚 Avisar que se envió</button>
             ${est.actualizado ? `<span class="small" style="color:var(--muted); width:100%;">Actualizado: ${new Date(est.actualizado).toLocaleString('es-MX')}</span>` : ''}
@@ -1139,7 +1167,7 @@ function ventasResultsHtml() {
           <span class="pedido-grupo-cliente small">${esc(clientesLabel)}</span>
           <span class="pedido-grupo-meta small">${items.length} artículo${items.length === 1 ? '' : 's'}</span>
           ${estatusHeaderKey ? `<span class="estatus-badge ${estatusHeaderKey}">${estatusHeaderLabel}</span>` : ''}
-          <span class="pedido-grupo-total">${money(totalPedidoVenta)}</span>
+          <span class="pedido-grupo-total">${money(totalPedidoVenta - descuentosPedido)}</span>
         </div>
         ${abierto ? `
         <div class="twrap" style="margin-top:10px;"><table>
@@ -1253,6 +1281,21 @@ function refreshVentasResults() {
       ESTATUSES[p][cliente].costoEnvio = el.checked ? 100 : 0;
       ESTATUSES[p][cliente].actualizado = new Date().toISOString();
       await persist();
+      refreshVentasResults();
+    });
+  });
+  wrap.querySelectorAll('[data-descpct]').forEach((el) => {
+    el.addEventListener('change', async () => {
+      let v = Number(el.value);
+      if (!isFinite(v) || v < 0) v = 0;
+      if (v > 100) v = 100;
+      await actualizarEstatusCliente(el.dataset.descpct, el.dataset.desccliente, 'descuentoPct', v);
+      refreshVentasResults();
+    });
+  });
+  wrap.querySelectorAll('[data-desccodigo]').forEach((el) => {
+    el.addEventListener('change', async () => {
+      await actualizarEstatusCliente(el.dataset.desccodigo, el.dataset.desccodigocliente, 'descuentoCodigo', el.value.trim().toUpperCase());
       refreshVentasResults();
     });
   });
