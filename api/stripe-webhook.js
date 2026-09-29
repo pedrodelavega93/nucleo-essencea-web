@@ -304,6 +304,7 @@ function plantillaInterna({
   recoleccion,
   direccion,
   paymentId,
+  descuento,
 }) {
   const waNumero = telefonoParaWhatsApp(telefono);
   const waLink = waNumero ? 'https://wa.me/' + waNumero : '';
@@ -332,8 +333,21 @@ function plantillaInterna({
     filas.push(['WhatsApp', valorTexto, valorHtml]);
   }
 
+  filas.push(['Producto(s)', resumenLineas.join(' • ') || resumen]);
+
+  // Filas de descuento: solo aparecen si el cliente usó un código.
+  if (descuento) {
+    if (descuento.subtotal) filas.push(['Subtotal (sin descuento)', descuento.subtotal]);
+    const valorDescuento =
+      `${descuento.codigo}${descuento.porcentaje ? ' — ' + descuento.porcentaje : ''} (-${descuento.monto})`;
+    const valorDescuentoHtml =
+      `<strong>${escaparHtml(descuento.codigo)}</strong>` +
+      (descuento.porcentaje ? ` — ${escaparHtml(descuento.porcentaje)}` : '') +
+      ` <span style="color:#b3261e;">(-${escaparHtml(descuento.monto)})</span>`;
+    filas.push(['Código de descuento', valorDescuento, valorDescuentoHtml]);
+  }
+
   filas.push(
-    ['Producto(s)', resumenLineas.join(' • ') || resumen],
     ['Total', total || '(sin total)'],
     ['Método de entrega', entregaTexto],
     ['ID de pago (Stripe)', paymentId || '(sin ID)']
@@ -360,6 +374,59 @@ function plantillaInterna({
   const text = filas.map(([etiqueta, valor]) => `${etiqueta}: ${valor}`).join('\n');
 
   return { html, text };
+}
+
+// Formatea centavos a "$1,234.00 MXN".
+function formatearMonto(centavos, currency) {
+  const moneda = (currency || 'mxn').toUpperCase();
+  const monto = (centavos / 100).toLocaleString('es-MX', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `$${monto} ${moneda}`;
+}
+
+// Si el cliente usó un código de descuento en el checkout, regresa
+// { codigo, porcentaje, monto, subtotal } para mostrarlo en el correo
+// interno. Si no hubo descuento regresa null. Nunca lanza error: si
+// algo falla al consultarlo, el correo se manda igual sin esa fila.
+async function obtenerDescuento(session) {
+  try {
+    const montoDescuento = (session.total_details && session.total_details.amount_discount) || 0;
+    if (!montoDescuento) return null;
+
+    const conDescuentos = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ['discounts.promotion_code', 'discounts.coupon'],
+    });
+    const lista = Array.isArray(conDescuentos.discounts) ? conDescuentos.discounts : [];
+
+    const codigos = [];
+    const porcentajes = [];
+    for (const d of lista) {
+      let promo = d.promotion_code;
+      if (promo && typeof promo === 'string') {
+        try { promo = await stripe.promotionCodes.retrieve(promo); } catch (e) { promo = null; }
+      }
+      let cupon = d.coupon || (promo && promo.coupon) || null;
+      if (cupon && typeof cupon === 'string') {
+        try { cupon = await stripe.coupons.retrieve(cupon); } catch (e) { cupon = null; }
+      }
+      if (promo && promo.code) codigos.push(promo.code);
+      else if (cupon && cupon.name) codigos.push(cupon.name);
+      if (cupon && cupon.percent_off) porcentajes.push(`${cupon.percent_off}%`);
+      else if (cupon && cupon.amount_off) porcentajes.push(formatearMonto(cupon.amount_off, cupon.currency || session.currency));
+    }
+
+    return {
+      codigo: codigos.join(', ') || '(código no identificado)',
+      porcentaje: porcentajes.join(', '),
+      monto: formatearMonto(montoDescuento, session.currency),
+      subtotal: typeof session.amount_subtotal === 'number' ? formatearMonto(session.amount_subtotal, session.currency) : '',
+    };
+  } catch (err) {
+    console.error('[v0] No se pudo leer el descuento de la sesión:', err.message);
+    return null;
+  }
 }
 
 // Formatea el total (viene en centavos) a moneda legible.
@@ -488,6 +555,8 @@ module.exports = async (req, res) => {
     const telefono =
       (session.customer_details && session.customer_details.phone) || '';
 
+    const descuento = await obtenerDescuento(session);
+
     const interno = plantillaInterna({
       nombre,
       correo: email,
@@ -497,6 +566,7 @@ module.exports = async (req, res) => {
       recoleccion,
       direccion,
       paymentId,
+      descuento,
     });
 
     const { error: errorInterno } = await resend.emails.send({
