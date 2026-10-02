@@ -558,6 +558,13 @@ function renderNuevoPedido() {
         </select>
       </div>
       ${esDifusor ? `
+      <div class="field"><label>Tomar de Stock (opcional)</label>
+        <select id="npStockOrigen">
+          <option value="">— Capturar manualmente —</option>
+          ${STOCK.filter((s) => s.categoria === 'Difusor (equipo)' && (Number(s.cantidad) || 0) > 0).map((s) => `<option value="${s.id}">${esc(s.producto)} (${s.cantidad} disp.)</option>`).join('')}
+        </select>
+        <div class="small" style="margin-top:6px; color:var(--muted);">Si eliges un equipo, se usa su nombre/costo/venta guardados en Stock y, al guardar el pedido, se descuenta de ahí — no hace falta vincularlo después. Deja en "Capturar manualmente" para un equipo que aún no está en tu Stock.</div>
+      </div>
       <div class="field"><label>Modelo de difusor</label>
         <select id="npModelo">
           ${cfg.modelos.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('')}
@@ -623,10 +630,19 @@ function npAgregarItemHandler() {
 
   if (isNaN(venta)) { showToast('Falta capturar el precio de venta.'); return; }
 
-  let producto, tipoLabel;
+  let producto, tipoLabel, stockOrigenId = '';
   if (esDifusor) {
-    const modelo = document.getElementById('npModelo').value;
-    producto = `Difusor ${modelo}${aroma ? ' — ' + aroma : ''}`;
+    const stockOrigenSel = document.getElementById('npStockOrigen');
+    stockOrigenId = stockOrigenSel ? stockOrigenSel.value : '';
+    if (stockOrigenId) {
+      const stockItem = STOCK.find((s) => s.id === stockOrigenId);
+      if (!stockItem) { showToast('Ese equipo ya no está en Stock — vuelve a elegirlo.'); return; }
+      if (cantidad > (Number(stockItem.cantidad) || 0)) { showToast('No hay suficiente stock de "' + stockItem.producto + '" — solo quedan ' + stockItem.cantidad + '.'); return; }
+      producto = `${stockItem.producto}${aroma ? ' — ' + aroma : ''}`;
+    } else {
+      const modelo = document.getElementById('npModelo').value;
+      producto = `Difusor ${modelo}${aroma ? ' — ' + aroma : ''}`;
+    }
     tipoLabel = 'Difusor (equipo)';
   } else {
     const tamanoSel = document.getElementById('npTamano');
@@ -646,6 +662,7 @@ function npAgregarItemHandler() {
     telefono: telefonoActual,
     email: correoActual,
     stock: esStock,
+    stockOrigenId,
     domicilioCliente: domicilioActual,
     pagado: document.getElementById('npPagado').checked,
     entregado: document.getElementById('npEntregado').checked,
@@ -704,6 +721,14 @@ async function npGuardarPedidoHandler() {
         ESTATUSES[pedido || '—'][it.cliente].domicilio = true;
         ESTATUSES[pedido || '—'][it.cliente].costoEnvio = 100;
       }
+    }
+
+    // Si este artículo se tomó de un equipo existente en Stock ("Tomar de
+    // Stock" en Difusor), descontamos la cantidad vendida de ahí — mismo
+    // mecanismo que el botón "Vender" dentro de la pestaña Stock.
+    if (it.stockOrigenId) {
+      const stockItem = STOCK.find((s) => s.id === it.stockOrigenId);
+      if (stockItem) stockItem.cantidad = Math.max(0, (Number(stockItem.cantidad) || 0) - (Number(it.cantidad) || 1));
     }
   });
 
@@ -1762,6 +1787,11 @@ async function guardarDifusor() {
 
 /* ============ STOCK ============ */
 let stockFiltro = '';
+// 'reciente' = más recién agregado primero (el orden de siempre, según el
+// orden en que se fueron guardando); 'antiguo' = al revés; 'alfabetico' =
+// A-Z por nombre de producto. No depende de ninguna fecha guardada — usa
+// el propio orden del arreglo, que nunca cambia al editar un producto.
+let stockOrden = 'reciente';
 
 function stockResultsHtml() {
   let lista = STOCK.slice();
@@ -1770,7 +1800,15 @@ function stockResultsHtml() {
     lista = lista.filter((s) => (s.producto || '').toLowerCase().includes(q) || (s.categoria || '').toLowerCase().includes(q));
   }
 
-  const rows = lista.slice().reverse().map((s) => `
+  if (stockOrden === 'alfabetico') {
+    lista.sort((a, b) => (a.producto || '').localeCompare(b.producto || '', 'es', { sensitivity: 'base' }));
+  } else if (stockOrden === 'antiguo') {
+    // ya está en orden de más antiguo a más reciente (orden natural del arreglo)
+  } else {
+    lista.reverse(); // 'reciente' (default) — el más recién agregado primero
+  }
+
+  const rows = lista.map((s) => `
     <tr data-id="${s.id}">
       <td>${esc(s.producto)}</td>
       <td class="small">${esc(s.categoria)}</td>
@@ -1802,6 +1840,11 @@ function renderStock() {
     </div>
     <div class="filterbar">
       <input type="text" id="stockBuscar" placeholder="Buscar producto o categoría..." value="${esc(stockFiltro)}">
+      <select id="stockOrden">
+        <option value="reciente" ${stockOrden === 'reciente' ? 'selected' : ''}>Ordenar por: más reciente agregado</option>
+        <option value="antiguo" ${stockOrden === 'antiguo' ? 'selected' : ''}>Ordenar por: más antiguo</option>
+        <option value="alfabetico" ${stockOrden === 'alfabetico' ? 'selected' : ''}>Ordenar por: alfabético (A-Z)</option>
+      </select>
       <button class="btn" id="btnNuevoStock" style="margin-left:auto;">+ Nuevo producto en stock</button>
     </div>
     <div id="stockResultsWrap"></div>
@@ -2103,6 +2146,22 @@ function attachHandlers() {
       if (npRegaloEl2.checked) document.getElementById('npVenta').value = 0;
     });
   }
+  const npStockOrigenSel = document.getElementById('npStockOrigen');
+  if (npStockOrigenSel) {
+    npStockOrigenSel.addEventListener('change', () => {
+      const stockItem = STOCK.find((s) => s.id === npStockOrigenSel.value);
+      const npModeloEl = document.getElementById('npModelo');
+      const npCostoEl2 = document.getElementById('npCosto');
+      const npVentaEl2 = document.getElementById('npVenta');
+      if (stockItem) {
+        if (npModeloEl) npModeloEl.disabled = true;
+        if (stockItem.costoUnitario != null) npCostoEl2.value = stockItem.costoUnitario;
+        if (stockItem.ventaUnitaria != null) npVentaEl2.value = stockItem.ventaUnitaria;
+      } else if (npModeloEl) {
+        npModeloEl.disabled = false;
+      }
+    });
+  }
   const npAgregarBtn = document.getElementById('npAgregarItem');
   if (npAgregarBtn) npAgregarBtn.addEventListener('click', npAgregarItemHandler);
   document.querySelectorAll('[data-npremove]').forEach((el) => {
@@ -2184,6 +2243,8 @@ function attachHandlers() {
   // Stock
   const stb = document.getElementById('stockBuscar');
   if (stb) stb.addEventListener('input', () => { stockFiltro = stb.value; refreshStockResults(); });
+  const sto = document.getElementById('stockOrden');
+  if (sto) sto.addEventListener('change', () => { stockOrden = sto.value; refreshStockResults(); });
   const bnst = document.getElementById('btnNuevoStock');
   if (bnst) bnst.addEventListener('click', () => openStockModal(null));
 }
