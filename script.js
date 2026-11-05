@@ -34,6 +34,56 @@ function calcularPrecioAPlazos(precioContado, meses) {
   return Math.round(bruto);
 }
 
+// ============================================================
+// BUEN FIN 2026 — 13 al 17 de noviembre (hora de Monterrey)
+// Misma tabla que api/_buenfin.js: si cambias un precio aquí, cámbialo
+// también allá (el servidor es el que cobra; esto solo lo muestra).
+// ============================================================
+const BUEN_FIN = {
+  start: Date.parse('2026-11-13T00:00:00-06:00'),
+  end: Date.parse('2026-11-18T00:00:00-06:00'),
+  prices: {
+    perfume100: { unit: 549, packs: [[3, 1499], [2, 1049]] },
+    aerosol250: { unit: 549, packs: [[2, 1049]] },
+    aceite250: { unit: 849 },
+    aceite1l: { unit: 1849 },
+    a60: { unit: 1099, packs: [[2, 2099]] },
+    a1000: { unit: 8499 },
+    carpro: { unit: 1299 },
+  },
+  combos: {
+    combohogar: { name: 'Combo Hogar (A60 + Spray 250 ml)', unit: 1549, regular: 1799 },
+    comboaroma: { name: 'Combo Aroma (Perfume 100 ml + Spray 250 ml)', unit: 1099, regular: 1200 },
+  },
+  active: false,
+  // Vista previa solo en URLs de prueba de Vercel: agrega ?buenfin=preview
+  preview: false,
+};
+
+(function initBuenFinFlag() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const enVercel = window.location.hostname.endsWith('.vercel.app');
+    if (enVercel && params.get('buenfin') === 'preview') sessionStorage.setItem('nucleo_bf_preview', '1');
+    BUEN_FIN.preview = enVercel && sessionStorage.getItem('nucleo_bf_preview') === '1';
+  } catch (e) {}
+  const now = Date.now();
+  BUEN_FIN.active = BUEN_FIN.preview || (now >= BUEN_FIN.start && now < BUEN_FIN.end);
+})();
+
+function bfGroupTotal(key, qty) {
+  const p = BUEN_FIN.prices[key];
+  if (!p) return null;
+  let restantes = qty;
+  let total = 0;
+  (p.packs || []).forEach(([piezas, precio]) => {
+    const n = Math.floor(restantes / piezas);
+    total += n * precio;
+    restantes -= n * piezas;
+  });
+  return total + restantes * p.unit;
+}
+
 // --- Nav flotante: aparece después del hero ---
 const topnav = document.querySelector('.topnav');
 const hero = document.querySelector('.hero');
@@ -411,11 +461,15 @@ let currentBuyContext = '';
 function renderBuySizes() {
   const ctx = BUY_CONTEXTS[currentBuyContext];
   if (!ctx || !catalogBuySizes) return;
-  catalogBuySizes.innerHTML = ctx.sizes.map((s) =>
-    '<button type="button" class="catalog-size" data-product="' + s.productKey + '" data-size-label="' + s.label + '">' +
-      s.label + '<span>$' + s.price.toLocaleString('es-MX') + ' MXN</span>' +
-    '</button>'
-  ).join('');
+  catalogBuySizes.innerHTML = ctx.sizes.map((s) => {
+    const bf = BUEN_FIN.active && BUEN_FIN.prices[s.productKey];
+    const precio = bf
+      ? '<s class="bf-old">$' + s.price.toLocaleString('es-MX') + '</s> $' + bf.unit.toLocaleString('es-MX') + ' MXN'
+      : '$' + s.price.toLocaleString('es-MX') + ' MXN';
+    return '<button type="button" class="catalog-size" data-product="' + s.productKey + '" data-size-label="' + s.label + '">' +
+      s.label + '<span>' + precio + '</span>' +
+    '</button>';
+  }).join('');
 }
 
 const FEATURED_AROMAS = [
@@ -1134,7 +1188,45 @@ if (difusoresScrollBottom) {
     aceite250:  { name: 'Aceite 250 ml',    price: 900 },
     aceite500:  { name: 'Aceite 500 ml',    price: 1300 },
     aceite1l:   { name: 'Aceite 1 litro',   price: 2000 },
+    // Combos Buen Fin (solo se pueden comprar del 13 al 17 de noviembre)
+    combohogar: { name: BUEN_FIN.combos.combohogar.name, price: BUEN_FIN.combos.combohogar.regular, combo: true },
+    comboaroma: { name: BUEN_FIN.combos.comboaroma.name, price: BUEN_FIN.combos.comboaroma.regular, combo: true },
   };
+
+  // Calcula lo que cuesta cada renglón del carrito. Durante el Buen Fin
+  // suma las piezas de cada producto (aunque tengan aromas distintos)
+  // para aplicar los paquetes — igual que api/create-checkout.js.
+  function cartPricing(items) {
+    const piezas = {};
+    if (BUEN_FIN.active) {
+      items.forEach((it) => {
+        if (BUEN_FIN.prices[it.productKey]) piezas[it.productKey] = (piezas[it.productKey] || 0) + it.quantity;
+      });
+    }
+    const montos = {};
+    Object.keys(piezas).forEach((key) => {
+      const total = bfGroupTotal(key, piezas[key]);
+      const base = Math.floor(total / piezas[key]);
+      const resto = total - base * piezas[key];
+      montos[key] = Array.from({ length: piezas[key] }, (_, i) => base + (i < resto ? 1 : 0));
+    });
+    let total = 0;
+    let totalRegular = 0;
+    const lines = items.map((it) => {
+      const info = PRODUCT_INFO[it.productKey] || { price: it.price };
+      const regular = info.price * it.quantity;
+      let linea = regular;
+      if (info.combo) {
+        linea = BUEN_FIN.combos[it.productKey].unit * it.quantity;
+      } else if (montos[it.productKey]) {
+        linea = montos[it.productKey].splice(0, it.quantity).reduce((s, m) => s + m, 0);
+      }
+      total += linea;
+      totalRegular += regular;
+      return { linea, regular };
+    });
+    return { lines, total, totalRegular };
+  }
 
   const CART_STORAGE_KEY = 'nucleo_cart';
   const CART_EMAIL_KEY = 'nucleo_cart_email';
@@ -1255,14 +1347,30 @@ if (difusoresScrollBottom) {
       }
     }
 
+    if (info.combo && !BUEN_FIN.active) {
+      showToast('Los combos especiales solo están disponibles durante el Buen Fin.');
+      return;
+    }
+
     const aromaFrom = btn.dataset.aromaFrom;
     let aroma = '';
     if (aromaFrom) {
-      aroma = (selectedAromas[aromaFrom] || '').trim();
-      if (!aroma) {
-        showToast('Elige primero el aroma del catálogo para este producto.');
-        return;
+      // Los combos piden más de un aroma: data-aroma-from="perfumes,ambientales"
+      // con sus etiquetas en data-aroma-labels="Perfume,Spray".
+      const fuentes = aromaFrom.split(',');
+      const etiquetas = (btn.dataset.aromaLabels || '').split(',');
+      const partes = [];
+      for (let i = 0; i < fuentes.length; i++) {
+        const valor = (selectedAromas[fuentes[i]] || '').trim();
+        if (!valor) {
+          showToast(etiquetas[i]
+            ? 'Elige primero el aroma del ' + etiquetas[i].toLowerCase() + '.'
+            : 'Elige primero el aroma del catálogo para este producto.');
+          return;
+        }
+        partes.push(etiquetas[i] ? etiquetas[i] + ': ' + valor : valor);
       }
+      aroma = partes.join(' · ');
     }
 
     const group = btn.closest('.feature-copy, .card, .feature, .size-price-row') || document;
@@ -1320,17 +1428,24 @@ if (difusoresScrollBottom) {
     emptyEl.style.display = 'none';
     footEl.style.display = 'block';
 
+    const pricing = cartPricing(cart);
+
     itemsEl.innerHTML = cart.map((it, i) => {
       const variantes = [];
       if (it.color) variantes.push('Color: ' + it.color);
       if (it.aroma) variantes.push('Aroma: ' + it.aroma);
       const meta = variantes.length ? '<div class="ci-meta">' + variantes.join(' · ') + '</div>' : '';
+      const p = pricing.lines[i];
+      const precioHtml = p.linea < p.regular
+        ? '<s class="bf-old">' + money(p.regular) + '</s> ' + money(p.linea) +
+          (it.quantity > 1 ? ' (' + it.quantity + ' piezas)' : '') + ' <span class="bf-tag">Buen Fin</span>'
+        : money(it.price) + ' c/u';
       return (
         '<div class="cart-item" data-index="' + i + '">' +
           '<div class="ci-info">' +
             '<div class="ci-name serif">' + it.name + '</div>' +
             meta +
-            '<div class="ci-price">' + money(it.price) + ' c/u</div>' +
+            '<div class="ci-price">' + precioHtml + '</div>' +
           '</div>' +
           '<div class="ci-controls">' +
             '<div class="ci-qty">' +
@@ -1344,7 +1459,21 @@ if (difusoresScrollBottom) {
       );
     }).join('');
 
-    const totalContado = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+    const totalContado = pricing.total;
+
+    // Ahorro Buen Fin (solo se muestra si hay descuento en el carrito)
+    let ahorroEl = document.getElementById('cartBfSavings');
+    if (!ahorroEl && totalEl && totalEl.parentElement) {
+      ahorroEl = document.createElement('div');
+      ahorroEl.id = 'cartBfSavings';
+      ahorroEl.className = 'bf-cart-savings';
+      totalEl.parentElement.parentElement.insertBefore(ahorroEl, totalEl.parentElement);
+    }
+    if (ahorroEl) {
+      const ahorro = pricing.totalRegular - pricing.total;
+      ahorroEl.style.display = ahorro > 0 ? 'block' : 'none';
+      ahorroEl.textContent = 'Ahorro Buen Fin: −' + money(ahorro);
+    }
 
     // ---- Plan de pago (Contado / A Plazos) ----
     const elegible = carritoElegiblePlazos();
@@ -1411,7 +1540,7 @@ if (difusoresScrollBottom) {
             type: 'cart_started',
             email,
             cart: cart.map((it) => ({ name: it.name, quantity: it.quantity, aroma: it.aroma, color: it.color })),
-            total: cart.reduce((s, it) => s + it.price * it.quantity, 0),
+            total: cartPricing(cart).total,
             timestamp: new Date().toISOString(),
           }),
         }).catch(() => {});
@@ -1439,6 +1568,7 @@ if (difusoresScrollBottom) {
           paymentPlan: paymentPlan.type === 'plazos'
             ? { type: 'plazos', months: paymentPlan.months }
             : { type: 'contado' },
+          buenfinPreview: BUEN_FIN.preview,
         }),
       });
       const data = await resp.json();
@@ -1483,6 +1613,17 @@ if (difusoresScrollBottom) {
     persistCart();
     renderCart();
   };
+
+  // Si el Buen Fin ya terminó, quitamos del carrito guardado los combos
+  // (ya no se pueden comprar) y avisamos al cliente.
+  if (!BUEN_FIN.active && cart.some((it) => PRODUCT_INFO[it.productKey] && PRODUCT_INFO[it.productKey].combo)) {
+    cart = cart.filter((it) => !(PRODUCT_INFO[it.productKey] && PRODUCT_INFO[it.productKey].combo));
+    setTimeout(() => showToast('El Buen Fin terminó: quitamos los combos de tu carrito.'), 800);
+  }
+
+  // Si el servidor dice algo distinto a la fecha del teléfono del
+  // cliente (reloj mal configurado), manda la hora del servidor.
+  window.addEventListener('nucleo:buenfin', renderCart);
 
   renderCart();
 })();
@@ -1813,7 +1954,9 @@ if (difusoresScrollBottom) {
   const BADGE_HIDDEN_KEY = 'nucleo_welcome_badge_hidden';
   const CODE_KEY = 'nucleo_welcome_code';
   const overlay = document.getElementById('welcomePopupOverlay');
-  if (!overlay) return;
+  // Durante el Buen Fin no se ofrece el código de bienvenida (no se
+  // pueden usar códigos de descuento esos días).
+  if (!overlay || BUEN_FIN.active) return;
 
   const $ = (id) => document.getElementById(id);
   const closeBtn = $('welcomePopupClose');
@@ -1946,6 +2089,92 @@ if (difusoresScrollBottom) {
       set(BADGE_HIDDEN_KEY, '1');
     });
   }
+})();
+
+// ============================================================
+// BUEN FIN — muestra precios, combos y aviso solo del 13 al 17 nov
+// ============================================================
+(function initBuenFinDisplay() {
+  const fmt = (n) => '$' + n.toLocaleString('es-MX');
+
+  // Aviso en la tira de anuncios (se agrega antes de que empiece a rotar).
+  const track = document.querySelector('#announceBar .announce-track');
+  if (track && BUEN_FIN.active) {
+    // Sin códigos de descuento durante el Buen Fin: quitamos el aviso del 10%.
+    track.querySelectorAll('[data-open-welcome]').forEach((m) => m.remove());
+    track.querySelectorAll('.announce-msg').forEach((m) => m.classList.remove('is-active'));
+    const a = document.createElement('a');
+    a.className = 'announce-msg is-active bf-announce';
+    a.href = '#buen-fin';
+    a.innerHTML = '<strong>BUEN FIN</strong> · Precios especiales del 13 al 17 de noviembre';
+    track.insertBefore(a, track.firstChild);
+  }
+
+  function apply() {
+    const on = BUEN_FIN.active;
+
+    // Sección de combos + enlaces del menú
+    document.querySelectorAll('[data-buenfin-only]').forEach((el) => { el.hidden = !on; });
+
+    // Aviso del carrito: sin código de bienvenida durante el Buen Fin.
+    document.querySelectorAll('.cart-discount-note').forEach((el) => {
+      if (el.dataset.bfOriginal === undefined) el.dataset.bfOriginal = el.innerHTML;
+      el.innerHTML = on
+        ? 'Durante el Buen Fin ya tienes aplicados los precios especiales; no se pueden usar códigos de descuento.'
+        : el.dataset.bfOriginal;
+    });
+
+    // Precios de cada producto (tarjetas, filas de tamaños y modal rápido)
+    Object.keys(BUEN_FIN.prices).forEach((key) => {
+      const bf = BUEN_FIN.prices[key];
+      document.querySelectorAll('.bf-packs[data-for="' + key + '"]').forEach((n) => n.remove());
+      document.querySelectorAll('[data-add-to-cart][data-product="' + key + '"]').forEach((btn) => {
+        const box = btn.closest('.size-price-row, .difusor-quick-row, .card-body, .feature-copy');
+        if (!box) return;
+        const priceEl = box.querySelector('.dq-price, .price');
+        if (!priceEl) return;
+        if (priceEl.dataset.bfOriginal === undefined) priceEl.dataset.bfOriginal = priceEl.innerHTML;
+        if (!on) {
+          priceEl.innerHTML = priceEl.dataset.bfOriginal;
+          priceEl.classList.remove('bf-price');
+          return;
+        }
+        // Conserva el formato original ("MXN", estilos) y solo cambia el número.
+        const regular = (priceEl.dataset.bfOriginal.match(/\$[\d,]+/) || [''])[0];
+        priceEl.innerHTML = priceEl.dataset.bfOriginal.replace(regular, '<s class="bf-old">' + regular + '</s> ' + fmt(bf.unit));
+        priceEl.classList.add('bf-price');
+        if (bf.packs && bf.packs.length) {
+          const note = document.createElement('div');
+          note.className = 'bf-packs';
+          note.dataset.for = key;
+          note.textContent = 'Paquetes Buen Fin: ' + bf.packs.slice().reverse()
+            .map(([n, precio]) => n + ' por ' + fmt(precio)).join(' · ');
+          // En las filas de tamaños el aviso va debajo de la fila completa.
+          const row = priceEl.closest('.size-price-row');
+          if (row) row.insertAdjacentElement('afterend', note);
+          else priceEl.insertAdjacentElement('afterend', note);
+        }
+      });
+    });
+  }
+
+  apply();
+
+  // Confirma con la hora del servidor (la del teléfono puede estar mal).
+  fetch('/api/create-checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'buenfin_status', buenfinPreview: BUEN_FIN.preview }),
+  })
+    .then((r) => r.json())
+    .then((data) => {
+      if (typeof data.active === 'boolean' && data.active !== BUEN_FIN.active) {
+        BUEN_FIN.active = data.active;
+        apply();
+        window.dispatchEvent(new Event('nucleo:buenfin'));
+      }
+    })
+    .catch(() => {});
 })();
 
 // ============================================================

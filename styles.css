@@ -3321,3 +3321,63 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
   .trust-marquee-top .trust-logo-lym img{ max-width:84px; }
   .trust-marquee-top .trust-track{ animation-duration:80s; }
 }
+
+/* ============================================================
+   BUEN FIN 2026 — solo visible del 13 al 17 de noviembre
+   ============================================================ */
+:root{ --bf-red:#d0302a; }
+[data-buenfin-only][hidden]{ display:none !important; }
+
+.bf-old{
+  color:var(--muted);
+  font-size:0.72em;
+  text-decoration:line-through;
+  text-decoration-color:var(--bf-red);
+  text-decoration-thickness:2px;
+  margin-right:6px;
+}
+.bf-price{ color:var(--cream) !important; }
+.bf-packs{
+  font-size:0.72rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:#fff;
+  background:var(--bf-red);
+  display:inline-block;
+  align-self:flex-start;
+  padding:5px 10px;
+  border-radius:2px;
+  margin:6px 0 4px;
+}
+.bf-tag{
+  display:inline-block;
+  background:var(--bf-red);
+  color:#fff;
+  font-size:0.62rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  padding:2px 6px;
+  border-radius:2px;
+  margin-left:4px;
+}
+.bf-cart-savings{
+  color:#ff8a80;
+  font-size:0.82rem;
+  letter-spacing:0.04em;
+  text-align:right;
+  margin-bottom:6px;
+}
+
+.bf-section{ border-top:4px solid var(--bf-red); background:linear-gradient(180deg, rgba(208,48,42,0.10), transparent 60%); }
+.bf-eyebrow{ color:#ff6b61 !important; }
+.bf-grid{ grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); max-width:760px; margin:0 auto; }
+.bf-badge{
+  position:absolute; left:12px; top:12px; z-index:3;
+  background:var(--bf-red); color:#fff;
+  font-size:0.7rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
+  padding:7px 12px; border-radius:2px;
+}
+.bf-fineprint{ text-align:center; color:var(--muted); font-size:0.75rem; letter-spacing:0.08em; margin-top:26px; }
+.bf-nav{ color:#ff6b61 !important; font-weight:500; }
+.bf-pill{ background:var(--bf-red) !important; border-color:var(--bf-red) !important; color:#fff !important; }
+.bf-announce strong{ color:#ff8a80; }
