@@ -23,6 +23,21 @@ const { buscarAroma } = require('./_aroma-catalog');
 // Código de bienvenida del pop-up (va aquí para no pasar el límite
 // de 12 funciones del plan Hobby de Vercel).
 const welcomeCode = require('./_welcome-code');
+// Precios Buen Fin 2026 (13–17 nov). Ver api/_buenfin.js.
+const buenFin = require('./_buenfin');
+
+// Describe el aroma elegido. Los combos mandan varios aromas en un solo
+// texto ("Perfume: X · Spray: Y"); cada uno se busca en el catálogo.
+function describirAroma(aroma) {
+  const partes = String(aroma).split(' · ');
+  return partes.map((parte) => {
+    const m = parte.match(/^([^:]{1,20}):\s*(.+)$/);
+    const etiqueta = m ? m[1] + ' — ' : '';
+    const nombre = m ? m[2] : parte;
+    const info = buscarAroma(nombre);
+    return 'Aroma ' + etiqueta + (info ? `${nombre} — ${info.marca} — ${info.genero}` : nombre);
+  }).join(', ');
+}
 
 // ------------------------------------------------------------
 // Cada "price_..." es el Price ID real de Stripe (Dashboard →
@@ -128,6 +143,17 @@ module.exports = async (req, res) => {
     return welcomeCode(req, res);
   }
 
+  // La página pregunta si el Buen Fin está activo (según la hora del
+  // servidor) para mostrar los precios y los combos.
+  if (req.body && req.body.action === 'buenfin_status') {
+    res.status(200).json({
+      active: buenFin.isActive(req, req.body),
+      start: buenFin.START,
+      end: buenFin.END,
+    });
+    return;
+  }
+
   try {
     const body = req.body || {};
     const origin = req.headers.origin || ('https://' + req.headers.host);
@@ -139,8 +165,34 @@ module.exports = async (req, res) => {
       const lineItems = [];
       const resumenPartes = [];
       let hayDifusor = false;
+      const esBuenFin = buenFin.isActive(req, body);
+      // Cada renglón del carrito ya validado; los precios se asignan
+      // después, cuando ya sabemos cuántas piezas hay de cada producto
+      // (para aplicar los paquetes de 2 y 3 piezas del Buen Fin).
+      const renglones = [];
 
       for (const item of body.items) {
+        const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+
+        // ---- Combos Buen Fin (sin Price en Stripe) ----
+        const combo = buenFin.COMBOS[item.productKey];
+        if (combo) {
+          if (!esBuenFin) {
+            res.status(400).json({ error: 'Los combos especiales solo están disponibles durante el Buen Fin (13 al 17 de noviembre). Quítalo del carrito para continuar.' });
+            return;
+          }
+          if (combo.incluyeDifusor) hayDifusor = true;
+          const variantes = [];
+          if (item.color) variantes.push('Color del A60: ' + String(item.color));
+          if (item.aroma) variantes.push(describirAroma(item.aroma));
+          const productData = {
+            name: (combo.name + ' · Precio Buen Fin' + (variantes.length ? ' — ' + variantes.join(', ') : '')).slice(0, 250),
+          };
+          if (variantes.length) productData.description = variantes.join(', ');
+          renglones.push({ item, qty, variantes, productData, regularCents: combo.unit * 100, fijo: true });
+          continue;
+        }
+
         const product = PRODUCTS[item.productKey];
         if (!product) {
           res.status(400).json({ error: 'Producto no reconocido en el carrito: ' + item.productKey });
@@ -156,8 +208,6 @@ module.exports = async (req, res) => {
           res.status(500).json({ error: 'Falta configurar el Price ID de Stripe para "' + item.productKey + '".' });
           return;
         }
-
-        const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
 
         if (DIFUSOR_KEYS.includes(item.productKey)) hayDifusor = true;
 
@@ -197,19 +247,61 @@ module.exports = async (req, res) => {
           productData.images = priceObj.product.images;
         }
 
+        renglones.push({ item, qty, variantes, productData, regularCents: priceObj.unit_amount, fijo: false });
+      }
+
+      // ---- Precios: normales de Stripe, o Buen Fin si está activo ----
+      // Durante el Buen Fin se suman las piezas de cada producto (aunque
+      // tengan aromas distintos) para aplicar los paquetes, y el total se
+      // reparte entre las piezas en pesos completos.
+      const montosBF = {};
+      if (esBuenFin) {
+        const piezas = {};
+        renglones.forEach((r) => {
+          if (!r.fijo && buenFin.PRICES[r.item.productKey]) {
+            piezas[r.item.productKey] = (piezas[r.item.productKey] || 0) + r.qty;
+          }
+        });
+        Object.keys(piezas).forEach((key) => {
+          montosBF[key] = buenFin.unitAmounts(buenFin.groupTotal(key, piezas[key]), piezas[key]);
+        });
+      }
+
+      for (const r of renglones) {
+        const key = r.item.productKey;
+        let unitCents = r.regularCents;
+        let quantity = r.qty;
+        const productData = r.productData;
+        let sufijoCantidad = '';
+
+        if (montosBF[key]) {
+          const montos = montosBF[key].splice(0, r.qty); // pesos por pieza
+          const suma = montos.reduce((s, m) => s + m, 0);
+          if (montos.every((m) => m === montos[0])) {
+            unitCents = montos[0] * 100;
+          } else {
+            // Las piezas de un paquete no siempre cuestan lo mismo
+            // (p. ej. 500 + 500 + 499): se cobra como un solo renglón.
+            unitCents = suma * 100;
+            quantity = 1;
+            sufijoCantidad = ' (x' + r.qty + ')';
+          }
+          productData.name = (productData.name + ' · Precio Buen Fin' + sufijoCantidad).slice(0, 250);
+        }
+
         lineItems.push({
-          quantity: qty,
+          quantity,
           price_data: {
-            currency: priceObj.currency,
-            unit_amount: priceObj.unit_amount,
+            currency: 'mxn',
+            unit_amount: unitCents,
             product_data: productData,
           },
         });
 
         // Resumen legible que viaja en la metadata para los correos de aviso.
-        const nombre = item.name ? String(item.name) : item.productKey;
+        const nombre = r.item.name ? String(r.item.name) : key;
         resumenPartes.push(
-          nombre + (variantes.length ? ' (' + variantes.join(', ') + ')' : '') + ' x' + qty
+          nombre + (r.variantes.length ? ' (' + r.variantes.join(', ') + ')' : '') + ' x' + r.qty
         );
       }
 
@@ -264,7 +356,9 @@ module.exports = async (req, res) => {
         shipping_address_collection: { allowed_countries: ['MX'] },
         phone_number_collection: { enabled: true },
         shipping_options: buildShippingOptions(),
-        allow_promotion_codes: true,
+        // Durante el Buen Fin no se aceptan códigos de descuento: solo
+        // aplican los precios Buen Fin.
+        allow_promotion_codes: !esBuenFin,
         success_url: origin + '/?pago=exitoso',
         cancel_url: origin + '/?pago=cancelado',
       };
@@ -314,6 +408,7 @@ module.exports = async (req, res) => {
         requiere_instalacion: hayDifusor ? 'si' : 'no',
         campo_instalacion_key: hayDifusor ? 'direccion_instalacion' : '',
         plan_pago: esPlazos ? ('plazos_' + mesesPlazos + 'm') : 'contado',
+        precio_buen_fin: esBuenFin ? 'si' : 'no',
       };
 
       const session = await stripe.checkout.sessions.create(sessionConfig);
