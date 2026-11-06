@@ -199,7 +199,7 @@
             <button type="button" class="color-chip" data-color="Negro" aria-pressed="false">Negro</button>
           </div>
           <button type="button" class="catalog-link small" data-catalog="ambientales">Elige el aroma del spray →</button>
-          <div class="price bf-price"><s class="bf-old">$1,799</s> $1,549<span>MXN</span></div>
+          <div class="price bf-price"><span class="bf-label">Precio Buen Fin</span><span class="bf-break"></span><s class="bf-old">$1,799</s> <span class="bf-new">$1,549</span><span>MXN</span></div>
           <div class="qty-control" data-qty>
             <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
             <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
@@ -223,7 +223,7 @@
           </div>
           <button type="button" class="catalog-link small" data-catalog="perfumes">Elige tu perfume →</button>
           <button type="button" class="catalog-link small" data-catalog="ambientales">Elige el aroma del spray →</button>
-          <div class="price bf-price"><s class="bf-old">$1,200</s> $1,099<span>MXN</span></div>
+          <div class="price bf-price"><span class="bf-label">Precio Buen Fin</span><span class="bf-break"></span><s class="bf-old">$1,200</s> <span class="bf-new">$1,099</span><span>MXN</span></div>
           <div class="qty-control" data-qty>
             <button type="button" class="qty-btn" data-qty-dec aria-label="Disminuir cantidad">−</button>
             <input type="number" class="qty-input" value="1" min="1" inputmode="numeric" aria-label="Cantidad">
@@ -1592,6 +1592,29 @@
 
 
 <!-- ============ POP-UP DE BIENVENIDA (10% de descuento) ============ -->
+<!-- ============ BUEN FIN — anuncio de entrada (solo 13 al 17 nov) ============ -->
+<div class="bf-popup-overlay" id="bfPopupOverlay">
+  <div class="bf-popup" role="dialog" aria-modal="true" aria-label="Promociones Buen Fin">
+    <button type="button" class="bf-popup-close" data-bf-close aria-label="Cerrar">✕</button>
+    <div class="bf-popup-top">
+      <img src="assets/buenfin-logo.png" alt="Buen Fin, del 13 al 17 de noviembre">
+    </div>
+    <div class="bf-popup-body">
+      <div class="bf-popup-dates">13 al 17 de noviembre</div>
+      <h2 class="serif">Precios Buen Fin en toda la tienda</h2>
+      <p class="bf-popup-lead">El descuento ya está aplicado en cada producto y se cobra en automático al pagar.</p>
+      <ul class="bf-popup-list">
+        <li><span>Perfumes 100 ml</span><b>3 por $1,499</b></li>
+        <li><span>Combos especiales</span><b>desde $1,099</b></li>
+        <li><span>Difusor A60 Bluetooth</span><b>$1,099</b></li>
+        <li><span>Aceite para difusor 1 litro</span><b>$1,849</b></li>
+      </ul>
+      <a href="#buen-fin" class="bf-popup-cta" data-bf-close>Ver promociones</a>
+      <button type="button" class="bf-popup-skip" data-bf-close>Seguir viendo la tienda</button>
+    </div>
+  </div>
+</div>
+
 <div class="welcome-popup-overlay" id="welcomePopupOverlay">
   <div class="welcome-popup" role="dialog" aria-modal="true" aria-label="Descuento de bienvenida">
     <button class="modal-close welcome-popup-close" id="welcomePopupClose" aria-label="Cerrar">✕</button>

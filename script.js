@@ -464,7 +464,7 @@ function renderBuySizes() {
   catalogBuySizes.innerHTML = ctx.sizes.map((s) => {
     const bf = BUEN_FIN.active && BUEN_FIN.prices[s.productKey];
     const precio = bf
-      ? '<s class="bf-old">$' + s.price.toLocaleString('es-MX') + '</s> $' + bf.unit.toLocaleString('es-MX') + ' MXN'
+      ? '<em class="bf-tag">Buen Fin</em> <s class="bf-old">$' + s.price.toLocaleString('es-MX') + '</s> <b class="bf-new">$' + bf.unit.toLocaleString('es-MX') + '</b> MXN'
       : '$' + s.price.toLocaleString('es-MX') + ' MXN';
     return '<button type="button" class="catalog-size" data-product="' + s.productKey + '" data-size-label="' + s.label + '">' +
       s.label + '<span>' + precio + '</span>' +
@@ -2124,6 +2124,9 @@ if (difusoresScrollBottom) {
         : el.dataset.bfOriginal;
     });
 
+    // Sello "Buen Fin" sobre la foto de cada producto con descuento
+    document.querySelectorAll('.bf-badge-auto').forEach((n) => n.remove());
+
     // Precios de cada producto (tarjetas, filas de tamaños y modal rápido)
     Object.keys(BUEN_FIN.prices).forEach((key) => {
       const bf = BUEN_FIN.prices[key];
@@ -2139,10 +2142,22 @@ if (difusoresScrollBottom) {
           priceEl.classList.remove('bf-price');
           return;
         }
-        // Conserva el formato original ("MXN", estilos) y solo cambia el número.
+        // Etiqueta "PRECIO BUEN FIN" + precio normal tachado + precio nuevo
+        // destacado. Conserva el "MXN" original de cada lugar.
         const regular = (priceEl.dataset.bfOriginal.match(/\$[\d,]+/) || [''])[0];
-        priceEl.innerHTML = priceEl.dataset.bfOriginal.replace(regular, '<s class="bf-old">' + regular + '</s> ' + fmt(bf.unit));
+        priceEl.innerHTML = '<span class="bf-label">Precio Buen Fin</span><span class="bf-break"></span>' +
+          priceEl.dataset.bfOriginal.replace(regular,
+            '<s class="bf-old">' + regular + '</s> <span class="bf-new">' + fmt(bf.unit) + '</span>');
         priceEl.classList.add('bf-price');
+
+        const media = (btn.closest('.card, .feature') || document.createElement('div'))
+          .querySelector('.card-media, .feature-media');
+        if (media && !media.querySelector('.bf-badge-auto')) {
+          const sello = document.createElement('span');
+          sello.className = 'bf-badge bf-badge-auto';
+          sello.textContent = 'Buen Fin';
+          media.appendChild(sello);
+        }
         if (bf.packs && bf.packs.length) {
           const note = document.createElement('div');
           note.className = 'bf-packs';
@@ -2156,7 +2171,37 @@ if (difusoresScrollBottom) {
         }
       });
     });
+
+    if (on) scheduleBuenFinPopup();
   }
+
+  // ---- Anuncio que aparece a los pocos segundos de entrar ----
+  // Una vez por visita (sesión del navegador). Se cierra con la ✕,
+  // tocando fuera, con Esc o con cualquiera de sus botones.
+  const POPUP_KEY = 'nucleo_bf_popup_shown';
+  let popupTimer = null;
+  function scheduleBuenFinPopup() {
+    const overlay = document.getElementById('bfPopupOverlay');
+    if (!overlay || popupTimer) return;
+    let visto = null;
+    try { visto = sessionStorage.getItem(POPUP_KEY); } catch (e) {}
+    if (visto === '1') return;
+    popupTimer = setTimeout(() => {
+      if (!BUEN_FIN.active) return;
+      overlay.classList.add('is-open');
+      try { sessionStorage.setItem(POPUP_KEY, '1'); } catch (e) {}
+    }, 2500);
+  }
+  (function bindPopup() {
+    const overlay = document.getElementById('bfPopupOverlay');
+    if (!overlay) return;
+    const close = () => overlay.classList.remove('is-open');
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelectorAll('[data-bf-close]').forEach((el) => el.addEventListener('click', close));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('is-open')) close();
+    });
+  })();
 
   apply();
 

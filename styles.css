@@ -3381,3 +3381,60 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
 .bf-nav{ color:#ff6b61 !important; font-weight:500; }
 .bf-pill{ background:var(--bf-red) !important; border-color:var(--bf-red) !important; color:#fff !important; }
 .bf-announce strong{ color:#ff8a80; }
+
+/* ---------- Buen Fin: etiqueta de precio, sello y anuncio ---------- */
+.bf-price{ display:inline-flex; flex-wrap:wrap; align-items:baseline; column-gap:4px; row-gap:4px; }
+.bf-break{ flex-basis:100%; height:0; }
+.bf-label{
+  display:inline-block; width:auto;
+  background:var(--bf-red); color:#fff;
+  font-family:'Jost', sans-serif; font-weight:600;
+  font-size:0.62rem; letter-spacing:0.16em; text-transform:uppercase;
+  padding:4px 8px 3px; border-radius:2px; line-height:1.2;
+}
+.bf-new{ color:#ff6b61; font-weight:700; }
+.card-body .bf-price .bf-new, .feature-copy > .bf-price .bf-new{ font-size:1.15em; }
+.dq-price.bf-price{ justify-content:flex-end; }
+.dq-price .bf-label{ margin-left:auto; }
+.dq-price .bf-break{ order:0; }
+.catalog-size .bf-tag{ font-style:normal; }
+.bf-badge-auto{ font-size:0.78rem; padding:8px 14px; box-shadow:0 6px 18px rgba(0,0,0,0.35); }
+
+.bf-popup-overlay{
+  position:fixed; inset:0; z-index:10000;
+  background:rgba(8,6,6,0.78);
+  display:none; align-items:center; justify-content:center;
+  padding:20px max(16px, env(safe-area-inset-right, 0px)) 20px max(16px, env(safe-area-inset-left, 0px));
+}
+.bf-popup-overlay.is-open{ display:flex; animation:bfFade .35s ease; }
+@keyframes bfFade{ from{ opacity:0; } to{ opacity:1; } }
+.bf-popup{
+  position:relative; width:100%; max-width:400px;
+  max-height:calc(100svh - 40px); overflow-y:auto;
+  background:#151012; border:2px solid var(--bf-red); border-radius:14px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.55);
+  animation:bfPop .4s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes bfPop{ from{ transform:translateY(16px) scale(.96); } to{ transform:none; } }
+@media (prefers-reduced-motion: reduce){ .bf-popup, .bf-popup-overlay.is-open{ animation:none; } }
+.bf-popup-close{
+  position:absolute; top:10px; right:10px; z-index:2;
+  width:34px; height:34px; border-radius:50%;
+  border:none; background:rgba(0,0,0,0.35); color:#fff; font-size:1rem; cursor:pointer;
+}
+.bf-popup-top{ background:var(--bf-red); padding:26px 20px 22px; display:flex; justify-content:center; }
+.bf-popup-top img{ width:62%; max-width:230px; height:auto; transform:rotate(-3deg); filter:drop-shadow(0 8px 14px rgba(0,0,0,0.3)); }
+.bf-popup-body{ padding:22px 24px 24px; text-align:center; }
+.bf-popup-dates{ color:#ff6b61; font-size:0.72rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; }
+.bf-popup-body h2{ color:var(--cream); font-size:1.65rem; line-height:1.15; margin:8px 0 10px; }
+.bf-popup-lead{ color:var(--muted); font-size:0.88rem; line-height:1.5; margin:0 0 16px; }
+.bf-popup-list{ list-style:none; margin:0 0 20px; padding:0; text-align:left; }
+.bf-popup-list li{ display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); font-size:0.9rem; color:var(--cream); }
+.bf-popup-list b{ color:#ff6b61; font-family:'Playfair Display', serif; font-size:1.05rem; white-space:nowrap; }
+.bf-popup-cta{
+  display:block; background:var(--bf-red); color:#fff; text-decoration:none;
+  font-weight:600; letter-spacing:0.16em; text-transform:uppercase; font-size:0.8rem;
+  padding:15px 18px; border-radius:4px;
+}
+.bf-popup-cta:focus-visible, .bf-popup-skip:focus-visible, .bf-popup-close:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+.bf-popup-skip{ margin-top:10px; background:none; border:none; color:var(--muted); font-size:0.8rem; text-decoration:underline; cursor:pointer; padding:8px; }
