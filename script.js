@@ -2137,6 +2137,11 @@ if (difusoresScrollBottom) {
         const priceEl = box.querySelector('.dq-price, .price');
         if (!priceEl) return;
         if (priceEl.dataset.bfOriginal === undefined) priceEl.dataset.bfOriginal = priceEl.innerHTML;
+        // Las filas de tamaños con precio Buen Fin se acomodan en dos
+        // líneas (precio arriba, cantidad y botón abajo) para que el
+        // control de cantidad no se salga de la pantalla en el celular.
+        const fila = priceEl.closest('.size-price-row');
+        if (fila) fila.classList.toggle('bf-row', on);
         if (!on) {
           priceEl.innerHTML = priceEl.dataset.bfOriginal;
           priceEl.classList.remove('bf-price');
@@ -2162,7 +2167,7 @@ if (difusoresScrollBottom) {
           const note = document.createElement('div');
           note.className = 'bf-packs';
           note.dataset.for = key;
-          note.textContent = 'Paquetes Buen Fin: ' + bf.packs.slice().reverse()
+          note.textContent = 'Paquetes: ' + bf.packs.slice().reverse()
             .map(([n, precio]) => n + ' por ' + fmt(precio)).join(' · ');
           // En las filas de tamaños el aviso va debajo de la fila completa.
           const row = priceEl.closest('.size-price-row');

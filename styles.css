@@ -3438,3 +3438,16 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
 }
 .bf-popup-cta:focus-visible, .bf-popup-skip:focus-visible, .bf-popup-close:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
 .bf-popup-skip{ margin-top:10px; background:none; border:none; color:var(--muted); font-size:0.8rem; text-decoration:underline; cursor:pointer; padding:8px; }
+
+/* Filas de tamaños con precio Buen Fin: precio arriba, cantidad + botón abajo */
+.size-price-row.bf-row{ align-items:flex-start; }
+.size-price-row.bf-row .row-right{
+  flex:1; min-width:0;
+  flex-wrap:wrap; justify-content:flex-end;
+  row-gap:10px;
+}
+.size-price-row.bf-row .row-right .price{
+  flex-basis:100%;
+  justify-content:flex-end;
+  white-space:normal;
+}
