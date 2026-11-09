@@ -3325,14 +3325,14 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
 /* ============================================================
    BUEN FIN 2026 — solo visible del 13 al 17 de noviembre
    ============================================================ */
-:root{ --bf-red:#d0302a; }
+:root{ --bf-accent:#f0b848; --bf-ink:#18120a; --bf-soft:#ffd678; } /* campaña Buen Fin: negro y dorado */
 [data-buenfin-only][hidden]{ display:none !important; }
 
 .bf-old{
   color:var(--muted);
   font-size:0.72em;
   text-decoration:line-through;
-  text-decoration-color:var(--bf-red);
+  text-decoration-color:var(--muted);
   text-decoration-thickness:2px;
   margin-right:6px;
 }
@@ -3341,58 +3341,58 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
   font-size:0.72rem;
   letter-spacing:0.06em;
   text-transform:uppercase;
-  color:#fff;
-  background:var(--bf-red);
+  color:var(--bf-ink);
+  background:var(--bf-accent);
   display:inline-block;
   align-self:flex-start;
   padding:5px 10px;
-  border-radius:2px;
+  border-radius:99px;
   margin:6px 0 4px;
 }
 .bf-tag{
   display:inline-block;
-  background:var(--bf-red);
-  color:#fff;
+  background:var(--bf-accent);
+  color:var(--bf-ink);
   font-size:0.62rem;
   letter-spacing:0.08em;
   text-transform:uppercase;
   padding:2px 6px;
-  border-radius:2px;
+  border-radius:99px;
   margin-left:4px;
 }
 .bf-cart-savings{
-  color:#ff8a80;
+  color:var(--bf-soft);
   font-size:0.82rem;
   letter-spacing:0.04em;
   text-align:right;
   margin-bottom:6px;
 }
 
-.bf-section{ border-top:4px solid var(--bf-red); background:linear-gradient(180deg, rgba(208,48,42,0.10), transparent 60%); }
-.bf-eyebrow{ color:#ff6b61 !important; }
+.bf-section{ border-top:1px solid var(--bf-accent); background:radial-gradient(ellipse 70% 45% at 50% 0%, rgba(240,184,72,0.12), transparent 70%); }
+.bf-eyebrow{ color:var(--bf-soft) !important; }
 .bf-grid{ grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); max-width:760px; margin:0 auto; }
 .bf-badge{
   position:absolute; left:12px; top:12px; z-index:3;
-  background:var(--bf-red); color:#fff;
+  background:var(--bf-accent); color:var(--bf-ink);
   font-size:0.7rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
-  padding:7px 12px; border-radius:2px;
+  padding:7px 12px; border-radius:99px;
 }
 .bf-fineprint{ text-align:center; color:var(--muted); font-size:0.75rem; letter-spacing:0.08em; margin-top:26px; }
-.bf-nav{ color:#ff6b61 !important; font-weight:500; }
-.bf-pill{ background:var(--bf-red) !important; border-color:var(--bf-red) !important; color:#fff !important; }
-.bf-announce strong{ color:#ff8a80; }
+.bf-nav{ color:var(--bf-soft) !important; font-weight:500; }
+.bf-pill{ background:var(--bf-accent) !important; border-color:var(--bf-accent) !important; color:var(--bf-ink) !important; }
+.bf-announce strong{ color:var(--bf-soft); }
 
 /* ---------- Buen Fin: etiqueta de precio, sello y anuncio ---------- */
 .bf-price{ display:inline-flex; flex-wrap:wrap; align-items:baseline; column-gap:4px; row-gap:4px; }
 .bf-break{ flex-basis:100%; height:0; }
 .bf-label{
   display:inline-block; width:auto;
-  background:var(--bf-red); color:#fff;
+  background:var(--bf-accent); color:var(--bf-ink);
   font-family:'Jost', sans-serif; font-weight:600;
   font-size:0.62rem; letter-spacing:0.16em; text-transform:uppercase;
-  padding:4px 8px 3px; border-radius:2px; line-height:1.2;
+  padding:4px 8px 3px; border-radius:99px; line-height:1.2;
 }
-.bf-new{ color:#ff6b61; font-weight:700; }
+.bf-new{ color:var(--bf-soft); font-weight:700; }
 .card-body .bf-price .bf-new, .feature-copy > .bf-price .bf-new{ font-size:1.15em; }
 .dq-price.bf-price{ justify-content:flex-end; }
 .dq-price .bf-label{ margin-left:auto; }
@@ -3411,7 +3411,7 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
 .bf-popup{
   position:relative; width:100%; max-width:400px;
   max-height:calc(100svh - 40px); overflow-y:auto;
-  background:#151012; border:2px solid var(--bf-red); border-radius:14px;
+  background:#151012; border:1px solid rgba(240,184,72,0.55); border-radius:14px;
   box-shadow:0 24px 60px rgba(0,0,0,0.55);
   animation:bfPop .4s cubic-bezier(.2,.9,.3,1.2);
 }
@@ -3422,19 +3422,19 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
   width:34px; height:34px; border-radius:50%;
   border:none; background:rgba(0,0,0,0.35); color:#fff; font-size:1rem; cursor:pointer;
 }
-.bf-popup-top{ background:var(--bf-red); padding:26px 20px 22px; display:flex; justify-content:center; }
-.bf-popup-top img{ width:62%; max-width:230px; height:auto; transform:rotate(-3deg); filter:drop-shadow(0 8px 14px rgba(0,0,0,0.3)); }
+.bf-popup-top{ background:radial-gradient(ellipse 80% 90% at 50% 100%, rgba(240,184,72,0.22), transparent 70%), #120e0b; border-bottom:1px solid rgba(240,184,72,0.3); padding:22px 20px 18px; display:flex; justify-content:center; }
+.bf-popup-top img{ width:30%; max-width:110px; height:auto; transform:rotate(-3deg); filter:drop-shadow(0 8px 14px rgba(0,0,0,0.3)); }
 .bf-popup-body{ padding:22px 24px 24px; text-align:center; }
-.bf-popup-dates{ color:#ff6b61; font-size:0.72rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; }
+.bf-popup-dates{ color:var(--bf-soft); font-size:0.72rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; }
 .bf-popup-body h2{ color:var(--cream); font-size:1.65rem; line-height:1.15; margin:8px 0 10px; }
 .bf-popup-lead{ color:var(--muted); font-size:0.88rem; line-height:1.5; margin:0 0 16px; }
 .bf-popup-list{ list-style:none; margin:0 0 20px; padding:0; text-align:left; }
 .bf-popup-list li{ display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); font-size:0.9rem; color:var(--cream); }
-.bf-popup-list b{ color:#ff6b61; font-family:'Playfair Display', serif; font-size:1.05rem; white-space:nowrap; }
+.bf-popup-list b{ color:var(--bf-soft); font-family:'Playfair Display', serif; font-size:1.05rem; white-space:nowrap; }
 .bf-popup-cta{
-  display:block; background:var(--bf-red); color:#fff; text-decoration:none;
+  display:block; background:var(--bf-accent); color:var(--bf-ink); text-decoration:none;
   font-weight:600; letter-spacing:0.16em; text-transform:uppercase; font-size:0.8rem;
-  padding:15px 18px; border-radius:4px;
+  padding:15px 18px; border-radius:99px;
 }
 .bf-popup-cta:focus-visible, .bf-popup-skip:focus-visible, .bf-popup-close:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
 .bf-popup-skip{ margin-top:10px; background:none; border:none; color:var(--muted); font-size:0.8rem; text-decoration:underline; cursor:pointer; padding:8px; }
