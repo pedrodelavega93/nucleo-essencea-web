@@ -111,17 +111,9 @@ function buildShippingOptions() {
         },
       },
     },
-    {
-      shipping_rate_data: {
-        type: 'fixed_amount',
-        fixed_amount: { amount: 25000, currency: 'mxn' }, // $250 MXN
-        display_name: 'Envío nacional (fuera de Nuevo León)',
-        delivery_estimate: {
-          minimum: { unit: 'business_day', value: 5 },
-          maximum: { unit: 'business_day', value: 7 },
-        },
-      },
-    },
+    // El envío nacional (fuera de Monterrey) ya NO se cobra aquí: el costo
+    // varía según el código postal, así que se cotiza por WhatsApp desde el
+    // botón "Cotiza tu envío nacional" del carrito.
   ];
 }
 
@@ -389,7 +381,7 @@ module.exports = async (req, res) => {
 
       // Mensaje sobre el botón de pago: método de entrega + (si aplica) instalación.
       const mensajes = [
-        'Elige tu método de entrega arriba. Si seleccionas "Recoger en Abi Corpus Hair Studio", te avisaremos por correo o WhatsApp cuando tu pedido esté listo para recoger.',
+        'Elige tu método de entrega arriba. Si seleccionas "Recoger en Abi Corpus Hair Studio", te avisaremos por correo o WhatsApp cuando tu pedido esté listo para recoger. ¿Estás fuera de Monterrey? Cotiza tu envío nacional por WhatsApp al 81 1655 1406 antes de pagar.',
       ];
       if (hayDifusor) {
         mensajes.push('En la dirección de instalación del difusor incluye calle, número, colonia y código postal.');
