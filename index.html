@@ -1177,7 +1177,7 @@
       </details>
       <details class="faq-item">
         <summary>¿Cuánto tarda el envío?</summary>
-        <p>El envío a domicilio dentro de la Zona Metropolitana de Monterrey tarda de 2 a 5 días hábiles. También puedes elegir recoger tu pedido sin costo en Abi Corpus Hair Studio (José Peón y Contreras 2125-A, Contry Sol, Guadalupe), con el mismo tiempo estimado de preparación.</p>
+        <p>El envío a domicilio dentro de la Zona Metropolitana de Monterrey tarda de 2 a 5 días hábiles. También puedes elegir recoger tu pedido sin costo en Abi Corpus Hair Studio (José Peón y Contreras 2125-A, Contry Sol, Guadalupe), con el mismo tiempo estimado de preparación. ¿Estás en otra parte de la República? Hacemos envíos nacionales: el costo depende de tu código postal, así que cotízalo con nosotros por WhatsApp desde el botón del carrito.</p>
       </details>
       <details class="faq-item">
         <summary>¿Los perfumes son originales?</summary>
@@ -1377,7 +1377,11 @@
           <p class="cart-plan-disclaimer">El precio a plazos incluye el costo de administración por financiamiento con tarjeta de crédito.</p>
         </div>
       </div>
-      <p class="cart-note">El costo de envío o la opción de recoger en tienda se elige en el pago seguro de Stripe.</p>
+      <p class="cart-note">El costo de envío o la opción de recoger en tienda se elige en el pago seguro de Stripe (envío a domicilio solo dentro de la Zona Metropolitana de Monterrey).</p>
+      <a class="cart-national-ship" id="cartNationalShip" href="https://wa.me/528116551406" target="_blank" rel="noopener"
+         style="display:block; text-align:center; margin:4px 0 14px; padding:11px 14px; border:1px solid var(--gold); border-radius:6px; color:var(--gold); font-size:0.82rem; letter-spacing:0.03em; text-decoration:none;">
+        ¿Fuera de Monterrey? <strong>Cotiza tu envío nacional por WhatsApp →</strong>
+      </a>
       <p class="cart-discount-note">🎁 Recuerda aplicar tu código de descuento de bienvenida en el siguiente paso de pago.</p>
       <div class="cart-email-capture" id="cartEmailCapture">
         <label for="cartEmailInput" class="cart-email-label">¿Te recordamos tu carrito si no completas la compra? (opcional)</label>
@@ -1683,5 +1687,26 @@
 <script src="assets/ambientales-data.js"></script>
 <script src="assets/sensaciones-data.js"></script>
 <script src="script.js"></script>
+<script>
+  // Botón "Cotiza tu envío nacional": abre WhatsApp con un mensaje ya
+  // escrito que incluye los productos y el total del carrito.
+  (function () {
+    var btn = document.getElementById('cartNationalShip');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var lineas = [];
+      document.querySelectorAll('#cartItems > *').forEach(function (el) {
+        var t = (el.innerText || '').replace(/[−+✕×]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (t) lineas.push('• ' + t);
+      });
+      var total = (document.getElementById('cartTotal') || {}).textContent || '';
+      var msg = 'Hola! Quiero cotizar un envío nacional.\n\n' +
+        (lineas.length ? 'Mi pedido:\n' + lineas.join('\n') + '\n' : '') +
+        (total ? 'Total productos: ' + total.trim() + '\n' : '') +
+        '\nMi código postal es: \nMi ciudad y estado: ';
+      btn.href = 'https://wa.me/528116551406?text=' + encodeURIComponent(msg);
+    });
+  })();
+</script>
 </body>
 </html>
