@@ -1696,14 +1696,32 @@
     btn.addEventListener('click', function () {
       var lineas = [];
       document.querySelectorAll('#cartItems > *').forEach(function (el) {
-        var t = (el.innerText || '').replace(/[−+✕×]/g, ' ').replace(/\s+/g, ' ').trim();
-        if (t) lineas.push('• ' + t);
+        var partes = [];
+        var cantidad = '';
+        (el.innerText || '').split('\n').forEach(function (l) {
+          l = l.replace(/[−+✕×]/g, '').trim();
+          if (!l || /^eliminar$/i.test(l)) return;   // quita el botón "Eliminar"
+          if (/^\d+$/.test(l)) { cantidad = l; return; } // número suelto = cantidad
+          partes.push(l);
+        });
+        var input = el.querySelector('input');
+        if (input && input.value) cantidad = input.value;
+        if (!partes.length) return;
+        lineas.push('• ' + partes.join(' — ') + (cantidad ? ' — Cantidad: ' + cantidad : ''));
       });
       var total = (document.getElementById('cartTotal') || {}).textContent || '';
       var msg = 'Hola! Quiero cotizar un envío nacional.\n\n' +
         (lineas.length ? 'Mi pedido:\n' + lineas.join('\n') + '\n' : '') +
         (total ? 'Total productos: ' + total.trim() + '\n' : '') +
-        '\nMi código postal es: \nMi ciudad y estado: ';
+        '\nMis datos de envío:\n' +
+        'Nombre completo: \n' +
+        'Celular: \n' +
+        'Correo electrónico: \n' +
+        'Calle y número: \n' +
+        'Colonia: \n' +
+        'Código postal: \n' +
+        'Ciudad y estado: \n' +
+        'Referencias del domicilio: ';
       btn.href = 'https://wa.me/528116551406?text=' + encodeURIComponent(msg);
     });
   })();
