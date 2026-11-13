@@ -1379,18 +1379,102 @@ if (difusoresScrollBottom) {
       || group.querySelector('.qty-input');
     const qty = qtyInput ? Math.max(1, parseInt(qtyInput.value, 10) || 1) : 1;
 
+    if (qtyInput) qtyInput.value = 1;
+
+    // Varias piezas de un producto con aroma (perfume, spray, aceite):
+    // preguntamos si van todas del mismo aroma o una distinta para cada una.
+    if (qty > 1 && aromaFrom && aromaFrom.indexOf(',') === -1 && MULTI_AROMA[key]) {
+      askAromaMode({ key, info, color, aroma, qty, source: aromaFrom });
+      return;
+    }
+
+    pushCartItem(key, info, color, aroma, qty);
+    renderCart();
+    showToast(info.name + ' agregado al carrito');
+    bumpFab();
+  }
+
+  function pushCartItem(key, info, color, aroma, qty) {
     const existing = cart.find((it) => it.productKey === key && it.color === color && it.aroma === aroma);
     if (existing) {
       existing.quantity += qty;
     } else {
       cart.push({ productKey: key, name: info.name, price: info.price, quantity: qty, color, aroma });
     }
+  }
 
-    if (qtyInput) qtyInput.value = 1;
-    renderCart();
-    showToast(info.name + ' agregado al carrito');
+  function bumpFab() {
     fab.classList.add('bump');
     setTimeout(() => fab.classList.remove('bump'), 400);
+  }
+
+  // Productos que se pueden pedir con un aroma distinto por pieza.
+  const MULTI_AROMA = {
+    perfume30: 'perfume', perfume60: 'perfume', perfume100: 'perfume',
+    aerosol250: 'spray', aceite250: 'aceite', aceite500: 'aceite', aceite1l: 'aceite',
+  };
+
+  let aromaChoiceEl = null;
+  function askAromaMode(ctx) {
+    const noun = MULTI_AROMA[ctx.key];
+    const plural = noun === 'aceite' ? 'aceites' : noun + 's';
+    if (!aromaChoiceEl) {
+      aromaChoiceEl = document.createElement('div');
+      aromaChoiceEl.className = 'aroma-choice';
+      aromaChoiceEl.setAttribute('role', 'dialog');
+      aromaChoiceEl.setAttribute('aria-modal', 'true');
+      aromaChoiceEl.innerHTML =
+        '<div class="aroma-choice-box">' +
+          '<p class="aroma-choice-eyebrow"></p>' +
+          '<h4 class="serif aroma-choice-title"></h4>' +
+          '<button type="button" class="aroma-choice-btn primary" data-choice="same"></button>' +
+          '<button type="button" class="aroma-choice-btn" data-choice="each"></button>' +
+          '<button type="button" class="aroma-choice-cancel" data-choice="cancel">Cancelar</button>' +
+        '</div>';
+      document.body.appendChild(aromaChoiceEl);
+    }
+    aromaChoiceEl.querySelector('.aroma-choice-eyebrow').textContent = ctx.qty + ' × ' + ctx.info.name;
+    aromaChoiceEl.querySelector('.aroma-choice-title').textContent = '¿Cómo quieres el aroma de tus ' + ctx.qty + ' ' + plural + '?';
+    aromaChoiceEl.querySelector('[data-choice="same"]').textContent = 'Los ' + ctx.qty + ' de ' + ctx.aroma;
+    aromaChoiceEl.querySelector('[data-choice="each"]').textContent = 'Un aroma distinto para cada uno';
+    aromaChoiceEl.onclick = (e) => {
+      const b = e.target.closest('[data-choice]');
+      if (!b && e.target !== aromaChoiceEl) return;
+      const choice = b ? b.dataset.choice : 'cancel';
+      aromaChoiceEl.classList.remove('open');
+      if (choice === 'same') {
+        pushCartItem(ctx.key, ctx.info, ctx.color, ctx.aroma, ctx.qty);
+        renderCart();
+        showToast(ctx.qty + ' × ' + ctx.info.name + ' agregados al carrito');
+        bumpFab();
+      } else if (choice === 'each') {
+        pickAromaSequence(ctx, noun);
+      }
+    };
+    aromaChoiceEl.classList.add('open');
+  }
+
+  function pickAromaSequence(ctx, noun) {
+    let added = 1;
+    pushCartItem(ctx.key, ctx.info, ctx.color, ctx.aroma, 1);
+    renderCart();
+    bumpFab();
+    const next = () => {
+      if (added >= ctx.qty) {
+        showToast(ctx.qty + ' × ' + ctx.info.name + ' agregados al carrito');
+        return;
+      }
+      openCatalog(ctx.source, (name) => {
+        pushCartItem(ctx.key, ctx.info, ctx.color, name, 1);
+        added++;
+        renderCart();
+        bumpFab();
+        setTimeout(next, 200);
+      });
+      catalogTitle.textContent = 'Aroma del ' + noun + ' ' + (added + 1) + ' de ' + ctx.qty;
+      catalogSub.textContent = 'Ya agregamos ' + added + ' al carrito (' + ctx.aroma + (added > 1 ? ' y otros' : '') + '). Toca el aroma del siguiente.';
+    };
+    next();
   }
 
   document.querySelectorAll('[data-add-to-cart]').forEach((btn) => {

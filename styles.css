@@ -3451,3 +3451,51 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
   justify-content:flex-end;
   white-space:normal;
 }
+
+
+/* ============ Carrito: el contenido completo se desplaza junto ============
+   Antes la lista de productos se encogía cuando el pie del carrito (total,
+   notas, correo y botón) era más alto que la pantalla, y solo se veía un
+   producto cortado. Ahora todo el panel se desplaza y el botón de pago
+   queda fijo abajo. */
+.cart-drawer-inner{ overflow-y:auto; overscroll-behavior:contain; }
+.cart-drawer-head{ position:sticky; top:0; z-index:3; background:var(--panel); }
+.cart-items{ flex:0 0 auto; overflow:visible; }
+.cart-foot{ flex:0 0 auto; }
+.cart-pay-btn{ position:sticky; bottom:12px; z-index:2; box-shadow:0 -14px 24px 6px var(--panel); }
+
+/* ============ Elegir aroma por pieza (perfumes, sprays, aceites) ============ */
+.aroma-choice{
+  position:fixed; inset:0; z-index:1500;
+  display:flex; align-items:center; justify-content:center;
+  padding:20px max(16px, env(safe-area-inset-left, 0px));
+  background:rgba(0,0,0,0.66);
+  opacity:0; visibility:hidden; transition:opacity .2s ease, visibility .2s ease;
+}
+.aroma-choice.open{ opacity:1; visibility:visible; }
+.aroma-choice-box{
+  width:min(400px, 100%);
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:26px 22px 18px; text-align:center;
+  display:flex; flex-direction:column; gap:10px;
+  box-shadow:var(--shadow);
+}
+.aroma-choice-eyebrow{
+  margin:0; font-size:.72rem; letter-spacing:.18em; text-transform:uppercase; color:var(--gold);
+}
+.aroma-choice-title{ margin:0 0 8px; font-size:1.3rem; color:var(--cream); line-height:1.3; text-wrap:balance; }
+.aroma-choice-btn{
+  width:100%; padding:13px 16px; border-radius:99px;
+  border:1px solid var(--gold); background:transparent; color:var(--gold-2);
+  font-family:'Jost', sans-serif; font-size:.85rem; letter-spacing:.06em; cursor:pointer;
+}
+.aroma-choice-btn.primary{ background:var(--gold); color:#171310; }
+.aroma-choice-btn:hover{ filter:brightness(1.08); }
+.aroma-choice-cancel{
+  margin-top:2px; background:none; border:0; color:var(--muted);
+  font-family:'Jost', sans-serif; font-size:.8rem; text-decoration:underline; cursor:pointer;
+}
+
+/* Con el catálogo abierto se oculta la barra de anuncios, que en celular
+   tapaba el título del catálogo. */
+body.catalog-open .announce-bar{ visibility:hidden; }
