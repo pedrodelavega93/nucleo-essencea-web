@@ -23,7 +23,7 @@ const { buscarAroma } = require('./_aroma-catalog');
 // Código de bienvenida del pop-up (va aquí para no pasar el límite
 // de 12 funciones del plan Hobby de Vercel).
 const welcomeCode = require('./_welcome-code');
-// Precios Buen Fin 2026 (13–17 nov). Ver api/_buenfin.js.
+// Precios especiales (Buen Fin extendido hasta el 30 nov). Ver api/_buenfin.js.
 const buenFin = require('./_buenfin');
 
 // Describe el aroma elegido. Los combos mandan varios aromas en un solo
@@ -170,7 +170,7 @@ module.exports = async (req, res) => {
         const combo = buenFin.COMBOS[item.productKey];
         if (combo) {
           if (!esBuenFin) {
-            res.status(400).json({ error: 'Los combos especiales solo están disponibles durante el Buen Fin (13 al 17 de noviembre). Quítalo del carrito para continuar.' });
+            res.status(400).json({ error: 'Los combos especiales ya no están disponibles. Quítalo del carrito para continuar.' });
             return;
           }
           if (combo.incluyeDifusor) hayDifusor = true;
@@ -178,7 +178,7 @@ module.exports = async (req, res) => {
           if (item.color) variantes.push('Color del A60: ' + String(item.color));
           if (item.aroma) variantes.push(describirAroma(item.aroma));
           const productData = {
-            name: (combo.name + ' · Precio Buen Fin' + (variantes.length ? ' — ' + variantes.join(', ') : '')).slice(0, 250),
+            name: (combo.name + ' · Precio especial' + (variantes.length ? ' — ' + variantes.join(', ') : '')).slice(0, 250),
           };
           if (variantes.length) productData.description = variantes.join(', ');
           renglones.push({ item, qty, variantes, productData, regularCents: combo.unit * 100, fijo: true });
@@ -278,7 +278,7 @@ module.exports = async (req, res) => {
             quantity = 1;
             sufijoCantidad = ' (x' + r.qty + ')';
           }
-          productData.name = (productData.name + ' · Precio Buen Fin' + sufijoCantidad).slice(0, 250);
+          productData.name = (productData.name + ' · Precio especial' + sufijoCantidad).slice(0, 250);
         }
 
         lineItems.push({
@@ -342,6 +342,10 @@ module.exports = async (req, res) => {
         esPlazos = true;
       }
 
+      // Regalo: 2 perfumeros de 10 ml por cada 3 perfumes de 100 ml.
+      const regalo = esBuenFin ? buenFin.perfumerosRegalo(body.items) : 0;
+      if (regalo) resumenPartes.unshift('REGALO: ' + regalo + ' perfumeros de 10 ml (aroma sorpresa)');
+
       const sessionConfig = {
         mode: 'payment',
         line_items: lineItems,
@@ -380,9 +384,13 @@ module.exports = async (req, res) => {
       if (customFields.length) sessionConfig.custom_fields = customFields;
 
       // Mensaje sobre el botón de pago: método de entrega + (si aplica) instalación.
-      const mensajes = [
-        'Elige tu método de entrega arriba. Si seleccionas "Recoger en Abi Corpus Hair Studio", te avisaremos por correo o WhatsApp cuando tu pedido esté listo para recoger. ¿Estás fuera de Monterrey? Cotiza tu envío nacional por WhatsApp al 81 1655 1406 antes de pagar.',
-      ];
+      const mensajes = [];
+      if (regalo) {
+        mensajes.push('Tu pedido incluye ' + regalo + ' perfumeros de 10 ml de regalo (aroma sorpresa).');
+      }
+      mensajes.push(
+        'Elige tu método de entrega arriba. Si seleccionas "Recoger en Abi Corpus Hair Studio", te avisaremos por correo o WhatsApp cuando tu pedido esté listo para recoger. ¿Estás fuera de Monterrey? Cotiza tu envío nacional por WhatsApp al 81 1655 1406 antes de pagar.'
+      );
       if (hayDifusor) {
         mensajes.push('En la dirección de instalación del difusor incluye calle, número, colonia y código postal.');
       }
@@ -401,6 +409,7 @@ module.exports = async (req, res) => {
         campo_instalacion_key: hayDifusor ? 'direccion_instalacion' : '',
         plan_pago: esPlazos ? ('plazos_' + mesesPlazos + 'm') : 'contado',
         precio_buen_fin: esBuenFin ? 'si' : 'no',
+        regalo_perfumeros: String(regalo),
       };
 
       const session = await stripe.checkout.sessions.create(sessionConfig);
