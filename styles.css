@@ -3499,3 +3499,16 @@ html{ scroll-padding-top:calc(var(--ann-h) + 70px); }
 /* Con el catálogo abierto se oculta la barra de anuncios, que en celular
    tapaba el título del catálogo. */
 body.catalog-open .announce-bar{ visibility:hidden; }
+
+/* ---- Luz verde extendida (18–30 nov) ---- */
+.bf-popup-top{ flex-direction:column; align-items:center; gap:8px; }
+.lve-light{ display:flex; gap:7px; }
+.lve-light i{ width:11px; height:11px; border-radius:50%; background:#3a2a22; }
+.lve-light i:nth-child(1){ background:#5a2320; }
+.lve-light i:nth-child(2){ background:#5a4520; }
+.lve-light i:nth-child(3){ background:#3ddc6e; box-shadow:0 0 10px 2px rgba(61,220,110,0.55); }
+.lve-title{ color:#3ddc6e; font-size:0.74rem; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; }
+.bf-popup-gift b{ color:#3ddc6e; }
+.cart-gift{ border:1px dashed rgba(61,220,110,0.5) !important; border-radius:10px; padding:12px 14px !important; margin:12px 0; background:rgba(61,220,110,0.05); }
+.cart-gift .bf-tag{ background:#3ddc6e; color:#0a0806; }
+.cart-gift-hint{ margin:6px 0 10px; padding:10px 12px; border:1px dashed rgba(240,184,72,0.45); border-radius:10px; font-size:0.82rem; line-height:1.4; color:var(--cream, #efe6da); }

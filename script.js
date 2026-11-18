@@ -35,13 +35,14 @@ function calcularPrecioAPlazos(precioContado, meses) {
 }
 
 // ============================================================
-// BUEN FIN 2026 — 13 al 17 de noviembre (hora de Monterrey)
+// PRECIOS ESPECIALES — Buen Fin (13–17 nov) extendido como
+// "Luz verde extendida" hasta el lunes 30 de noviembre (hora de Monterrey)
 // Misma tabla que api/_buenfin.js: si cambias un precio aquí, cámbialo
 // también allá (el servidor es el que cobra; esto solo lo muestra).
 // ============================================================
 const BUEN_FIN = {
   start: Date.parse('2026-11-13T00:00:00-06:00'),
-  end: Date.parse('2026-11-18T00:00:00-06:00'),
+  end: Date.parse('2026-12-01T00:00:00-06:00'),
   prices: {
     perfume100: { unit: 549, packs: [[3, 1499], [2, 1049]] },
     aerosol250: { unit: 549, packs: [[2, 1049]] },
@@ -70,6 +71,13 @@ const BUEN_FIN = {
   const now = Date.now();
   BUEN_FIN.active = BUEN_FIN.preview || (now >= BUEN_FIN.start && now < BUEN_FIN.end);
 })();
+
+// Regalo: por cada 3 perfumes de 100 ml, 2 perfumeros de 10 ml (aroma sorpresa).
+function perfumerosRegalo(items) {
+  if (!BUEN_FIN.active) return 0;
+  const n = items.reduce((s, it) => s + (it.productKey === 'perfume100' ? it.quantity : 0), 0);
+  return Math.floor(n / 3) * 2;
+}
 
 function bfGroupTotal(key, qty) {
   const p = BUEN_FIN.prices[key];
@@ -464,7 +472,7 @@ function renderBuySizes() {
   catalogBuySizes.innerHTML = ctx.sizes.map((s) => {
     const bf = BUEN_FIN.active && BUEN_FIN.prices[s.productKey];
     const precio = bf
-      ? '<em class="bf-tag">Buen Fin</em> <s class="bf-old">$' + s.price.toLocaleString('es-MX') + '</s> <b class="bf-new">$' + bf.unit.toLocaleString('es-MX') + '</b> MXN'
+      ? '<em class="bf-tag">Precio especial</em> <s class="bf-old">$' + s.price.toLocaleString('es-MX') + '</s> <b class="bf-new">$' + bf.unit.toLocaleString('es-MX') + '</b> MXN'
       : '$' + s.price.toLocaleString('es-MX') + ' MXN';
     return '<button type="button" class="catalog-size" data-product="' + s.productKey + '" data-size-label="' + s.label + '">' +
       s.label + '<span>' + precio + '</span>' +
@@ -1188,7 +1196,7 @@ if (difusoresScrollBottom) {
     aceite250:  { name: 'Aceite 250 ml',    price: 900 },
     aceite500:  { name: 'Aceite 500 ml',    price: 1300 },
     aceite1l:   { name: 'Aceite 1 litro',   price: 2000 },
-    // Combos Buen Fin (solo se pueden comprar del 13 al 17 de noviembre)
+    // Combos especiales (solo mientras haya precios especiales)
     combohogar: { name: BUEN_FIN.combos.combohogar.name, price: BUEN_FIN.combos.combohogar.regular, combo: true },
     comboaroma: { name: BUEN_FIN.combos.comboaroma.name, price: BUEN_FIN.combos.comboaroma.regular, combo: true },
   };
@@ -1348,7 +1356,7 @@ if (difusoresScrollBottom) {
     }
 
     if (info.combo && !BUEN_FIN.active) {
-      showToast('Los combos especiales solo están disponibles durante el Buen Fin.');
+      showToast('Los combos especiales ya no están disponibles.');
       return;
     }
 
@@ -1522,7 +1530,7 @@ if (difusoresScrollBottom) {
       const p = pricing.lines[i];
       const precioHtml = p.linea < p.regular
         ? '<s class="bf-old">' + money(p.regular) + '</s> ' + money(p.linea) +
-          (it.quantity > 1 ? ' (' + it.quantity + ' piezas)' : '') + ' <span class="bf-tag">Buen Fin</span>'
+          (it.quantity > 1 ? ' (' + it.quantity + ' piezas)' : '') + ' <span class="bf-tag">Precio especial</span>'
         : money(it.price) + ' c/u';
       return (
         '<div class="cart-item" data-index="' + i + '">' +
@@ -1543,6 +1551,25 @@ if (difusoresScrollBottom) {
       );
     }).join('');
 
+    // Regalo de perfumeros (por cada 3 perfumes de 100 ml)
+    const regalo = perfumerosRegalo(cart);
+    if (regalo) {
+      itemsEl.insertAdjacentHTML('beforeend',
+        '<div class="cart-item cart-gift"><div class="ci-info">' +
+          '<div class="ci-name serif">' + regalo + ' perfumeros de 10 ml</div>' +
+          '<div class="ci-meta">Aroma sorpresa · por cada 3 perfumes de 100 ml</div>' +
+          '<div class="ci-price"><span class="bf-tag">De regalo</span></div>' +
+        '</div></div>');
+    } else if (BUEN_FIN.active) {
+      const n = cart.reduce((s, it) => s + (it.productKey === 'perfume100' ? it.quantity : 0), 0);
+      if (n > 0) {
+        const faltan = 3 - (n % 3);
+        itemsEl.insertAdjacentHTML('beforeend',
+          '<div class="cart-gift-hint">Agrega ' + faltan + ' perfume' + (faltan > 1 ? 's' : '') +
+          ' de 100 ml más y llévate 2 perfumeros de 10 ml de regalo.</div>');
+      }
+    }
+
     const totalContado = pricing.total;
 
     // Ahorro Buen Fin (solo se muestra si hay descuento en el carrito)
@@ -1556,7 +1583,7 @@ if (difusoresScrollBottom) {
     if (ahorroEl) {
       const ahorro = pricing.totalRegular - pricing.total;
       ahorroEl.style.display = ahorro > 0 ? 'block' : 'none';
-      ahorroEl.textContent = 'Ahorro Buen Fin: −' + money(ahorro);
+      ahorroEl.textContent = 'Ahorro con precios especiales: −' + money(ahorro);
     }
 
     // ---- Plan de pago (Contado / A Plazos) ----
@@ -1580,7 +1607,7 @@ if (difusoresScrollBottom) {
       totalEl.textContent = money(totalContado);
     }
 
-    itemsEl.querySelectorAll('.cart-item').forEach((row) => {
+    itemsEl.querySelectorAll('.cart-item[data-index]').forEach((row) => {
       const i = parseInt(row.dataset.index, 10);
       row.querySelector('[data-ci-dec]').addEventListener('click', () => changeQty(i, -1));
       row.querySelector('[data-ci-inc]').addEventListener('click', () => changeQty(i, 1));
@@ -1649,6 +1676,7 @@ if (difusoresScrollBottom) {
             aroma: it.aroma,
             name: it.name,
           })),
+          perfumerosRegalo: perfumerosRegalo(cart),
           paymentPlan: paymentPlan.type === 'plazos'
             ? { type: 'plazos', months: paymentPlan.months }
             : { type: 'contado' },
@@ -1702,7 +1730,7 @@ if (difusoresScrollBottom) {
   // (ya no se pueden comprar) y avisamos al cliente.
   if (!BUEN_FIN.active && cart.some((it) => PRODUCT_INFO[it.productKey] && PRODUCT_INFO[it.productKey].combo)) {
     cart = cart.filter((it) => !(PRODUCT_INFO[it.productKey] && PRODUCT_INFO[it.productKey].combo));
-    setTimeout(() => showToast('El Buen Fin terminó: quitamos los combos de tu carrito.'), 800);
+    setTimeout(() => showToast('Los precios especiales terminaron: quitamos los combos de tu carrito.'), 800);
   }
 
   // Si el servidor dice algo distinto a la fecha del teléfono del
@@ -2190,7 +2218,7 @@ if (difusoresScrollBottom) {
     const a = document.createElement('a');
     a.className = 'announce-msg is-active bf-announce';
     a.href = '#buen-fin';
-    a.innerHTML = '<strong>BUEN FIN</strong> · Precios especiales del 13 al 17 de noviembre';
+    a.innerHTML = '<strong>LUZ VERDE EXTENDIDA</strong> · Precios especiales hasta el 30 de noviembre';
     track.insertBefore(a, track.firstChild);
   }
 
@@ -2204,7 +2232,7 @@ if (difusoresScrollBottom) {
     document.querySelectorAll('.cart-discount-note').forEach((el) => {
       if (el.dataset.bfOriginal === undefined) el.dataset.bfOriginal = el.innerHTML;
       el.innerHTML = on
-        ? 'Durante el Buen Fin ya tienes aplicados los precios especiales; no se pueden usar códigos de descuento.'
+        ? 'Ya tienes aplicados los precios especiales; no se pueden usar códigos de descuento hasta el 30 de noviembre.'
         : el.dataset.bfOriginal;
     });
 
@@ -2234,7 +2262,7 @@ if (difusoresScrollBottom) {
         // Etiqueta "PRECIO BUEN FIN" + precio normal tachado + precio nuevo
         // destacado. Conserva el "MXN" original de cada lugar.
         const regular = (priceEl.dataset.bfOriginal.match(/\$[\d,]+/) || [''])[0];
-        priceEl.innerHTML = '<span class="bf-label">Precio Buen Fin</span><span class="bf-break"></span>' +
+        priceEl.innerHTML = '<span class="bf-label">Precio especial</span><span class="bf-break"></span>' +
           priceEl.dataset.bfOriginal.replace(regular,
             '<s class="bf-old">' + regular + '</s> <span class="bf-new">' + fmt(bf.unit) + '</span>');
         priceEl.classList.add('bf-price');
@@ -2244,7 +2272,7 @@ if (difusoresScrollBottom) {
         if (media && !media.querySelector('.bf-badge-auto')) {
           const sello = document.createElement('span');
           sello.className = 'bf-badge bf-badge-auto';
-          sello.textContent = 'Buen Fin';
+          sello.textContent = 'Luz verde';
           media.appendChild(sello);
         }
         if (bf.packs && bf.packs.length) {
@@ -2252,7 +2280,8 @@ if (difusoresScrollBottom) {
           note.className = 'bf-packs';
           note.dataset.for = key;
           note.textContent = 'Paquetes: ' + bf.packs.slice().reverse()
-            .map(([n, precio]) => n + ' por ' + fmt(precio)).join(' · ');
+            .map(([n, precio]) => n + ' por ' + fmt(precio)).join(' · ') +
+            (key === 'perfume100' ? ' · ¡3 perfumes + 2 perfumeros de 10 ml de regalo!' : '');
           // En las filas de tamaños el aviso va debajo de la fila completa.
           const row = priceEl.closest('.size-price-row');
           if (row) row.insertAdjacentElement('afterend', note);
