@@ -375,7 +375,7 @@ async function goToCheckout(btn) {
     const resp = await fetch('/api/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productKey, aroma }),
+      body: JSON.stringify({ productKey, aroma, envioCode: window.nucleoEnvioCode ? window.nucleoEnvioCode() : '' }),
     });
     const data = await resp.json();
     if (data.url) {
@@ -1681,12 +1681,17 @@ if (difusoresScrollBottom) {
             ? { type: 'plazos', months: paymentPlan.months }
             : { type: 'contado' },
           buenfinPreview: BUEN_FIN.preview,
+          // Código de envío nacional cotizado (si el cliente lo aplicó).
+          envioCode: window.nucleoEnvioCode ? window.nucleoEnvioCode() : '',
         }),
       });
       const data = await resp.json();
       if (data.url) {
         window.location.href = data.url;
         return;
+      }
+      if (/código de envío/i.test(data.error || '') && window.nucleoEnvioCodeInvalido) {
+        window.nucleoEnvioCodeInvalido();
       }
       throw new Error(data.error || 'Sin URL de pago');
     } catch (err) {

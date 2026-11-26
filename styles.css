@@ -3616,3 +3616,26 @@ textarea.review-input{ resize:vertical; min-height:96px; }
 .review-lightbox.open{ display:flex; }
 .review-lightbox img{ max-width:100%; max-height:88vh; border-radius:6px; object-fit:contain; }
 .review-lightbox .modal-close{ top:16px; right:16px; }
+
+/* ============================================================
+   CÓDIGO DE ENVÍO NACIONAL (carrito)
+   ============================================================ */
+.envio-code{ margin:0 0 14px; }
+.envio-code label{ display:block; font-size:0.74rem; color:var(--muted); margin-bottom:6px; letter-spacing:0.03em; }
+.envio-code-row{ display:flex; gap:8px; }
+.envio-code-row input{
+  flex:1; min-width:0; padding:10px 12px; background:var(--black); border:1px solid var(--line); border-radius:6px;
+  color:var(--cream); font-family:'Jost',sans-serif; font-size:16px; text-transform:uppercase; letter-spacing:0.06em;
+}
+.envio-code-row input:focus{ outline:none; border-color:var(--gold); }
+.envio-code-row button, .envio-code-ok button{
+  background:none; border:1px solid var(--gold); color:var(--gold-2); border-radius:6px; padding:0 14px;
+  font-family:'Jost',sans-serif; font-size:0.78rem; cursor:pointer;
+}
+.envio-code-ok{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px;
+  border:1px solid rgba(143,206,155,0.45); border-radius:6px; color:#a9dcb2; font-size:0.8rem; line-height:1.4;
+}
+.envio-code-ok[hidden]{ display:none; }
+.envio-code-ok button{ padding:6px 10px; border-color:var(--line); color:var(--muted); }
+.envio-code-err{ color:#e08a8a; font-size:0.76rem; margin:6px 0 0; min-height:0; }

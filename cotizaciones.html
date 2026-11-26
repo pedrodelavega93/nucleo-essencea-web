@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>NÚCLEO essences — Envíos nacionales</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body{ background:var(--black); }
+  .cz-wrap{ max-width:720px; margin:0 auto; padding:28px 16px 80px; }
+  .cz-top{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
+  .cz-top .wordmark{ font-family:'Playfair Display', serif; font-size:1.4rem; font-weight:700; letter-spacing:0.08em; }
+  .cz-top .wordmark em{ display:block; font-style:italic; font-weight:400; font-size:0.62rem; letter-spacing:0.3em; color:var(--gold); }
+  .cz-btn{ background:var(--gold); color:var(--black); border:none; border-radius:6px; padding:11px 16px; font-family:'Jost',sans-serif; font-size:0.82rem; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
+  .cz-btn.ghost{ background:transparent; color:var(--gold-2); border:1px solid var(--line); }
+  .cz-btn.danger{ background:transparent; color:#e08a8a; border:1px solid #5a2c2c; padding:7px 12px; font-size:0.74rem; }
+  .cz-btn:disabled{ opacity:0.5; cursor:default; }
+  .cz-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:20px; margin-bottom:18px; }
+  .cz-card h2{ font-family:'Playfair Display', serif; font-size:1.25rem; margin:0 0 6px; color:var(--gold-2); }
+  .cz-card p.sub{ color:var(--muted); font-size:0.84rem; margin:0 0 16px; }
+  .cz-label{ display:block; font-size:0.74rem; color:var(--muted); margin:12px 0 6px; letter-spacing:0.04em; }
+  .cz-input{ width:100%; padding:12px 14px; background:var(--black); border:1px solid var(--line); border-radius:6px; color:var(--cream); font-family:'Jost',sans-serif; font-size:16px; }
+  .cz-input:focus{ outline:none; border-color:var(--gold); }
+  .cz-msg{ color:#e08a8a; font-size:0.82rem; min-height:18px; margin:10px 0; }
+  .cz-result{ display:none; text-align:center; border:1px solid var(--gold); border-radius:8px; padding:18px; margin-top:16px; }
+  .cz-code{ font-family:'Playfair Display', serif; font-size:2rem; letter-spacing:0.08em; color:var(--gold-2); }
+  .cz-result p{ color:var(--muted); font-size:0.84rem; margin:6px 0 14px; }
+  .cz-item{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-top:1px solid var(--line); flex-wrap:wrap; }
+  .cz-item:first-child{ border-top:none; }
+  .cz-item .code{ font-weight:600; letter-spacing:0.05em; }
+  .cz-item .info{ color:var(--muted); font-size:0.78rem; margin-top:2px; }
+  .cz-badge{ font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; border:1px solid var(--line); margin-left:6px; }
+  .cz-badge.vigente{ color:#e0b48a; border-color:#5a4128; }
+  .cz-badge.pagado{ color:#8fce9b; border-color:#2f5a37; }
+  #gate{ max-width:360px; margin:14vh auto; text-align:center; padding:0 16px; }
+  #gate h1{ font-family:'Playfair Display', serif; font-size:1.6rem; margin:0 0 8px; }
+  #gate p{ color:var(--muted); font-size:0.9rem; margin:0 0 24px; }
+  #gate input{ margin-bottom:12px; }
+  #gate button{ width:100%; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <h1 class="serif">Envíos nacionales</h1>
+  <p>Acceso privado — NÚCLEO essences</p>
+  <input type="password" class="cz-input" id="gatePassword" placeholder="Contraseña del panel">
+  <button class="cz-btn" id="gateBtn">Entrar</button>
+  <div class="cz-msg" id="gateErr"></div>
+</div>
+
+<div class="cz-wrap" id="panel" style="display:none;">
+  <div class="cz-top">
+    <div class="wordmark">NÚCLEO<em>essences</em></div>
+    <a class="cz-btn ghost" href="/admin">← Panel</a>
+  </div>
+
+  <div class="cz-card">
+    <h2>Nuevo código de envío</h2>
+    <p class="sub">Escribe lo que cotizaste del envío. El cliente pone el código en el carrito y en el pago le aparece "Envío nacional" con ese monto. El código dura 15 días y solo se puede usar en un pago.</p>
+
+    <label class="cz-label" for="monto">Costo del envío (pesos)</label>
+    <input class="cz-input" id="monto" type="number" inputmode="numeric" min="1" step="1" placeholder="Ej. 480">
+
+    <label class="cz-label" for="nota">Cliente / nota (opcional, solo la ves tú)</label>
+    <input class="cz-input" id="nota" type="text" maxlength="80" placeholder="Ej. Laura — Guadalajara, Estafeta">
+
+    <div class="cz-msg" id="msg"></div>
+    <button class="cz-btn" id="btnCrear" style="width:100%;">Generar código</button>
+
+    <div class="cz-result" id="result">
+      <div class="cz-code" id="resCode"></div>
+      <p id="resMonto"></p>
+      <button class="cz-btn" id="btnCopiar">Copiar mensaje para el cliente</button>
+      <a class="cz-btn ghost" id="btnWa" href="#" target="_blank" rel="noopener" style="margin-left:6px;">Abrir WhatsApp</a>
+    </div>
+  </div>
+
+  <div class="cz-card">
+    <h2>Códigos recientes</h2>
+    <div id="lista"><p class="sub">Cargando…</p></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'nucleo_admin_pw'; // misma sesión que el Panel
+  let password = sessionStorage.getItem(STORAGE_KEY) || '';
+  const $ = (id) => document.getElementById(id);
+
+  async function api(action, body) {
+    const resp = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ password, action }, body || {})),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || 'Error de conexión.');
+    return data;
+  }
+  const pesos = (n) => '$' + Number(n).toLocaleString('es-MX') + ' MXN';
+  const fecha = (iso) => { try { return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+
+  function mensajeCliente(e) {
+    return 'Hola! El envío nacional de tu pedido queda en ' + pesos(e.monto) + '.\n\n' +
+      'Tu código de envío es: ' + e.code + '\n\n' +
+      'Para pagar todo junto:\n' +
+      '1. Entra a nucleoessences.com y agrega tus productos al carrito.\n' +
+      '2. Abre el carrito y escribe el código en "¿Ya te enviamos tu código de envío nacional?" y toca Aplicar.\n' +
+      '3. Toca "Pagar de forma segura" y escribe tu dirección completa.\n\n' +
+      'El código es válido por 15 días.';
+  }
+
+  function pintarLista(envios) {
+    const cont = $('lista');
+    cont.innerHTML = '';
+    if (!envios.length) { cont.innerHTML = '<p class="sub">Aún no has generado códigos.</p>'; return; }
+    envios.forEach((e) => {
+      const fila = document.createElement('div');
+      fila.className = 'cz-item';
+      const izq = document.createElement('div');
+      const top = document.createElement('div');
+      const code = document.createElement('span'); code.className = 'code'; code.textContent = e.code;
+      const badge = document.createElement('span');
+      badge.className = 'cz-badge ' + (e.pagado ? 'pagado' : 'vigente');
+      badge.textContent = e.pagado ? 'Pagado' : 'Vigente';
+      top.append(code, badge);
+      const info = document.createElement('div'); info.className = 'info';
+      info.textContent = [pesos(e.monto), e.nota, e.pagado ? 'pagado ' + fecha(e.pagado) : 'vence ' + fecha(e.vence)].filter(Boolean).join(' · ');
+      izq.append(top, info);
+      const del = document.createElement('button');
+      del.className = 'cz-btn danger'; del.textContent = 'Borrar';
+      del.addEventListener('click', async () => {
+        if (!confirm('¿Borrar el código ' + e.code + '? Ya no se podrá usar.')) return;
+        del.disabled = true;
+        try { await api('envioDelete', { code: e.code }); cargar(); } catch (err) { alert(err.message); del.disabled = false; }
+      });
+      fila.append(izq, del);
+      cont.appendChild(fila);
+    });
+  }
+
+  async function cargar() {
+    try { pintarLista((await api('envioList')).envios || []); }
+    catch (err) { $('lista').innerHTML = ''; $('msg').textContent = err.message; }
+  }
+
+  $('btnCrear').addEventListener('click', async () => {
+    $('msg').textContent = '';
+    const btn = $('btnCrear');
+    btn.disabled = true; btn.textContent = 'Generando…';
+    try {
+      const { envio } = await api('envioCreate', { monto: $('monto').value, nota: $('nota').value });
+      $('resCode').textContent = envio.code;
+      $('resMonto').textContent = 'Envío nacional de ' + pesos(envio.monto) + (envio.nota ? ' — ' + envio.nota : '');
+      const texto = mensajeCliente(envio);
+      $('btnCopiar').onclick = async () => {
+        try { await navigator.clipboard.writeText(texto); $('btnCopiar').textContent = '✓ Copiado'; }
+        catch (e) { prompt('Copia este mensaje:', texto); }
+        setTimeout(() => { $('btnCopiar').textContent = 'Copiar mensaje para el cliente'; }, 2000);
+      };
+      $('btnWa').href = 'https://wa.me/?text=' + encodeURIComponent(texto);
+      $('result').style.display = 'block';
+      $('monto').value = ''; $('nota').value = '';
+      cargar();
+    } catch (err) {
+      $('msg').textContent = err.message;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Generar código';
+    }
+  });
+
+  async function entrar() {
+    const pw = $('gatePassword').value.trim();
+    if (!pw) return;
+    $('gateErr').textContent = '';
+    password = pw;
+    try {
+      const data = await api('envioList');
+      sessionStorage.setItem(STORAGE_KEY, pw);
+      $('gate').style.display = 'none';
+      $('panel').style.display = 'block';
+      pintarLista(data.envios || []);
+    } catch (err) {
+      $('gateErr').textContent = /contraseña/i.test(err.message) ? 'Contraseña incorrecta.' : err.message;
+    }
+  }
+  $('gateBtn').addEventListener('click', entrar);
+  $('gatePassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
+  if (password) { $('gatePassword').value = password; entrar(); }
+})();
+</script>
+</body>
+</html>

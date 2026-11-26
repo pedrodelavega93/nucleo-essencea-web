@@ -1409,6 +1409,18 @@
          style="display:block; text-align:center; margin:4px 0 14px; padding:11px 14px; border:1px solid var(--gold); border-radius:6px; color:var(--gold); font-size:0.82rem; letter-spacing:0.03em; text-decoration:none;">
         ¿Fuera de Monterrey? <strong>Cotiza tu envío nacional por WhatsApp →</strong>
       </a>
+      <div class="envio-code" id="envioCodeBox">
+        <label for="envioCodeInput">¿Ya te enviamos tu código de envío nacional?</label>
+        <div class="envio-code-row">
+          <input type="text" id="envioCodeInput" placeholder="Ej. ENV-7K3P9" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button type="button" id="envioCodeBtn">Aplicar</button>
+        </div>
+        <div class="envio-code-ok" id="envioCodeOk" hidden>
+          <span>✓ Envío nacional <strong id="envioCodeLabel"></strong> — <strong id="envioCodeMonto"></strong> se suma en el pago.</span>
+          <button type="button" id="envioCodeQuitar">Quitar</button>
+        </div>
+        <p class="envio-code-err" id="envioCodeErr"></p>
+      </div>
       <p class="cart-discount-note">🎁 Recuerda aplicar tu código de descuento de bienvenida en el siguiente paso de pago.</p>
       <div class="cart-email-capture" id="cartEmailCapture">
         <label for="cartEmailInput" class="cart-email-label">¿Te recordamos tu carrito si no completas la compra? (opcional)</label>
@@ -1826,6 +1838,64 @@
         'Referencias del domicilio: ';
       btn.href = 'https://wa.me/528116551406?text=' + encodeURIComponent(msg);
     });
+  })();
+</script>
+<script>
+  // Código de envío nacional cotizado: se valida aquí y script.js lo manda
+  // al pago (window.nucleoEnvioCode). Con código, Stripe solo muestra el
+  // envío nacional con el monto que cotizaste.
+  (function () {
+    var KEY = 'nucleo_envio_code';
+    var input = document.getElementById('envioCodeInput');
+    if (!input) return;
+    var btn = document.getElementById('envioCodeBtn');
+    var ok = document.getElementById('envioCodeOk');
+    var err = document.getElementById('envioCodeErr');
+    var row = input.parentNode;
+    var actual = null;
+    try { actual = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) {}
+
+    window.nucleoEnvioCode = function () { return actual ? actual.code : ''; };
+
+    function pintar() {
+      if (actual) {
+        document.getElementById('envioCodeLabel').textContent = actual.code;
+        document.getElementById('envioCodeMonto').textContent = '$' + Number(actual.monto).toLocaleString('es-MX') + ' MXN';
+        ok.hidden = false; row.style.display = 'none';
+      } else {
+        ok.hidden = true; row.style.display = '';
+      }
+    }
+    function aplicar() {
+      var code = input.value.trim();
+      err.textContent = '';
+      if (!code) { err.textContent = 'Escribe tu código.'; return; }
+      btn.disabled = true; btn.textContent = '…';
+      fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'envio_check', code: code }),
+      })
+        .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Código no válido.'); return d; }); })
+        .then(function (d) {
+          actual = { code: d.code, monto: d.monto };
+          try { sessionStorage.setItem(KEY, JSON.stringify(actual)); } catch (e) {}
+          input.value = '';
+          pintar();
+        })
+        .catch(function (e) { err.textContent = e.message; })
+        .finally(function () { btn.disabled = false; btn.textContent = 'Aplicar'; });
+    }
+    btn.addEventListener('click', aplicar);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); aplicar(); } });
+    document.getElementById('envioCodeQuitar').addEventListener('click', function () {
+      actual = null;
+      try { sessionStorage.removeItem(KEY); } catch (e) {}
+      pintar();
+    });
+    // Si en el pago dicen que el código ya no sirve, se quita solo.
+    window.nucleoEnvioCodeInvalido = function () { document.getElementById('envioCodeQuitar').click(); };
+    pintar();
   })();
 </script>
 <script src="reviews.js"></script>
