@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>NÚCLEO essences — Reseñas</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body{ background:var(--black); }
+  .ra-wrap{ max-width:980px; margin:0 auto; padding:28px 16px 80px; }
+  .ra-top{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
+  .ra-top .wordmark{ font-family:'Playfair Display', serif; font-size:1.4rem; font-weight:700; letter-spacing:0.08em; }
+  .ra-top .wordmark em{ display:block; font-style:italic; font-weight:400; font-size:0.62rem; letter-spacing:0.3em; color:var(--gold); }
+  .ra-btn{ background:var(--gold); color:var(--black); border:none; border-radius:6px; padding:10px 16px; font-family:'Jost',sans-serif; font-size:0.8rem; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
+  .ra-btn.ghost{ background:transparent; color:var(--gold-2); border:1px solid var(--line); }
+  .ra-btn.danger{ background:transparent; color:#e08a8a; border:1px solid #5a2c2c; }
+  .ra-btn:disabled{ opacity:0.5; cursor:default; }
+
+  #gate{ max-width:360px; margin:14vh auto; text-align:center; padding:0 16px; }
+  #gate h1{ font-family:'Playfair Display', serif; font-size:1.6rem; margin:0 0 8px; }
+  #gate p{ color:var(--muted); font-size:0.9rem; margin:0 0 24px; }
+  #gate input{ width:100%; padding:13px 16px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--cream); font-family:'Jost',sans-serif; font-size:16px; margin-bottom:12px; }
+  #gate button{ width:100%; }
+  #gate .err{ color:#e08a8a; font-size:0.82rem; margin-top:10px; min-height:16px; }
+
+  .ra-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .ra-tab{ font-family:'Jost',sans-serif; font-size:0.78rem; color:var(--muted); background:var(--panel-2); border:1px solid var(--line); padding:8px 14px; border-radius:999px; cursor:pointer; }
+  .ra-tab.selected{ background:var(--gold); color:var(--black); border-color:var(--gold); }
+
+  .ra-list{ display:grid; gap:14px; }
+  .ra-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:18px; }
+  .ra-card.pendiente{ border-color:rgba(224,180,138,0.5); }
+  .ra-head{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:baseline; }
+  .ra-name{ font-weight:500; font-size:1rem; }
+  .ra-stars{ color:var(--gold); letter-spacing:0.1em; }
+  .ra-sub{ color:var(--muted); font-size:0.78rem; margin-top:2px; }
+  .ra-badge{ font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; border:1px solid var(--line); }
+  .ra-badge.pendiente{ color:#e0b48a; border-color:#5a4128; }
+  .ra-badge.publicada{ color:#8fce9b; border-color:#2f5a37; }
+  .ra-text{ margin:12px 0; white-space:pre-line; line-height:1.55; font-size:0.92rem; }
+  .ra-photos{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .ra-photos a{ width:92px; height:92px; border-radius:6px; overflow:hidden; border:1px solid var(--line); display:block; }
+  .ra-photos img{ width:100%; height:100%; object-fit:cover; }
+  .ra-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .ra-empty, .ra-loading{ text-align:center; color:var(--muted); padding:40px 10px; }
+  .ra-msg{ color:#e08a8a; font-size:0.82rem; min-height:18px; margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <h1 class="serif">Reseñas de clientes</h1>
+  <p>Acceso privado — NÚCLEO essences</p>
+  <input type="password" id="gatePassword" placeholder="Contraseña del panel">
+  <button class="ra-btn" id="gateBtn">Entrar</button>
+  <div class="err" id="gateErr"></div>
+</div>
+
+<div class="ra-wrap" id="panel" style="display:none;">
+  <div class="ra-top">
+    <div class="wordmark">NÚCLEO<em>essences</em></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="ra-btn ghost" id="btnRefrescar">Actualizar</button>
+      <a class="ra-btn ghost" href="/admin">← Panel de suscripciones</a>
+    </div>
+  </div>
+
+  <div class="ra-tabs" id="tabs">
+    <button class="ra-tab selected" data-filter="pendiente">Por aprobar <span id="cntPend"></span></button>
+    <button class="ra-tab" data-filter="publicada">Publicadas <span id="cntPub"></span></button>
+    <button class="ra-tab" data-filter="todas">Todas</button>
+  </div>
+
+  <div class="ra-msg" id="msg"></div>
+  <div class="ra-list" id="list"><div class="ra-loading">Cargando reseñas…</div></div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'nucleo_admin_pw'; // la misma sesión que el panel de suscripciones
+  let password = sessionStorage.getItem(STORAGE_KEY) || '';
+  let todas = [];
+  let filtro = 'pendiente';
+
+  const $ = (id) => document.getElementById(id);
+
+  async function api(action, body) {
+    const resp = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ password, action }, body || {})),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || 'Error de conexión.');
+    return data;
+  }
+
+  function el(tag, cls, texto) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (texto != null) e.textContent = texto;
+    return e;
+  }
+  const estrellas = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+  const fecha = (iso) => { try { return new Date(iso).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return ''; } };
+
+  function pintar() {
+    const pend = todas.filter((r) => r.estado === 'pendiente').length;
+    const pub = todas.filter((r) => r.estado === 'publicada').length;
+    $('cntPend').textContent = '(' + pend + ')';
+    $('cntPub').textContent = '(' + pub + ')';
+
+    const lista = filtro === 'todas' ? todas : todas.filter((r) => r.estado === filtro);
+    const cont = $('list');
+    cont.innerHTML = '';
+    if (!lista.length) {
+      cont.appendChild(el('div', 'ra-empty', filtro === 'pendiente' ? 'No hay reseñas por aprobar.' : 'No hay reseñas aquí.'));
+      return;
+    }
+
+    lista.forEach((r) => {
+      const card = el('div', 'ra-card ' + r.estado);
+
+      const head = el('div', 'ra-head');
+      const izq = el('div');
+      izq.appendChild(el('div', 'ra-name', r.nombre));
+      izq.appendChild(el('div', 'ra-sub', [r.producto, fecha(r.fecha)].filter(Boolean).join(' · ')));
+      head.appendChild(izq);
+      const der = el('div');
+      der.appendChild(el('span', 'ra-stars', estrellas(r.estrellas) + '  '));
+      der.appendChild(el('span', 'ra-badge ' + r.estado, r.estado === 'publicada' ? 'Publicada' : 'Por aprobar'));
+      head.appendChild(der);
+      card.appendChild(head);
+
+      card.appendChild(el('p', 'ra-text', r.comentario));
+
+      if (r.fotos && r.fotos.length) {
+        const fotos = el('div', 'ra-photos');
+        r.fotos.forEach((src) => {
+          const a = el('a');
+          a.href = src;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = 'Foto de la reseña';
+          img.loading = 'lazy';
+          a.appendChild(img);
+          fotos.appendChild(a);
+        });
+        card.appendChild(fotos);
+      }
+
+      const acciones = el('div', 'ra-actions');
+      if (r.estado === 'pendiente') {
+        acciones.appendChild(boton('Aprobar y publicar', 'ra-btn', () => accion('reviewApprove', r)));
+      } else {
+        acciones.appendChild(boton('Ocultar de la página', 'ra-btn ghost', () => accion('reviewHide', r)));
+      }
+      acciones.appendChild(boton('Eliminar', 'ra-btn danger', () => {
+        if (confirm('¿Eliminar definitivamente la reseña de ' + r.nombre + '? No se puede deshacer.')) accion('reviewDelete', r);
+      }));
+      card.appendChild(acciones);
+
+      cont.appendChild(card);
+    });
+  }
+
+  function boton(texto, cls, fn) {
+    const b = el('button', cls, texto);
+    b.type = 'button';
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      try { await fn(); } finally { b.disabled = false; }
+    });
+    return b;
+  }
+
+  async function accion(action, r) {
+    $('msg').textContent = '';
+    try {
+      await api(action, { reviewId: r.id });
+      if (action === 'reviewDelete') {
+        todas = todas.filter((x) => x.id !== r.id);
+      } else {
+        r.estado = action === 'reviewApprove' ? 'publicada' : 'pendiente';
+      }
+      pintar();
+    } catch (err) {
+      $('msg').textContent = err.message;
+    }
+  }
+
+  async function cargar() {
+    $('msg').textContent = '';
+    $('list').innerHTML = '<div class="ra-loading">Cargando reseñas…</div>';
+    try {
+      const data = await api('reviewsList');
+      todas = data.reviews || [];
+      pintar();
+    } catch (err) {
+      $('list').innerHTML = '';
+      $('msg').textContent = err.message;
+    }
+  }
+
+  document.querySelectorAll('.ra-tab').forEach((t) => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.ra-tab').forEach((x) => x.classList.remove('selected'));
+      t.classList.add('selected');
+      filtro = t.dataset.filter;
+      pintar();
+    });
+  });
+  $('btnRefrescar').addEventListener('click', cargar);
+
+  async function entrar() {
+    const pw = $('gatePassword').value.trim();
+    if (!pw) return;
+    $('gateErr').textContent = '';
+    $('gateBtn').disabled = true;
+    $('gateBtn').textContent = 'Entrando…';
+    password = pw;
+    try {
+      const data = await api('reviewsList');
+      sessionStorage.setItem(STORAGE_KEY, pw);
+      $('gate').style.display = 'none';
+      $('panel').style.display = 'block';
+      todas = data.reviews || [];
+      pintar();
+    } catch (err) {
+      $('gateErr').textContent = /contraseña/i.test(err.message) ? 'Contraseña incorrecta.' : err.message;
+    } finally {
+      $('gateBtn').disabled = false;
+      $('gateBtn').textContent = 'Entrar';
+    }
+  }
+  $('gateBtn').addEventListener('click', entrar);
+  $('gatePassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
+
+  if (password) {
+    $('gatePassword').value = password;
+    entrar();
+  }
+})();
+</script>
+</body>
+</html>

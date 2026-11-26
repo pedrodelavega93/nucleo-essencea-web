@@ -65,6 +65,7 @@
       </div>
     </div>
     <a href="#eventos">Eventos</a>
+    <a href="#resenas">Reseñas</a>
   </nav>
 </header>
 
@@ -103,6 +104,7 @@
         </div>
       </div>
       <a class="pill" href="#eventos">Eventos</a>
+      <a class="pill" href="#resenas">★ Reseñas</a>
     </div>
   </div>
   <div class="scroll-cue" aria-hidden="true"></div>
@@ -179,6 +181,28 @@
       <div class="trust-logo trust-logo-hotcore"><img src="assets/logos/hotcore.png" alt="Hotcore"></div>
       <div class="trust-logo trust-logo-plain"><img src="assets/logos/cutton.png" alt="Cutton"></div>
       <div class="trust-logo trust-logo-plain"><img src="assets/logos/pausa-studio.png" alt="Pausa Studio"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESEÑAS DE CLIENTES ============ -->
+<section class="catalog-section alt reviews-section" id="resenas">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Reseñas</div>
+      <h2 class="serif">Lo que dicen nuestros clientes</h2>
+      <div class="reviews-summary" id="reviewsSummary" hidden>
+        <span class="reviews-avg serif" id="reviewsAvg">5.0</span>
+        <span class="review-stars" id="reviewsAvgStars" aria-hidden="true"></span>
+        <span class="reviews-count" id="reviewsCount"></span>
+      </div>
+    </div>
+
+    <div class="reviews-track" id="reviewsTrack" aria-live="polite"><!-- reseñas inyectadas por JS --></div>
+    <p class="reviews-empty" id="reviewsEmpty" hidden>Aún no hay reseñas publicadas. ¡Sé el primero en compartir tu experiencia con NÚCLEO essences!</p>
+
+    <div class="reviews-cta-wrap">
+      <button type="button" class="buy-btn reviews-cta" id="reviewOpenBtn">Deja tu reseña</button>
     </div>
   </div>
 </section>
@@ -1178,7 +1202,7 @@
       </details>
       <details class="faq-item">
         <summary>¿Cuánto tarda el envío?</summary>
-        <p>El envío a domicilio dentro de la Zona Metropolitana de Monterrey tarda de 2 a 5 días hábiles. También puedes elegir recoger tu pedido sin costo en Abi Corpus Hair Studio (José Peón y Contreras 2125-A, Contry Sol, Guadalupe), con el mismo tiempo estimado de preparación.</p>
+        <p>El envío a domicilio dentro de la Zona Metropolitana de Monterrey tarda de 2 a 5 días hábiles. También puedes elegir recoger tu pedido sin costo en Abi Corpus Hair Studio (José Peón y Contreras 2125-A, Contry Sol, Guadalupe), con el mismo tiempo estimado de preparación. ¿Estás en otra parte de la República? Hacemos envíos nacionales: el costo depende de tu código postal, así que cotízalo con nosotros por WhatsApp desde el botón del carrito.</p>
       </details>
       <details class="faq-item">
         <summary>¿Los perfumes son originales?</summary>
@@ -1223,6 +1247,7 @@
         </div>
         <div class="footer-col">
           <h4>Ayuda</h4>
+          <a href="#resenas">Reseñas de clientes</a>
           <a href="#faq">Preguntas frecuentes</a>
           <a href="privacy.html">Aviso de Privacidad</a>
         </div>
@@ -1340,6 +1365,7 @@
   <a href="#perfumes">Perfumes</a>
   <a href="#aceites">Aceites</a>
   <a href="#eventos">Eventos</a>
+  <a href="#resenas">Reseñas</a>
   <a href="/estatus.html">Estatus de mi pedido</a>
 </div>
 
@@ -1378,7 +1404,11 @@
           <p class="cart-plan-disclaimer">El precio a plazos incluye el costo de administración por financiamiento con tarjeta de crédito.</p>
         </div>
       </div>
-      <p class="cart-note">El costo de envío o la opción de recoger en tienda se elige en el pago seguro de Stripe.</p>
+      <p class="cart-note">El costo de envío o la opción de recoger en tienda se elige en el pago seguro de Stripe (envío a domicilio solo dentro de la Zona Metropolitana de Monterrey).</p>
+      <a class="cart-national-ship" id="cartNationalShip" href="https://wa.me/528116551406" target="_blank" rel="noopener"
+         style="display:block; text-align:center; margin:4px 0 14px; padding:11px 14px; border:1px solid var(--gold); border-radius:6px; color:var(--gold); font-size:0.82rem; letter-spacing:0.03em; text-decoration:none;">
+        ¿Fuera de Monterrey? <strong>Cotiza tu envío nacional por WhatsApp →</strong>
+      </a>
       <p class="cart-discount-note">🎁 Recuerda aplicar tu código de descuento de bienvenida en el siguiente paso de pago.</p>
       <div class="cart-email-capture" id="cartEmailCapture">
         <label for="cartEmailInput" class="cart-email-label">¿Te recordamos tu carrito si no completas la compra? (opcional)</label>
@@ -1390,6 +1420,79 @@
       </button>
     </div>
   </div>
+</div>
+
+<!-- ============ MODAL: DEJAR RESEÑA ============ -->
+<div class="review-modal" id="reviewModal" role="dialog" aria-modal="true" aria-label="Deja tu reseña">
+  <div class="review-modal-inner">
+    <button type="button" class="modal-close" id="reviewModalClose" aria-label="Cerrar">✕</button>
+
+    <form id="reviewForm" novalidate>
+      <h4 class="serif">Deja tu reseña</h4>
+      <p class="review-modal-sub">Tu opinión ayuda a otros clientes a elegir. La publicaremos en cuanto la revisemos.</p>
+
+      <label class="review-label" for="reviewName">Tu nombre</label>
+      <input type="text" id="reviewName" class="review-input" maxlength="60" placeholder="Nombre y apellido" autocomplete="name" required>
+
+      <span class="review-label">Calificación</span>
+      <div class="review-star-picker" id="reviewStarPicker" role="radiogroup" aria-label="Calificación de 1 a 5 estrellas">
+        <button type="button" data-stars="1" aria-label="1 estrella">★</button>
+        <button type="button" data-stars="2" aria-label="2 estrellas">★</button>
+        <button type="button" data-stars="3" aria-label="3 estrellas">★</button>
+        <button type="button" data-stars="4" aria-label="4 estrellas">★</button>
+        <button type="button" data-stars="5" aria-label="5 estrellas">★</button>
+      </div>
+
+      <label class="review-label" for="reviewProduct">¿Qué compraste o contrataste? (opcional)</label>
+      <select id="reviewProduct" class="review-input">
+        <option value="">— Elige una opción —</option>
+        <option>Difusor A60 Bluetooth</option>
+        <option>Difusor A300</option>
+        <option>Difusor A1000</option>
+        <option>Difusor A3000</option>
+        <option>Difusor A5000</option>
+        <option>Difusor CAR PRO</option>
+        <option>Perfume</option>
+        <option>Home Spray</option>
+        <option>Aceite ambiental</option>
+        <option>Renta de difusores</option>
+        <option>Suscripción de aromas</option>
+        <option>Aromatización de evento</option>
+        <option>Otro</option>
+      </select>
+
+      <label class="review-label" for="reviewComment">Tu comentario</label>
+      <textarea id="reviewComment" class="review-input" rows="4" maxlength="1000" placeholder="¿Qué te pareció tu producto o servicio?" required></textarea>
+      <div class="review-counter"><span id="reviewCommentCount">0</span>/1000</div>
+
+      <span class="review-label">Fotos de tu producto (opcional, hasta 3)</span>
+      <div class="review-photos" id="reviewPhotos">
+        <label class="review-photo-add" id="reviewPhotoAdd">
+          <input type="file" id="reviewPhotoInput" accept="image/*" multiple hidden>
+          <span>＋</span><small>Agregar foto</small>
+        </label>
+      </div>
+
+      <!-- campo trampa para bots: no lo llenes -->
+      <input type="text" name="sitio_web" id="reviewHp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;">
+
+      <p class="review-error" id="reviewError" role="alert"></p>
+      <button type="submit" class="review-submit" id="reviewSubmit">Enviar reseña</button>
+    </form>
+
+    <div class="review-thanks" id="reviewThanks" hidden>
+      <div class="review-thanks-icon">✓</div>
+      <h4 class="serif">¡Gracias por tu reseña!</h4>
+      <p>La revisaremos y aparecerá en la página muy pronto.</p>
+      <button type="button" class="review-submit" id="reviewThanksClose">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VISOR DE FOTOS DE RESEÑAS ============ -->
+<div class="review-lightbox" id="reviewLightbox" aria-hidden="true">
+  <button type="button" class="modal-close" id="reviewLightboxClose" aria-label="Cerrar foto">✕</button>
+  <img id="reviewLightboxImg" alt="Foto de la reseña del cliente">
 </div>
 
 <!-- ============ TOAST (confirmación al agregar) ============ -->
@@ -1686,5 +1789,45 @@
 <script src="assets/ambientales-data.js"></script>
 <script src="assets/sensaciones-data.js"></script>
 <script src="script.js"></script>
+<script>
+  // Botón "Cotiza tu envío nacional": abre WhatsApp con un mensaje ya
+  // escrito que incluye los productos del carrito y pide los datos de envío.
+  (function () {
+    var btn = document.getElementById('cartNationalShip');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var lineas = [];
+      document.querySelectorAll('#cartItems > *').forEach(function (el) {
+        var partes = [];
+        var cantidad = '';
+        (el.innerText || '').split('\n').forEach(function (l) {
+          l = l.replace(/[−+✕×]/g, '').trim();
+          if (!l || /^eliminar$/i.test(l)) return;
+          if (/^\d+$/.test(l)) { cantidad = l; return; }
+          partes.push(l);
+        });
+        var input = el.querySelector('input');
+        if (input && input.value) cantidad = input.value;
+        if (!partes.length) return;
+        lineas.push('• ' + partes.join(' — ') + (cantidad ? ' — Cantidad: ' + cantidad : ''));
+      });
+      var total = (document.getElementById('cartTotal') || {}).textContent || '';
+      var msg = 'Hola! Quiero cotizar un envío nacional.\n\n' +
+        (lineas.length ? 'Mi pedido:\n' + lineas.join('\n') + '\n' : '') +
+        (total ? 'Total productos: ' + total.trim() + '\n' : '') +
+        '\nMis datos de envío:\n' +
+        'Nombre completo: \n' +
+        'Celular: \n' +
+        'Correo electrónico: \n' +
+        'Calle y número: \n' +
+        'Colonia: \n' +
+        'Código postal: \n' +
+        'Ciudad y estado: \n' +
+        'Referencias del domicilio: ';
+      btn.href = 'https://wa.me/528116551406?text=' + encodeURIComponent(msg);
+    });
+  })();
+</script>
+<script src="reviews.js"></script>
 </body>
 </html>
