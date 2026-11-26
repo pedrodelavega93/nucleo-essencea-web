@@ -25,6 +25,9 @@ const { buscarAroma } = require('./_aroma-catalog');
 const welcomeCode = require('./_welcome-code');
 // Precios especiales (Buen Fin extendido hasta el 30 nov). Ver api/_buenfin.js.
 const buenFin = require('./_buenfin');
+// Reseñas de clientes (parte pública). Va aquí por el mismo límite de
+// 12 funciones. Ver api/_reviews.js.
+const reviews = require('./_reviews');
 
 // Describe el aroma elegido. Los combos mandan varios aromas en un solo
 // texto ("Perfume: X · Spray: Y"); cada uno se busca en el catálogo.
@@ -119,15 +122,59 @@ function buildShippingOptions() {
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
+
+  // ---------- Reseñas (lectura pública por GET) ----------
+  //   /api/create-checkout?reviews=1            → reseñas publicadas
+  //   /api/create-checkout?review_photo=<id>    → foto de una reseña
+  if (req.method === 'GET') {
+    const q = req.query || {};
+    try {
+      if (q.review_photo) {
+        return await reviews.enviarFoto(res, String(q.review_photo));
+      }
+      if (q.reviews) {
+        const data = await reviews.listarPublicas();
+        // Caché de 1 minuto: una reseña aprobada tarda hasta 1 min en aparecer.
+        // (el navegador siempre pregunta de nuevo; solo el CDN de Vercel guarda copia)
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Vercel-CDN-Cache-Control', 'max-age=60, stale-while-revalidate=300');
+        res.status(200).json(data);
+        return;
+      }
+    } catch (err) {
+      console.error('[reviews] Error:', err);
+      res.status(500).json({ error: 'No se pudieron cargar las reseñas.' });
+      return;
+    }
+    res.status(405).json({ error: 'Método no permitido' });
+    return;
+  }
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Método no permitido' });
+    return;
+  }
+
+  // ---------- Reseñas: un cliente envía una reseña nueva ----------
+  if (req.body && req.body.action === 'review_submit') {
+    try {
+      const r = await reviews.enviar(req, req.body);
+      res.status(200).json(r);
+    } catch (err) {
+      if (err && err.status) {
+        res.status(err.status).json({ error: err.error });
+      } else {
+        console.error('[reviews] Error al guardar:', err);
+        res.status(500).json({ error: 'No se pudo enviar tu reseña. Intenta de nuevo.' });
+      }
+    }
     return;
   }
 

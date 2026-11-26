@@ -12,6 +12,8 @@
 //   'cancel'    → cancela (da de baja) una suscripción
 //   'update'    → modifica aroma/plan/tamaño/monto/domicilio
 //   'markPaid'  → marca como pagado el recibo abierto del mes
+//   'reviewsList' / 'reviewApprove' / 'reviewHide' / 'reviewDelete'
+//               → reseñas de clientes (ver api/_reviews.js)
 //
 // Protegido con ADMIN_PASSWORD. Requiere STRIPE_SECRET_KEY.
 // No hay base de datos propia: todo (incluyendo el domicilio de
@@ -21,6 +23,8 @@
 
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+// Reseñas de clientes (aprobar / ocultar / borrar). Ver api/_reviews.js.
+const reviews = require('./_reviews');
 
 const ESTADOS_VIGENTES = ['active', 'trialing', 'past_due', 'unpaid'];
 
@@ -364,6 +368,19 @@ module.exports = async (req, res) => {
         break;
       case 'markPaid':
         resultado = await accionMarkPaid(body);
+        break;
+      // ---- Reseñas de clientes ----
+      case 'reviewsList':
+        resultado = await reviews.adminListar();
+        break;
+      case 'reviewApprove':
+        resultado = await reviews.adminAprobar(body);
+        break;
+      case 'reviewHide':
+        resultado = await reviews.adminOcultar(body);
+        break;
+      case 'reviewDelete':
+        resultado = await reviews.adminBorrar(body);
         break;
       default:
         return res.status(400).json({ error: 'Acción no reconocida.' });
