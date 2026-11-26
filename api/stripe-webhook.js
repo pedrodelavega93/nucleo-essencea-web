@@ -186,7 +186,7 @@ function filasClienteHtml({ nombre, correo, direccion }) {
 }
 
 // Plantilla HTML del correo con la identidad dorado/negro de la marca.
-function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direccion, paymentId }) {
+function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direccion, paymentId, desglose }) {
   const resumenHtml = escaparHtml(resumen).replace(/\s\|\s/g, '<br>');
   const clienteHtml = filasClienteHtml({ nombre, correo, direccion });
   const facturaLink = enlaceFactura(paymentId);
@@ -221,7 +221,10 @@ function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direc
                 <tr>
                   <td style="padding:18px 20px; font-size:15px; line-height:1.7; color:#f5f0e6;">
                     ${resumenHtml}
-                    ${total ? `<div style="margin-top:14px; padding-top:14px; border-top:1px solid #2a2a2a; color:#c9a24b; font-size:16px;">Total: ${escaparHtml(total)}</div>` : ''}
+                    ${desglose && desglose.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px; padding-top:10px; border-top:1px solid #2a2a2a; font-size:14px; color:#cfc8bb;">
+                      ${desglose.map(([et, val]) => `<tr><td style="padding:3px 0;">${escaparHtml(et)}</td><td style="padding:3px 0; text-align:right;">${escaparHtml(val)}</td></tr>`).join('')}
+                    </table>` : ''}
+                    ${total ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:${desglose && desglose.length ? '8' : '14'}px; padding-top:${desglose && desglose.length ? '8' : '14'}px; border-top:1px solid #2a2a2a; color:#c9a24b; font-size:16px;"><tr><td>Total</td><td style="text-align:right;">${escaparHtml(total)}</td></tr></table>` : ''}
                   </td>
                 </tr>
               </table>
@@ -259,7 +262,7 @@ function plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo, direc
 }
 
 // Versión en texto plano (fallback para clientes sin HTML).
-function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direccion, paymentId }) {
+function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direccion, paymentId, desglose }) {
   return [
     '¡Gracias por tu compra en NÚCLEO essences! 🌿',
     '',
@@ -269,6 +272,8 @@ function plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo, direcc
     '',
     'Resumen de tu pedido:',
     resumen,
+    '',
+    ...(desglose || []).map(([et, val]) => et + ': ' + val),
     total ? 'Total: ' + total : '',
     '',
     mensajeEntrega,
@@ -306,6 +311,7 @@ function plantillaInterna({
   paymentId,
   descuento,
   envioNacional,
+  desglose,
 }) {
   const waNumero = telefonoParaWhatsApp(telefono);
   const waLink = waNumero ? 'https://wa.me/' + waNumero : '';
@@ -340,7 +346,7 @@ function plantillaInterna({
 
   // Filas de descuento: solo aparecen si el cliente usó un código.
   if (descuento) {
-    if (descuento.subtotal) filas.push(['Subtotal (sin descuento)', descuento.subtotal]);
+    if (descuento.subtotal && !(desglose && desglose.length)) filas.push(['Subtotal (sin descuento)', descuento.subtotal]);
     const valorDescuento =
       `${descuento.codigo}${descuento.porcentaje ? ' — ' + descuento.porcentaje : ''} (-${descuento.monto})`;
     const valorDescuentoHtml =
@@ -349,6 +355,13 @@ function plantillaInterna({
       ` <span style="color:#b3261e;">(-${escaparHtml(descuento.monto)})</span>`;
     filas.push(['Código de descuento', valorDescuento, valorDescuentoHtml]);
   }
+
+  // Desglose: subtotal de productos y costo de envío (el descuento ya
+  // tiene su propia fila arriba con el código usado).
+  (desglose || []).forEach(([et, val]) => {
+    if (et === 'Descuento') return;
+    filas.push([et === 'Subtotal productos' ? 'Subtotal productos' : 'Costo de ' + et.toLowerCase(), val]);
+  });
 
   filas.push(
     ['Total', total || '(sin total)'],
@@ -430,6 +443,30 @@ async function obtenerDescuento(session) {
     console.error('[v0] No se pudo leer el descuento de la sesión:', err.message);
     return null;
   }
+}
+
+// Desglose del cobro para los correos: subtotal de productos, descuento,
+// envío y total. Solo aplica a pagos únicos (las suscripciones no llevan
+// envío). Regresa [] si no hay nada que desglosar.
+function construirDesglose(session, { recoleccion, envioNacional }) {
+  if (session.mode !== 'payment' || typeof session.amount_subtotal !== 'number') return [];
+  const moneda = session.currency;
+  const envioCentavos =
+    (session.shipping_cost && typeof session.shipping_cost.amount_total === 'number'
+      ? session.shipping_cost.amount_total
+      : session.total_details && session.total_details.amount_shipping) || 0;
+  const descuentoCentavos = (session.total_details && session.total_details.amount_discount) || 0;
+
+  const etiquetaEnvio = recoleccion
+    ? 'Recoger en tienda'
+    : envioNacional
+      ? 'Envío nacional'
+      : 'Envío a domicilio';
+
+  const filas = [['Subtotal productos', formatearMonto(session.amount_subtotal, moneda)]];
+  if (descuentoCentavos) filas.push(['Descuento', '-' + formatearMonto(descuentoCentavos, moneda)]);
+  filas.push([etiquetaEnvio, envioCentavos ? formatearMonto(envioCentavos, moneda) : 'Gratis']);
+  return filas;
 }
 
 // Formatea el total (viene en centavos) a moneda legible.
@@ -532,6 +569,7 @@ module.exports = async (req, res) => {
 
     const resumen = construirResumen(session);
     const total = formatearTotal(session);
+    const desglose = construirDesglose(session, { recoleccion, envioNacional });
 
     // ID de pago: se calcula aquí (antes del correo al cliente) porque el
     // enlace "¿Necesitas factura?" lo incluye como referencia del pedido.
@@ -544,8 +582,8 @@ module.exports = async (req, res) => {
       from: REMITENTE,
       to: email,
       subject: '¡Gracias por tu compra en NÚCLEO essences! 🌿',
-      html: plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo: email, direccion, paymentId }),
-      text: plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo: email, direccion, paymentId }),
+      html: plantillaCorreo({ resumen, mensajeEntrega, total, nombre, correo: email, direccion, paymentId, desglose }),
+      text: plantillaTexto({ resumen, mensajeEntrega, total, nombre, correo: email, direccion, paymentId, desglose }),
     });
 
     if (error) {
@@ -583,6 +621,7 @@ module.exports = async (req, res) => {
       paymentId,
       descuento,
       envioNacional,
+      desglose,
     });
 
     const { error: errorInterno } = await resend.emails.send({
