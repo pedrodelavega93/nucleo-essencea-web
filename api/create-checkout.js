@@ -28,6 +28,18 @@ const buenFin = require('./_buenfin');
 // Reseñas de clientes (parte pública). Va aquí por el mismo límite de
 // 12 funciones. Ver api/_reviews.js.
 const reviews = require('./_reviews');
+// Códigos de envío nacional cotizado. Ver api/_envios.js.
+const envios = require('./_envios');
+
+// Si el cliente trae un código de envío nacional válido, el pago de
+// Stripe muestra SOLO esa tarifa (monto cotizado). Si no, las normales.
+async function opcionesDeEnvio(body) {
+  if (body && body.envioCode) {
+    const envio = await envios.buscar(body.envioCode);
+    return { opciones: envios.opcionStripe(envio), envio };
+  }
+  return { opciones: buildShippingOptions(), envio: null };
+}
 
 // Describe el aroma elegido. Los combos mandan varios aromas en un solo
 // texto ("Perfume: X · Spray: Y"); cada uno se busca en el catálogo.
@@ -174,6 +186,17 @@ module.exports = async (req, res) => {
         console.error('[reviews] Error al guardar:', err);
         res.status(500).json({ error: 'No se pudo enviar tu reseña. Intenta de nuevo.' });
       }
+    }
+    return;
+  }
+
+  // ---------- Envío nacional: el carrito valida un código de cotización ----------
+  if (req.body && req.body.action === 'envio_check') {
+    try {
+      res.status(200).json(await envios.validar(req.body));
+    } catch (err) {
+      if (err && err.status) res.status(err.status).json({ error: err.error });
+      else { console.error('[envios] Error:', err); res.status(500).json({ error: 'No se pudo revisar el código. Intenta de nuevo.' }); }
     }
     return;
   }
@@ -393,12 +416,15 @@ module.exports = async (req, res) => {
       const regalo = esBuenFin ? buenFin.perfumerosRegalo(body.items) : 0;
       if (regalo) resumenPartes.unshift('REGALO: ' + regalo + ' perfumeros de 10 ml (aroma sorpresa)');
 
+      // Envío: tarifas normales, o solo el envío nacional si trae código.
+      const envioCarrito = await opcionesDeEnvio(body);
+
       const sessionConfig = {
         mode: 'payment',
         line_items: lineItems,
         shipping_address_collection: { allowed_countries: ['MX'] },
         phone_number_collection: { enabled: true },
-        shipping_options: buildShippingOptions(),
+        shipping_options: envioCarrito.opciones,
         // Durante el Buen Fin no se aceptan códigos de descuento: solo
         // aplican los precios Buen Fin.
         allow_promotion_codes: !esBuenFin,
@@ -435,9 +461,13 @@ module.exports = async (req, res) => {
       if (regalo) {
         mensajes.push('Tu pedido incluye ' + regalo + ' perfumeros de 10 ml de regalo (aroma sorpresa).');
       }
-      mensajes.push(
-        'Elige tu método de entrega arriba. Si seleccionas "Recoger en Abi Corpus Hair Studio", te avisaremos por correo o WhatsApp cuando tu pedido esté listo para recoger. ¿Estás fuera de Monterrey? Cotiza tu envío nacional por WhatsApp al 81 1655 1406 antes de pagar.'
-      );
+      if (envioCarrito.envio) {
+        mensajes.push('Tu envío nacional cotizado (' + envioCarrito.envio.code + ', $' + envioCarrito.envio.monto + ' MXN) ya está incluido en el total. Escribe arriba la dirección completa a donde enviaremos tu pedido.');
+      } else {
+        mensajes.push(
+          'Elige tu método de entrega arriba. Si seleccionas "Recoger en Abi Corpus Hair Studio", te avisaremos por correo o WhatsApp cuando tu pedido esté listo para recoger. ¿Estás fuera de Monterrey? Cotiza tu envío nacional por WhatsApp al 81 1655 1406 antes de pagar.'
+        );
+      }
       if (hayDifusor) {
         mensajes.push('En la dirección de instalación del difusor incluye calle, número, colonia y código postal.');
       }
@@ -457,6 +487,7 @@ module.exports = async (req, res) => {
         plan_pago: esPlazos ? ('plazos_' + mesesPlazos + 'm') : 'contado',
         precio_buen_fin: esBuenFin ? 'si' : 'no',
         regalo_perfumeros: String(regalo),
+        envio_nacional: envioCarrito.envio ? envioCarrito.envio.code + ' — $' + envioCarrito.envio.monto + ' MXN' : '',
       };
 
       const session = await stripe.checkout.sessions.create(sessionConfig);
@@ -517,8 +548,10 @@ module.exports = async (req, res) => {
     // suscripción — solo en pagos únicos. Para los planes de renta mensual
     // se sigue pidiendo la dirección (arriba) y el método de entrega se
     // ofrece como campo desplegable (custom_field) más abajo.
+    let envioUnico = null;
     if (product.mode === 'payment') {
-      sessionConfig.shipping_options = buildShippingOptions();
+      envioUnico = await opcionesDeEnvio(body);
+      sessionConfig.shipping_options = envioUnico.opciones;
     }
 
     // Construimos los custom_fields de forma incremental para no
@@ -618,6 +651,7 @@ module.exports = async (req, res) => {
       tamano: product.size || '',
       plan_nombre: product.label || String(productKey),
       envio_gratis: product.aromaSub ? 'si' : 'no',
+      envio_nacional: envioUnico && envioUnico.envio ? envioUnico.envio.code + ' — $' + envioUnico.envio.monto + ' MXN' : '',
     };
 
     // En suscripciones, propagamos también la metadata a la suscripción
@@ -629,6 +663,11 @@ module.exports = async (req, res) => {
     const session = await stripe.checkout.sessions.create(sessionConfig);
     res.status(200).json({ url: session.url });
   } catch (err) {
+    if (err && err.status && err.error) {
+      // Errores "esperados" (p. ej. código de envío vencido): mensaje claro.
+      res.status(err.status).json({ error: err.error });
+      return;
+    }
     console.error('Error creando sesión de Stripe:', err);
     // Devolvemos el mensaje real de Stripe para poder diagnosticar fallos
     // (por ejemplo, un Price ID de suscripción mal configurado).

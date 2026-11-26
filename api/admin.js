@@ -25,6 +25,8 @@ const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // Reseñas de clientes (aprobar / ocultar / borrar). Ver api/_reviews.js.
 const reviews = require('./_reviews');
+// Códigos de envío nacional cotizado. Ver api/_envios.js.
+const envios = require('./_envios');
 
 const ESTADOS_VIGENTES = ['active', 'trialing', 'past_due', 'unpaid'];
 
@@ -381,6 +383,16 @@ module.exports = async (req, res) => {
         break;
       case 'reviewDelete':
         resultado = await reviews.adminBorrar(body);
+        break;
+      // ---- Códigos de envío nacional ----
+      case 'envioCreate':
+        resultado = await envios.crear(body);
+        break;
+      case 'envioList':
+        resultado = await envios.listar();
+        break;
+      case 'envioDelete':
+        resultado = await envios.borrar(body);
         break;
       default:
         return res.status(400).json({ error: 'Acción no reconocida.' });

@@ -305,6 +305,7 @@ function plantillaInterna({
   direccion,
   paymentId,
   descuento,
+  envioNacional,
 }) {
   const waNumero = telefonoParaWhatsApp(telefono);
   const waLink = waNumero ? 'https://wa.me/' + waNumero : '';
@@ -315,7 +316,9 @@ function plantillaInterna({
 
   const entregaTexto = recoleccion
     ? 'Cliente eligió RECOLECCIÓN EN TIENDA — no requiere dirección'
-    : `Envío a domicilio${direccion && direccion.valor ? ' — ' + direccion.valor : ''}`;
+    : envioNacional
+      ? `ENVÍO NACIONAL (cotización ${envioNacional})${direccion && direccion.valor ? ' — ' + direccion.valor : ''}`
+      : `Envío a domicilio${direccion && direccion.valor ? ' — ' + direccion.valor : ''}`;
 
   // Cada fila: [etiqueta, valor de texto, (opcional) HTML del valor].
   // Si se provee HTML propio, se usa en el correo HTML (p. ej. el link de WhatsApp).
@@ -503,10 +506,22 @@ module.exports = async (req, res) => {
       session.metadata && session.metadata.tipo_pedido === 'suscripcion_aromas';
 
     const recoleccion = esRecoleccion(session);
+    const envioNacional = (session.metadata && session.metadata.envio_nacional) || '';
+    if (envioNacional) {
+      // El código ya se pagó: se marca como usado para que no se reutilice.
+      try {
+        await require('./_envios').marcarPagado(envioNacional.split(' ')[0]);
+      } catch (e) {
+        console.error('[envios] No se pudo marcar el código como pagado:', e);
+      }
+    }
     let mensajeEntrega;
     if (esSuscripcionAromas) {
       mensajeEntrega =
         'Tu suscripción quedó activa. En los próximos 3 a 5 días hábiles nos comunicaremos contigo para coordinar tu primera entrega, y a partir de ahí recibirás tu aroma automáticamente cada mes con envío 100% gratuito. Puedes cambiar de aroma o cancelar cuando quieras desde "Gestionar mi suscripción" en nuestro sitio.';
+    } else if (envioNacional) {
+      mensajeEntrega =
+        'Recibimos tu pago con envío nacional incluido. En los próximos 2 a 3 días hábiles prepararemos tu paquete y te enviaremos por WhatsApp o correo tu número de guía para que puedas rastrearlo.';
     } else if (recoleccion) {
       mensajeEntrega =
         'En los próximos 3 a 5 días hábiles nos estaremos comunicando contigo para avisarte que tu pedido ya está listo para recolectar.';
@@ -567,6 +582,7 @@ module.exports = async (req, res) => {
       direccion,
       paymentId,
       descuento,
+      envioNacional,
     });
 
     const { error: errorInterno } = await resend.emails.send({
