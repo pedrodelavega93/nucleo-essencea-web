@@ -163,6 +163,18 @@ function obtenerDireccion(session) {
   return { etiqueta: 'Dirección', valor: '' };
 }
 
+// Datos de envío que el cliente escribió en Stripe (a nombre de quién
+// y a qué dirección). Se usan siempre en el correo interno, aunque el
+// pedido también traiga dirección de instalación de difusor.
+function obtenerEnvio(session) {
+  const envio = obtenerShippingDetails(session);
+  if (!envio) return { destinatario: '', direccion: '' };
+  return {
+    destinatario: envio.name || '',
+    direccion: formatearDireccion(envio.address),
+  };
+}
+
 // Escapa texto para insertarlo de forma segura dentro del HTML.
 function escaparHtml(texto) {
   return String(texto)
@@ -312,6 +324,7 @@ function plantillaInterna({
   descuento,
   envioNacional,
   desglose,
+  envio,
 }) {
   const waNumero = telefonoParaWhatsApp(telefono);
   const waLink = waNumero ? 'https://wa.me/' + waNumero : '';
@@ -323,8 +336,8 @@ function plantillaInterna({
   const entregaTexto = recoleccion
     ? 'Cliente eligió RECOLECCIÓN EN TIENDA — no requiere dirección'
     : envioNacional
-      ? `ENVÍO NACIONAL (cotización ${envioNacional})${direccion && direccion.valor ? ' — ' + direccion.valor : ''}`
-      : `Envío a domicilio${direccion && direccion.valor ? ' — ' + direccion.valor : ''}`;
+      ? `ENVÍO NACIONAL (cotización ${envioNacional})`
+      : 'Envío a domicilio';
 
   // Cada fila: [etiqueta, valor de texto, (opcional) HTML del valor].
   // Si se provee HTML propio, se usa en el correo HTML (p. ej. el link de WhatsApp).
@@ -340,6 +353,21 @@ function plantillaInterna({
       ? `<a href="${waLink}" style="color:#128C7E; text-decoration:none;">${escaparHtml(telefono)}</a>`
       : escaparHtml(telefono);
     filas.push(['WhatsApp', valorTexto, valorHtml]);
+  } else {
+    filas.push(['WhatsApp', '(no lo proporcionó)']);
+  }
+
+  // Datos de entrega: a nombre de quién y dirección completa.
+  if (!recoleccion) {
+    const env = envio || {};
+    if (env.destinatario && env.destinatario !== nombre) {
+      filas.push(['Envío a nombre de', env.destinatario]);
+    }
+    const dirEnvio = env.direccion || (direccion && direccion.etiqueta !== 'Dirección de instalación' ? direccion.valor : '');
+    filas.push(['Dirección de envío', dirEnvio || '(sin dirección)']);
+  }
+  if (direccion && direccion.etiqueta === 'Dirección de instalación' && direccion.valor) {
+    filas.push(['Dirección de instalación', direccion.valor]);
   }
 
   filas.push(['Producto(s)', resumenLineas.join(' • ') || resumen]);
@@ -622,6 +650,7 @@ module.exports = async (req, res) => {
       descuento,
       envioNacional,
       desglose,
+      envio: obtenerEnvio(session),
     });
 
     const { error: errorInterno } = await resend.emails.send({
